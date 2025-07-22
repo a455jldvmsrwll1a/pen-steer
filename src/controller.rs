@@ -21,7 +21,7 @@ pub fn controller(state: Arc<Mutex<State>>) -> ! {
 }
 
 pub fn update(state: &mut State) -> Result<()> {
-    if state.outdated {
+    if state.outdated && state.device.is_none() {
         initialise_io(state)?;
     }
 
@@ -46,6 +46,7 @@ pub fn initialise_io(state: &mut State) -> Result<()> {
     state.source = match state.config.source {
         config::Source::None => Source::Dummy,
         config::Source::Net => Source::Net(NetSource::new(&state.config.net_sock_addr)?),
+        #[cfg(target_os = "windows")]
         config::Source::Wintab => todo!(),
     };
 
