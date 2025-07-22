@@ -113,7 +113,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             ui.separator();
             dirty_wheel |= ui
                 .add(
-                    egui::Slider::new(&mut wheel.angle, -config.range..=config.range)
+                    egui::Slider::new(&mut wheel.angle, -(config.range * 0.5)..=(config.range * 0.5))
                         .drag_value_speed(1.0)
                         .custom_formatter(|v, _| format!("{v:.1}°"))
                         .text("Angle"),
@@ -209,8 +209,9 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
 
                 let centre = ui_rect.center().x;
                 let bound = ui_rect.width() * 0.5;
+                let range = config.range * 0.5;
                 let mut min = 0.0;
-                let mut max = (wheel.angle / config.range) * bound;
+                let mut max = (wheel.angle / range) * bound;
                 let mut colour = Color32::BLUE;
 
                 if min > max {
@@ -235,7 +236,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                     let right = ui_rect.right();
 
                     if pos.x >= left && pos.x <= right && ui.input(|i| i.pointer.any_down()) {
-                        wheel.angle = remap(pos.x, left, right, -config.range, config.range);
+                        wheel.angle = remap(pos.x, left, right, -range, range);
 
                         dirty_wheel = true;
                     }
