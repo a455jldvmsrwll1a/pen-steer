@@ -13,7 +13,9 @@ pub struct Wheel {
 }
 
 impl Wheel {
-    pub fn update(&mut self, config: &Config, pen: &Pen, dt: f32) {
+    pub fn update(&mut self, config: &Config, pen: Option<Pen>, dt: f32) {
+        let pen = pen.unwrap_or_default();
+
         // check if pen up
         if pen.pressure <= config.pressure_threshold {
             // stop honking
@@ -23,6 +25,8 @@ impl Wheel {
 
             self.honking = false;
             self.dragging = false;
+
+            return;
         }
 
         // wheel is held
