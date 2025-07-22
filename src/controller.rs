@@ -49,6 +49,12 @@ pub fn update(state: &mut State) -> Result<()> {
 }
 
 pub fn initialise_io(state: &mut State) -> Result<()> {
+    state.pen = None;
+    state.outdated = false;
+
+    state.source = Source::Dummy;
+    state.device = None;
+
     state.source = match state.config.source {
         config::Source::None => Source::Dummy,
         config::Source::Net => Source::Net(NetSource::new(&state.config.net_sock_addr)?),
@@ -62,9 +68,6 @@ pub fn initialise_io(state: &mut State) -> Result<()> {
             UInputDev::new(&state.config).context("Could not set up uinput device!")?,
         ),
     });
-
-    state.pen = None;
-    state.outdated = false;
 
     Ok(())
 }
