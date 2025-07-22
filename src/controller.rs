@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, thread, time::Duration};
+use std::sync::{Arc, Mutex};
 use anyhow::Result;
 
 use crate::{config, source::{net::NetSource, Source}, state::State, timer::Timer};
@@ -19,6 +19,12 @@ pub fn update(state: &mut State) -> Result<()> {
     if state.outdated {
         initialise_io(state)?;
     }
+
+    if let Some(pen) = state.source.get() {
+        state.pen = pen;
+    }
+
+    state.wheel.update(&state.config, &state.pen, 1.0 / state.config.update_frequency as f32);
 
     Ok(())
 }
