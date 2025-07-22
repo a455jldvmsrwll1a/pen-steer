@@ -270,7 +270,6 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         }
 
         if dirty_wheel {
-            eprintln!("wwwwwwwwwwwwwwwwwww");
             state2.wheel = wheel.clone();
         }
 
