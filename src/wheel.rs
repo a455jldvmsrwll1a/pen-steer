@@ -1,6 +1,6 @@
 use eframe::egui::Pos2;
 
-use crate::{config::Config, pen::Pen};
+use crate::{config::Config, device::Device, pen::Pen};
 
 #[derive(Debug, Default, Clone)]
 pub struct Wheel {
@@ -13,7 +13,13 @@ pub struct Wheel {
 }
 
 impl Wheel {
-    pub fn update(&mut self, config: &Config, pen: Option<Pen>, dt: f32) {
+    pub fn update(
+        &mut self,
+        device: Option<&mut Device>,
+        config: &Config,
+        pen: Option<Pen>,
+        dt: f32,
+    ) {
         let pen = pen.unwrap_or_default();
 
         self.angle = clamp_symmetric(config.range * 0.5, self.angle);
@@ -22,7 +28,9 @@ impl Wheel {
         if pen.pressure <= config.pressure_threshold {
             // stop honking
             if self.honking {
-                // dev set horn false
+                if let Some(dev) = device {
+                    dev.set_horn(false);
+                }
             }
 
             self.honking = false;
@@ -42,7 +50,9 @@ impl Wheel {
         if !self.dragging && centre_dist <= config.horn_radius {
             // start honking
             self.honking = true;
-            // vdev set horn true
+            if let Some(dev) = device {
+                dev.set_horn(true);
+            }
 
             return;
         }
@@ -58,8 +68,10 @@ impl Wheel {
             let new_angle = self.angle + adjusted;
             self.angle = clamp_symmetric(config.range * 0.5, new_angle);
 
-            let normalised = self.angle / config.range * 0.5;
-            // vdev set wheel normalised
+            let normalised = self.angle / (config.range * 0.5);
+            if let Some(dev) = device {
+                dev.set_wheel(normalised);
+            }
         }
 
         self.dragging = true;
