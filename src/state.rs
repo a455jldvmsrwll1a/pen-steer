@@ -4,6 +4,7 @@ use crate::{config::Config, device::Device, pen::Pen, source::Source, wheel::Whe
 pub struct State {
     pub wheel: Wheel,
     pub pen: Option<Pen>,
+    pub pen_override: Option<Pen>,
     pub source: Source,
     pub device: Device,
     pub config: Config,
@@ -15,6 +16,7 @@ impl Default for State {
         Self {
             wheel: Wheel::default(),
             pen: None,
+            pen_override: None,
             source: Source::Dummy,
             device: Device::Dummy,
             config: Config::default(),

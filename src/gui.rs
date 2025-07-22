@@ -4,7 +4,7 @@ use eframe::egui::{
     self, Color32, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, Vec2, ViewportBuilder,
 };
 
-use crate::{config, state::State};
+use crate::{config, pen::Pen, state::State};
 
 pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
     let options = eframe::NativeOptions {
@@ -23,7 +23,8 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         let mut config = state2.config.clone();
         let mut wheel = state2.wheel.clone();
         let mut outdated = state2.outdated;
-        let pen = state2.pen.clone();
+        let pen = state2.pen_override.clone().or_else(|| state2.pen.clone());
+        let mut pen_override = None;
         drop(state2);
 
         let mut dev_started = false;
@@ -262,32 +263,51 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
 
             let sin = wheel.angle.to_radians().sin();
             let cos = wheel.angle.to_radians().cos();
-            let right = Vec2::new(size * cos, size * sin);
-            let down = Vec2::new(-size * sin, size * cos);
+            let rightward = Vec2::new(size * cos, size * sin);
+            let downward = Vec2::new(-size * sin, size * cos);
+
+            let left = rect.left();
+            let right = rect.right();
+            let bottom = rect.bottom();
+            let top = rect.top();
 
             painter.circle_stroke(origin, size, stroke);
-            painter.line_segment([origin + right, origin - right], stroke);
-            painter.line_segment([origin, origin + down], stroke);
+            painter.line_segment([origin + rightward, origin - rightward], stroke);
+            painter.line_segment([origin, origin + downward], stroke);
             painter.circle_filled(
                 origin,
                 size * config.horn_radius,
-                if wheel.honking {
-                    horn_colour
-                } else {
-                    colour
-                },
+                if wheel.honking { horn_colour } else { colour },
             );
 
             if let Some(pen) = pen {
                 let pos = Pos2 {
-                    x: remap(pen.x, -1.0, 1.0, rect.right(), rect.left()),
-                    y: remap(pen.y, -1.0, 1.0, rect.top(), rect.bottom()),
+                    x: remap(pen.x, -1.0, 1.0, right, left),
+                    y: remap(pen.y, -1.0, 1.0, top, bottom),
                 };
 
                 if pen.pressure > config.pressure_threshold {
                     painter.circle_filled(pos, 5.0, pen_colour);
                 } else {
                     painter.circle_stroke(pos, 5.0, Stroke::new(1.0, pen_colour));
+                }
+            }
+
+            // allow user to click and drag the steering wheel
+            if let Some(pos) = ui
+                .interact(rect, Id::new("wheel_box"), Sense::click_and_drag())
+                .hover_pos()
+            {
+                if rect.contains(pos) && ui.input(|i| i.pointer.primary_down()) {
+                    let x = remap(pos.x, right, left, -1.0, 1.0);
+                    let y = remap(pos.y, top, bottom, -1.0, 1.0);
+
+                    pen_override = Some(Pen {
+                        x,
+                        y,
+                        pressure: u32::MAX,
+                        ..Default::default()
+                    });
                 }
             }
         });
@@ -301,6 +321,8 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         if dirty_wheel {
             state2.wheel = wheel.clone();
         }
+
+        state2.pen_override = pen_override.clone();
 
         state2.outdated |= outdated;
     })
