@@ -255,7 +255,17 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             let pen_colour = Color32::MAGENTA;
             let horn_colour = Color32::PURPLE;
 
-            let rect = ui.clip_rect();
+            let mut rect = ctx.available_rect();
+
+            // keep the rect a square
+            if rect.width() > rect.height() {
+                let extra = rect.width() - rect.height();
+                rect = rect.shrink2(Vec2::X * extra * 0.5);
+            } else if rect.height() > rect.width() {
+                let extra = rect.height() - rect.width();
+                rect = rect.shrink2(Vec2::Y * extra * 0.5);
+            }
+
             let origin = rect.center();
             let size = rect.size().x.min(rect.size().y) * 0.4;
             let stroke = Stroke::new(size * 0.1, colour);
