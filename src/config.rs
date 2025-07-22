@@ -20,7 +20,7 @@ pub struct Config {
     pub net_sock_addr: String,
 
     /// Absolute axis resolution for the virtual device to present.
-    pub output_resolution: u32,
+    pub device_resolution: u32,
     /// Virtual device name.
     pub device_name: String,
     /// Virtual device vendor.
@@ -59,7 +59,7 @@ impl Default for Config {
             base_radius: 0.6,
             inertia: 1.0, /* idk */
             net_sock_addr: "localhost:16027".into(),
-            output_resolution: 32768,
+            device_resolution: 32768,
             device_name: "G29 Driving Force Racing Wheel [PS3]".into(),
             device_vendor: 0x46D,
             device_product: 0xC24F,
