@@ -4,6 +4,7 @@ mod config;
 mod controller;
 mod device;
 mod gui;
+mod pen;
 mod source;
 mod state;
 mod timer;
@@ -17,7 +18,10 @@ use crate::state::State;
 
 fn main() -> Result<()> {
     let state = Arc::new(Mutex::new(State::default()));
-    controller::controller(state.clone());
+    
+    let state_clone = state.clone();
+    std::thread::spawn(move || controller::controller(state_clone));
+
     if let Err(err) = gui::gui(state.clone()) {
         bail!("GUI error: {err}");
     }

@@ -7,17 +7,6 @@ use eframe::egui::{
 use crate::{config, state::State};
 
 pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
-    let state2 = state.lock().unwrap();
-    let mut config = state2.config.clone();
-    let mut wheel = state2.wheel.clone();
-    let mut outdated = state2.outdated;
-    drop(state2);
-
-    let mut dev_started = false;
-
-    let mut dirty_wheel = false;
-    let mut dirty_config = false;
-
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder {
             title: Some("Pen Steer".into()),
@@ -30,6 +19,17 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
     };
 
     eframe::run_simple_native("pen-steer", options, move |ctx, _frame| {
+        let state2 = state.lock().unwrap();
+        let mut config = state2.config.clone();
+        let mut wheel = state2.wheel.clone();
+        let mut outdated = state2.outdated;
+        drop(state2);
+
+        let mut dev_started = false;
+
+        let mut dirty_wheel = false;
+        let mut dirty_config = false;
+
         egui::TopBottomPanel::top("menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.menu_button("File", |ui| {
@@ -270,6 +270,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         }
 
         if dirty_wheel {
+            eprintln!("wwwwwwwwwwwwwwwwwww");
             state2.wheel = wheel.clone();
         }
 
