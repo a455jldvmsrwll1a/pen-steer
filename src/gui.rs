@@ -258,7 +258,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             let pen_colour = Color32::MAGENTA;
             let horn_colour = Color32::PURPLE;
 
-            let mut rect = ctx.available_rect();
+            let mut rect = ctx.available_rect().scale_from_center(0.95);
 
             // keep the rect a square
             if rect.width() > rect.height() {
@@ -270,9 +270,9 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             }
 
             let origin = rect.center();
-            let size = rect.size().x.min(rect.size().y) * 0.4;
+            let size = rect.size().x.min(rect.size().y) * 0.45;
             let stroke = Stroke::new(size * 0.1, colour);
-            let painter = ui.painter_at(rect);
+            let painter = ui.painter_at(ctx.available_rect());
 
             let sin = wheel.angle.to_radians().sin();
             let cos = wheel.angle.to_radians().cos();
