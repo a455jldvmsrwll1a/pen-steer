@@ -20,3 +20,7 @@ features = [
     "wayland",
     "x11"
 ]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = "0.30.1"
+input-linux = "0.7.1"
