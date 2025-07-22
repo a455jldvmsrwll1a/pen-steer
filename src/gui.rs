@@ -19,7 +19,10 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
     };
 
     eframe::run_simple_native("pen-steer", options, move |ctx, _frame| {
-        let state2 = state.lock().unwrap();
+        let mut state2 = state.lock().unwrap();
+        if state2.gui_context.is_none() {
+            state2.gui_context = Some(ctx.clone());
+        }
         let mut config = state2.config.clone();
         let mut wheel = state2.wheel.clone();
         let mut outdated = state2.outdated;

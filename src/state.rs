@@ -9,6 +9,7 @@ pub struct State {
     pub device: Device,
     pub config: Config,
     pub outdated: bool,
+    pub gui_context: Option<eframe::egui::Context>,
 }
 
 impl Default for State {
@@ -21,6 +22,7 @@ impl Default for State {
             device: Device::Dummy,
             config: Config::default(),
             outdated: true,
+            gui_context: None,
         }
     }
 }
