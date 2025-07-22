@@ -2,8 +2,6 @@ use std::{
     fmt::Debug,
     fs::{File, OpenOptions},
     os::unix::fs::OpenOptionsExt,
-    thread,
-    time::Duration,
 };
 
 use crate::config::Config;

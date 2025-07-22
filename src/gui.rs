@@ -66,13 +66,11 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                     if outdated {
                         ui.colored_label(Color32::YELLOW, "Stop to apply changes.");
                     }
-                } else {
-                    if ui
-                        .button(RichText::new("Start virtual wheel").color(Color32::GREEN))
-                        .clicked()
-                    {
-                        dev_started = true;
-                    }
+                } else if ui
+                    .button(RichText::new("Start virtual wheel").color(Color32::GREEN))
+                    .clicked()
+                {
+                    dev_started = true;
                 }
             });
 
