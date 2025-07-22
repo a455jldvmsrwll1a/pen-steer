@@ -1,7 +1,7 @@
 #[derive(Debug, Default, Clone)]
 pub struct Pen {
-    x: f32,
-    y: f32,
-    pressure: u32,
-    buttons: u8,
+    pub x: f32,
+    pub y: f32,
+    pub pressure: u32,
+    pub buttons: u8,
 }
