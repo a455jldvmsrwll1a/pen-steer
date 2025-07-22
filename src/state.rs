@@ -6,4 +6,5 @@ pub struct State {
     pub source: Source,
     pub device: Device,
     pub config: Config,
+    pub outdated: bool,
 }

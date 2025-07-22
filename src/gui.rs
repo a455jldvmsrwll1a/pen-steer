@@ -1,14 +1,17 @@
 use std::sync::{Arc, Mutex};
 
 use eframe::egui::{
-    self, Color32, CornerRadius, Id, Pos2, Rect, Sense, Stroke, Vec2, ViewportBuilder,
+    self, Color32, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, Vec2, ViewportBuilder,
 };
 
 use crate::{config, state::State};
 
 pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
-    let mut config = state.lock().unwrap().config.clone();
-    let mut wheel = state.lock().unwrap().wheel.clone();
+    let state2 = state.lock().unwrap();
+    let mut config = state2.config.clone();
+    let mut wheel = state2.wheel.clone();
+    let mut outdated = state2.outdated;
+    drop(state2);
 
     let mut dev_started = false;
 
@@ -48,11 +51,21 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             ui.separator();
             ui.horizontal_top(|ui| {
                 if dev_started {
-                    if ui.button("Stop virtual wheel").clicked() {
+                    if ui
+                        .button(RichText::new("Stop virtual wheel").color(Color32::RED))
+                        .clicked()
+                    {
                         dev_started = false;
                     }
+
+                    if outdated {
+                        ui.colored_label(Color32::YELLOW, "Stop to apply changes.");
+                    }
                 } else {
-                    if ui.button("Start virtual wheel").clicked() {
+                    if ui
+                        .button(RichText::new("Start virtual wheel").color(Color32::GREEN))
+                        .clicked()
+                    {
                         dev_started = true;
                     }
                 }
@@ -140,6 +153,20 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                     );
                 });
             dirty_config |= config.source != old_source;
+            outdated |= config.source != old_source;
+
+            match old_source {
+                config::Source::None => {
+                    ui.colored_label(Color32::YELLOW, "No input available!");
+                }
+                config::Source::Net => {
+                    dirty_config |= ui.text_edit_singleline(&mut config.net_sock_addr).changed();
+                    ui.colored_label(Color32::YELLOW, "Work in progress...");
+                }
+                config::Source::Wintab => {
+                    ui.colored_label(Color32::YELLOW, "Work in progress...");
+                }
+            }
 
             ui.separator();
             ui.heading("Mapping");
@@ -159,6 +186,20 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                     ui.selectable_value(&mut config.device, config::Device::VigemBus, "ViGEm Bus");
                 });
             dirty_config |= config.device != old_device;
+            outdated |= config.device != old_device;
+
+            match old_device {
+                config::Device::None => {
+                    ui.colored_label(Color32::YELLOW, "No output available!");
+                }
+                config::Device::UInput => {
+                    dirty_config |= ui.text_edit_singleline(&mut config.device_name).changed();
+                    ui.colored_label(Color32::YELLOW, "Work in progress...");
+                }
+                config::Device::VigemBus => {
+                    ui.colored_label(Color32::YELLOW, "Work in progress...");
+                }
+            }
         });
 
         egui::TopBottomPanel::bottom("steer_bar")
@@ -222,13 +263,17 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             painter.line_segment([origin, origin + down], stroke);
         });
 
+        let mut state2 = state.lock().unwrap();
+
         if dirty_config {
-            state.lock().unwrap().config = config.clone();
+            state2.config = config.clone();
         }
 
         if dirty_wheel {
-            state.lock().unwrap().wheel = wheel.clone();
+            state2.wheel = wheel.clone();
         }
+
+        state2.outdated |= outdated;
     })
 }
 
