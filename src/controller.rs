@@ -35,10 +35,15 @@ pub fn update(state: &mut State) -> Result<()> {
     }
 
     state.wheel.update(
+        state.device.as_mut(),
         &state.config,
         state.pen_override.clone().or_else(|| state.pen.clone()),
         1.0 / state.config.update_frequency as f32,
     );
+
+    if let Some(device) = &mut state.device {
+        device.apply().context("error applying device")?;
+    }
 
     Ok(())
 }
