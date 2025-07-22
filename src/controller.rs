@@ -45,6 +45,7 @@ pub fn initialise_io(state: &mut State) -> Result<()> {
         config::Source::Wintab => todo!(),
     };
 
+    state.pen = None;
     state.outdated = false;
 
     Ok(())
