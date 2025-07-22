@@ -23,6 +23,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         let mut config = state2.config.clone();
         let mut wheel = state2.wheel.clone();
         let mut outdated = state2.outdated;
+        let pen = state2.pen.clone();
         drop(state2);
 
         let mut dev_started = false;
@@ -113,10 +114,13 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             ui.separator();
             dirty_wheel |= ui
                 .add(
-                    egui::Slider::new(&mut wheel.angle, -(config.range * 0.5)..=(config.range * 0.5))
-                        .drag_value_speed(1.0)
-                        .custom_formatter(|v, _| format!("{v:.1}°"))
-                        .text("Angle"),
+                    egui::Slider::new(
+                        &mut wheel.angle,
+                        -(config.range * 0.5)..=(config.range * 0.5),
+                    )
+                    .drag_value_speed(1.0)
+                    .custom_formatter(|v, _| format!("{v:.1}°"))
+                    .text("Angle"),
                 )
                 .changed();
 
@@ -246,10 +250,13 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         egui::CentralPanel::default().show(ctx, |ui| {
             // draw the (somewhat primitive) steering wheel
 
+            let colour = Color32::LIGHT_GRAY;
+            let pen_colour = Color32::MAGENTA;
+            let horn_colour = Color32::PURPLE;
+
             let rect = ui.clip_rect();
             let origin = rect.center();
             let size = rect.size().x.min(rect.size().y) * 0.4;
-            let colour = Color32::LIGHT_GRAY;
             let stroke = Stroke::new(size * 0.1, colour);
             let painter = ui.painter_at(rect);
 
@@ -259,9 +266,30 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             let down = Vec2::new(-size * sin, size * cos);
 
             painter.circle_stroke(origin, size, stroke);
-            painter.circle_filled(origin, size * config.horn_radius, colour);
             painter.line_segment([origin + right, origin - right], stroke);
             painter.line_segment([origin, origin + down], stroke);
+            painter.circle_filled(
+                origin,
+                size * config.horn_radius,
+                if wheel.honking {
+                    horn_colour
+                } else {
+                    colour
+                },
+            );
+
+            if let Some(pen) = pen {
+                let pos = Pos2 {
+                    x: remap(pen.x, -1.0, 1.0, rect.right(), rect.left()),
+                    y: remap(pen.y, -1.0, 1.0, rect.top(), rect.bottom()),
+                };
+
+                if pen.pressure > config.pressure_threshold {
+                    painter.circle_filled(pos, 5.0, pen_colour);
+                } else {
+                    painter.circle_stroke(pos, 5.0, Stroke::new(1.0, pen_colour));
+                }
+            }
         });
 
         let mut state2 = state.lock().unwrap();
