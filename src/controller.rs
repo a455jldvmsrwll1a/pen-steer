@@ -1,8 +1,9 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::sync::{Arc, Mutex};
 
 use crate::{
     config,
+    device::{Device, uinput::UInputDev},
     source::{Source, net::NetSource},
     state::State,
     timer::Timer,
@@ -27,7 +28,7 @@ pub fn update(state: &mut State) -> Result<()> {
 
     if let Some(ref pen) = state.source.get() {
         state.pen = Some(pen.clone());
-        
+
         if let Some(ctx) = &state.gui_context {
             ctx.request_repaint();
         }
@@ -49,6 +50,13 @@ pub fn initialise_io(state: &mut State) -> Result<()> {
         #[cfg(target_os = "windows")]
         config::Source::Wintab => todo!(),
     };
+
+    state.device = Some(match state.config.device {
+        config::Device::None => Device::Dummy,
+        config::Device::UInput => Device::UInput(
+            UInputDev::new(&state.config).context("Could not set up uinput device!")?,
+        ),
+    });
 
     state.pen = None;
     state.outdated = false;
