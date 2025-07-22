@@ -58,7 +58,7 @@ impl Default for Config {
             pressure_threshold: 10,
             base_radius: 0.6,
             inertia: 1.0, /* idk */
-            net_sock_addr: "localhost:16027".into(),
+            net_sock_addr: "127.0.0.1:16027".into(),
             device_resolution: 32768,
             device_name: "G29 Driving Force Racing Wheel [PS3]".into(),
             device_vendor: 0x46D,
