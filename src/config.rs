@@ -1,4 +1,4 @@
-use std::{fmt::Display, net::SocketAddr};
+use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -24,11 +24,11 @@ pub struct Config {
     /// Virtual device name.
     pub device_name: String,
     /// Virtual device vendor.
-    pub device_vendor: u32,
+    pub device_vendor: u16,
     /// Virtual device product.
-    pub device_product: u32,
+    pub device_product: u16,
     /// Virtual device version.
-    pub device_version: u32,
+    pub device_version: u16,
 
     pub source: Source,
     pub device: Device,
@@ -38,6 +38,7 @@ pub struct Config {
 pub enum Source {
     None,
     Net,
+    #[cfg(target_os = "windows")]
     Wintab,
 }
 
@@ -45,7 +46,9 @@ pub enum Source {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Device {
     None,
+    #[cfg(target_os = "linux")]
     UInput,
+    #[cfg(target_os = "windows")]
     VigemBus,
 }
 
@@ -81,6 +84,7 @@ impl Display for Source {
         f.write_str(match self {
             Source::None => "Disabled",
             Source::Net => "Network (over UDP)",
+            #[cfg(target_os = "windows")]
             Source::Wintab => "Wacom Wintab (Windows)",
         })
     }
@@ -90,7 +94,9 @@ impl Display for Device {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Device::None => "Null",
+            #[cfg(target_os = "linux")]
             Device::UInput => "Linux uinput",
+            #[cfg(target_os = "windows")]
             Device::VigemBus => "ViGEm Bus",
         })
     }

@@ -171,6 +171,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                     dirty_config |= ui.text_edit_singleline(&mut config.net_sock_addr).changed();
                     ui.colored_label(Color32::YELLOW, "Work in progress...");
                 }
+                #[cfg(target_os = "windows")]
                 config::Source::Wintab => {
                     ui.colored_label(Color32::YELLOW, "Work in progress...");
                 }
@@ -200,10 +201,12 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                 config::Device::None => {
                     ui.colored_label(Color32::YELLOW, "No output available!");
                 }
+                #[cfg(target_os = "linux")]
                 config::Device::UInput => {
                     dirty_config |= ui.text_edit_singleline(&mut config.device_name).changed();
                     ui.colored_label(Color32::YELLOW, "Work in progress...");
                 }
+                #[cfg(target_os = "windows")]
                 config::Device::VigemBus => {
                     ui.colored_label(Color32::YELLOW, "Work in progress...");
                 }
