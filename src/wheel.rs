@@ -16,6 +16,8 @@ impl Wheel {
     pub fn update(&mut self, config: &Config, pen: Option<Pen>, dt: f32) {
         let pen = pen.unwrap_or_default();
 
+        self.angle = clamp_symmetric(config.range * 0.5, self.angle);
+
         // check if pen up
         if pen.pressure <= config.pressure_threshold {
             // stop honking
