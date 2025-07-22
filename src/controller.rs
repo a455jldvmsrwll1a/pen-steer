@@ -27,6 +27,10 @@ pub fn update(state: &mut State) -> Result<()> {
 
     if let Some(ref pen) = state.source.get() {
         state.pen = Some(pen.clone());
+        
+        if let Some(ctx) = &state.gui_context {
+            ctx.request_repaint();
+        }
     }
 
     state.wheel.update(
