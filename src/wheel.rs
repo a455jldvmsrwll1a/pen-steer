@@ -50,9 +50,9 @@ impl Wheel {
             let adjusted = adjust_angle_delta(delta_t, centre_dist, config.base_radius);
 
             let new_angle = self.angle + adjusted;
-            self.angle = clamp_symmetric(config.range, new_angle);
+            self.angle = clamp_symmetric(config.range * 0.5, new_angle);
 
-            let normalised = self.angle / config.range;
+            let normalised = self.angle / config.range * 0.5;
             // vdev set wheel normalised
         }
 

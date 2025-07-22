@@ -4,7 +4,7 @@ use std::{fmt::Display, net::SocketAddr};
 pub struct Config {
     /// How many updates per second.
     pub update_frequency: u32,
-    /// Angular range (in degrees) that the steering wheel may have each side.
+    /// Angular range (in degrees) that the steering wheel has lock-to-lock.
     pub range: f32,
     /// Maximum threshold in which bringing the pen down triggers the horn.
     pub horn_radius: f32,
