@@ -140,6 +140,18 @@ impl UInputDev {
         })
     }
 
+    pub fn get_feedback(&self) -> f32 {
+        let Some(ff) = self.ff else {
+            return 0.0;
+        };
+
+        if !ff.playing {
+            return 0.0;
+        }
+
+        ff.force as f32 / i16::MAX as f32
+    }
+
     pub fn set_wheel(&mut self, angle: f32) {
         let value = (angle * self.resolution).round_ties_even();
         self.wheel_axis = Some(value as i32);
