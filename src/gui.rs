@@ -119,7 +119,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                     .add(
                         egui::DragValue::new(&mut config.max_torque)
                             .speed(0.1)
-                            .range(0.0..=1000.0)
+                            .range(-1000.0..=1000.0)
                             .clamp_existing_to_range(true),
                     )
                     .changed();
