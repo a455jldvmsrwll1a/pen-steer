@@ -179,8 +179,11 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                     ui.colored_label(Color32::YELLOW, "No input available!");
                 }
                 config::Source::Net => {
-                    dirty_config |= ui.text_edit_singleline(&mut config.net_sock_addr).changed();
-                    ui.colored_label(Color32::YELLOW, "Work in progress...");
+                    ui.horizontal(|ui| {
+                        ui.label("Listen to: ");
+                        dirty_config |=
+                            ui.text_edit_singleline(&mut config.net_sock_addr).changed();
+                    });
                 }
                 #[cfg(target_os = "windows")]
                 config::Source::Wintab => {
@@ -214,8 +217,14 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                 }
                 #[cfg(target_os = "linux")]
                 config::Device::UInput => {
-                    dirty_config |= ui.text_edit_singleline(&mut config.device_name).changed();
-                    ui.colored_label(Color32::YELLOW, "Work in progress...");
+                    ui.heading("Virtual Controller: (via uinput)");
+                    ui.horizontal(|ui| {
+                        ui.label("Name:");
+                        dirty_config |= ui.text_edit_singleline(&mut config.device_name).changed();
+                    });
+                    ui.monospace(format!("vendor = 0x{:x}", config.device_vendor));
+                    ui.monospace(format!("product = 0x{:x}", config.device_product));
+                    ui.monospace(format!("version = 0x{:x}", config.device_version));
                 }
                 #[cfg(target_os = "windows")]
                 config::Device::VigemBus => {
@@ -263,6 +272,30 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                         dirty_wheel = true;
                     }
                 }
+            });
+
+        egui::TopBottomPanel::bottom("ff_bar")
+            .exact_height(16.0)
+            .show(ctx, |ui| {
+                let ui_rect = ui.min_rect();
+
+                let centre = ui_rect.center().x;
+                let bound = ui_rect.width() * 0.5;
+                let mut min = 0.0;
+                let mut max = (wheel.feedback_torque / config.max_torque) * bound;
+                let colour = Color32::BROWN;
+
+                if min > max {
+                    std::mem::swap(&mut min, &mut max);
+                }
+
+                let bar_rect = Rect {
+                    min: Pos2::new(centre + min, ui_rect.min.y),
+                    max: Pos2::new(centre + max, ui_rect.max.y),
+                };
+
+                ui.painter_at(ui_rect)
+                    .rect_filled(bar_rect, CornerRadius::ZERO, colour);
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
