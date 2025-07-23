@@ -170,6 +170,8 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                         config::Source::Wintab,
                         "Wacom Wintab (Windows)",
                     );
+                    #[cfg(target_os = "linux")]
+                    ui.selectable_value(&mut config.source, config::Source::Evdev, "Evdev (Linux)");
                 });
             dirty_config |= config.source != old_source;
             outdated |= config.source != old_source;
@@ -188,6 +190,20 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                 #[cfg(target_os = "windows")]
                 config::Source::Wintab => {
                     ui.colored_label(Color32::YELLOW, "Work in progress...");
+                }
+                #[cfg(target_os = "linux")]
+                config::Source::Evdev => {
+                    ui.heading("Evdev:");
+                    egui::ComboBox::new("tablet_pref", "Preferred Tablet")
+                        .width(200.0)
+                        .selected_text(if let Some(dev) = &config.preferred_tablet {
+                            dev.as_str()
+                        } else {
+                            "Automatic"
+                        })
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(&mut config.preferred_tablet, None, "Automatic");
+                        });
                 }
             }
 
