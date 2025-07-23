@@ -26,15 +26,14 @@ pub fn update(state: &mut State) -> Result<()> {
         initialise_io(state)?;
     }
 
+    let mut needs_redraw = false;
+
     if let Some(ref pen) = state.source.get() {
         state.pen = Some(pen.clone());
-
-        if let Some(ctx) = &state.gui_context {
-            ctx.request_repaint();
-        }
+        needs_redraw = true;
     }
 
-    state.wheel.update(
+    needs_redraw |= state.wheel.update(
         state.device.as_mut(),
         &state.config,
         state.pen_override.clone().or_else(|| state.pen.clone()),
@@ -44,6 +43,10 @@ pub fn update(state: &mut State) -> Result<()> {
     if let Some(device) = &mut state.device {
         device.apply().context("error applying device")?;
         device.handle_events();
+    }
+
+    if needs_redraw && let Some(ctx) = &state.gui_context {
+        ctx.request_repaint();
     }
 
     Ok(())
