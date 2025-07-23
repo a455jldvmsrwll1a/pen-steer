@@ -113,6 +113,42 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
                 ui.label("Inertia (kg*m^2)");
             });
 
+            ui.horizontal(|ui| {
+                dirty_config |= ui
+                    .add(
+                        egui::DragValue::new(&mut config.friction)
+                            .speed(0.5)
+                            .range(0.0..=100.0)
+                            .clamp_existing_to_range(true),
+                    )
+                    .changed();
+                ui.label("Friction");
+            });
+
+            ui.horizontal(|ui| {
+                dirty_config |= ui
+                    .add(
+                        egui::DragValue::new(&mut config.spring)
+                            .speed(0.5)
+                            .range(0.0..=100.0)
+                            .clamp_existing_to_range(true),
+                    )
+                    .changed();
+                ui.label("Spring");
+            });
+
+            ui.horizontal(|ui| {
+                dirty_config |= ui
+                    .add(
+                        egui::DragValue::new(&mut config.max_torque)
+                            .speed(0.1)
+                            .range(0.0..=1000.0)
+                            .clamp_existing_to_range(true),
+                    )
+                    .changed();
+                ui.label("Max Torque (Nm)");
+            });
+
             ui.separator();
             dirty_wheel |= ui
                 .add(
