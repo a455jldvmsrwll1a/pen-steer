@@ -11,6 +11,8 @@ use crate::{
 
 #[cfg(target_os = "linux")]
 use crate::device::uinput::UInputDev;
+#[cfg(target_os = "linux")]
+use crate::source::evdev::EvdevSource;
 
 pub fn controller(state: Arc<Mutex<State>>) -> ! {
     let mut timer = Timer::new(state.lock().unwrap().config.update_frequency);
@@ -67,6 +69,10 @@ pub fn initialise_io(state: &mut State) -> Result<()> {
         config::Source::Net => Source::Net(NetSource::new(&state.config.net_sock_addr)?),
         #[cfg(target_os = "windows")]
         config::Source::Wintab => Source::Dummy,
+        #[cfg(target_os = "linux")]
+        config::Source::Evdev => {
+            Source::Evdev(EvdevSource::new(state.config.preferred_tablet.as_deref())?)
+        }
     };
 
     state.device = Some(match state.config.device {
