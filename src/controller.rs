@@ -3,11 +3,14 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     config,
-    device::{Device, uinput::UInputDev},
+    device::Device,
     source::{Source, net::NetSource},
     state::State,
     timer::Timer,
 };
+
+#[cfg(target_os = "linux")]
+use crate::device::uinput::UInputDev;
 
 pub fn controller(state: Arc<Mutex<State>>) -> ! {
     let mut timer = Timer::new(state.lock().unwrap().config.update_frequency);
@@ -68,9 +71,12 @@ pub fn initialise_io(state: &mut State) -> Result<()> {
 
     state.device = Some(match state.config.device {
         config::Device::None => Device::Dummy,
+        #[cfg(target_os = "linux")]
         config::Device::UInput => Device::UInput(
             UInputDev::new(&state.config).context("Could not set up uinput device!")?,
         ),
+        #[cfg(target_os = "windows")]
+        config::Device::VigemBus => Device::Dummy,
     });
 
     Ok(())
