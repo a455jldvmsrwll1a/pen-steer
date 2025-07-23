@@ -25,12 +25,12 @@ impl Wheel {
 
         if !self.dragging {
             let feedback_normalised = device.as_ref().map(|d| d.get_feedback()).unwrap_or(0.0);
-            let feedback = feedback_normalised * config.max_torque;
+            self.feedback_torque = feedback_normalised * config.max_torque;
 
             let w = self.velocity.to_radians();
             let theta = self.angle.to_radians();
 
-            let net_force = feedback - config.friction * w - config.spring * theta;
+            let net_force = self.feedback_torque - config.friction * w - config.spring * theta;
             let acc = net_force / config.inertia;
 
             self.velocity += (acc * dt).to_degrees();
