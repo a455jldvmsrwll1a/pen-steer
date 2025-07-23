@@ -66,7 +66,7 @@ pub fn initialise_io(state: &mut State) -> Result<()> {
         config::Source::None => Source::Dummy,
         config::Source::Net => Source::Net(NetSource::new(&state.config.net_sock_addr)?),
         #[cfg(target_os = "windows")]
-        config::Source::Wintab => todo!(),
+        config::Source::Wintab => Source::Dummy,
     };
 
     state.device = Some(match state.config.device {
