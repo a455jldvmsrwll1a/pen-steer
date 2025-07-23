@@ -6,20 +6,19 @@ use eframe::egui::{
 
 use crate::{config, pen::Pen, state::State};
 
-pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
-    let options = eframe::NativeOptions {
-        viewport: ViewportBuilder {
-            title: Some("Pen Steer".into()),
-            app_id: Some("pen-steer".into()),
-            ..Default::default()
-        },
-        persist_window: false,
-        centered: true,
-        ..Default::default()
-    };
+pub struct GuiApp {
+    state: Arc<Mutex<State>>,
+}
 
-    eframe::run_simple_native("pen-steer", options, move |ctx, _frame| {
-        let mut state2 = state.lock().unwrap();
+impl GuiApp {
+    pub fn new(state: Arc<Mutex<State>>, cc: &eframe::CreationContext<'_>) -> Self {
+        Self { state }
+    }
+}
+
+impl eframe::App for GuiApp {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        let mut state2 = self.state.lock().unwrap();
         if state2.gui_context.is_none() {
             state2.gui_context = Some(ctx.clone());
         }
@@ -388,7 +387,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             }
         });
 
-        let mut state2 = state.lock().unwrap();
+        let mut state2 = self.state.lock().unwrap();
 
         if dirty_config {
             state2.config = config.clone();
@@ -401,7 +400,26 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         state2.pen_override = pen_override.clone();
 
         state2.outdated |= outdated;
-    })
+    }
+}
+
+pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
+    let options = eframe::NativeOptions {
+        viewport: ViewportBuilder {
+            title: Some("Pen Steer".into()),
+            app_id: Some("pen-steer".into()),
+            ..Default::default()
+        },
+        persist_window: false,
+        centered: true,
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "pen-steer",
+        options,
+        Box::new(|cc| Ok(Box::new(GuiApp::new(state, cc)))),
+    )
 }
 
 fn remap(t: f32, a1: f32, a2: f32, b1: f32, b2: f32) -> f32 {
