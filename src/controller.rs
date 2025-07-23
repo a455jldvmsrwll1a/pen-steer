@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use log::error;
+use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 
 use crate::{
@@ -17,6 +17,7 @@ use crate::source::evdev::EvdevSource;
 
 pub fn controller(state: Arc<Mutex<State>>) -> ! {
     let mut update_frequency = state.lock().unwrap().config.update_frequency;
+    info!("Using {update_frequency} Hz rate.");
     let mut timer = Timer::new(update_frequency);
 
     loop {
@@ -28,6 +29,7 @@ pub fn controller(state: Arc<Mutex<State>>) -> ! {
         if current_update_frequency != update_frequency {
             update_frequency = current_update_frequency;
             timer = Timer::new(update_frequency);
+            info!("Now updating at {update_frequency} Hz.");
         }
 
         timer.wait();
@@ -66,6 +68,8 @@ pub fn update(state: &mut State) -> Result<()> {
 }
 
 pub fn initialise_io(state: &mut State) -> Result<()> {
+    debug!("initialising I/O");
+    
     state.pen = None;
     state.outdated = false;
 
