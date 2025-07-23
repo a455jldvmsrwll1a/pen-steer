@@ -205,20 +205,26 @@ impl eframe::App for GuiApp {
                             "Automatic"
                         })
                         .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut config.preferred_tablet, None, "Automatic");
+                            dirty_config |= ui
+                                .selectable_value(&mut config.preferred_tablet, None, "Automatic")
+                                .clicked();
 
                             if let Some(devices) = &self.evdev_available_devices {
                                 for dev in devices {
-                                    ui.selectable_value(
-                                        &mut config.preferred_tablet,
-                                        Some(dev.clone()),
-                                        dev,
-                                    );
+                                    dirty_config |= ui
+                                        .selectable_value(
+                                            &mut config.preferred_tablet,
+                                            Some(dev.clone()),
+                                            dev,
+                                        )
+                                        .clicked();
                                 }
                             } else {
                                 use crate::source::evdev;
-                                self.evdev_available_devices =
-                                    Some(evdev::enumerate_available_devices());
+                                match evdev::enumerate_available_devices() {
+                                    Ok(devs) => self.evdev_available_devices = Some(devs),
+                                    Err(err) => eprintln!("Device enumeration error: {err}"),
+                                }
                             }
                         });
                 }
