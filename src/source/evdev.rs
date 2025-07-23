@@ -19,3 +19,7 @@ impl EvdevSource {
         None
     }
 }
+
+pub fn enumerate_available_devices() -> Vec<String> {
+    vec![]
+}

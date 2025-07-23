@@ -8,11 +8,15 @@ use crate::{config, pen::Pen, state::State};
 
 pub struct GuiApp {
     state: Arc<Mutex<State>>,
+    evdev_available_devices: Option<Vec<String>>,
 }
 
 impl GuiApp {
     pub fn new(state: Arc<Mutex<State>>, cc: &eframe::CreationContext<'_>) -> Self {
-        Self { state }
+        Self {
+            state,
+            evdev_available_devices: None,
+        }
     }
 }
 
@@ -202,6 +206,20 @@ impl eframe::App for GuiApp {
                         })
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut config.preferred_tablet, None, "Automatic");
+
+                            if let Some(devices) = &self.evdev_available_devices {
+                                for dev in devices {
+                                    ui.selectable_value(
+                                        &mut config.preferred_tablet,
+                                        Some(dev.clone()),
+                                        dev,
+                                    );
+                                }
+                            } else {
+                                use crate::source::evdev;
+                                self.evdev_available_devices =
+                                    Some(evdev::enumerate_available_devices());
+                            }
                         });
                 }
             }
