@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use eframe::egui::{
     self, Color32, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, Vec2, ViewportBuilder,
 };
-
+use log::error;
 use crate::{config, pen::Pen, state::State};
 
 pub struct GuiApp {
@@ -239,7 +239,7 @@ impl eframe::App for GuiApp {
                                 use crate::source::evdev;
                                 match evdev::enumerate_available_devices() {
                                     Ok(devs) => self.evdev_available_devices = Some(devs),
-                                    Err(err) => eprintln!("Device enumeration error: {err}"),
+                                    Err(err) => error!("Device enumeration error: {err}"),
                                 }
                             }
                         });

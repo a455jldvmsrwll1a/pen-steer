@@ -1690,6 +1690,7 @@ dependencies = [
  "eframe",
  "env_logger",
  "input-linux",
+ "log",
  "nix 0.30.1",
 ]
 

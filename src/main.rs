@@ -14,9 +14,16 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{Result, bail};
 
+use log::{info, LevelFilter};
+
 use crate::state::State;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() -> Result<()> {
+    init_logging();
+    info!("pen-steer v{VERSION}");
+
     let cli_mode = std::env::args().any(|arg| arg.trim() == "--headless");
 
     if cli_mode {
@@ -41,4 +48,11 @@ fn start_gui() -> Result<()> {
 
 fn start_headless() -> ! {
     controller::controller(Arc::new(Mutex::new(State::default())));
+}
+
+fn init_logging() {
+    env_logger::Builder::from_default_env()
+        .filter_module("eframe", LevelFilter::Warn)
+        .filter_module("calloop", LevelFilter::Warn)
+        .init();
 }

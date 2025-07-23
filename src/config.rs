@@ -83,7 +83,7 @@ impl Default for Config {
             device_version: 0x3,
             preferred_tablet: None,
             #[cfg(target_os = "linux")]
-            source: Source::Net,
+            source: Source::Evdev,
             #[cfg(target_os = "windows")]
             source: Source::Wintab,
             #[cfg(target_os = "linux")]
