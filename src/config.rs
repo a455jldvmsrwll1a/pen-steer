@@ -15,6 +15,12 @@ pub struct Config {
 
     /// Rotational inertia (in kg*m^2) of the simulated steering wheel.
     pub inertia: f32,
+    /// Rotational friction coefficient.
+    pub friction: f32,
+    /// Centring factor.
+    pub spring: f32,
+    /// Maximum feedback torque that can be applied (in Nm).
+    pub max_torque: f32,
 
     /// Socket address to listen for data from, if using a `Net` source.
     pub net_sock_addr: String,
@@ -61,6 +67,9 @@ impl Default for Config {
             pressure_threshold: 10,
             base_radius: 0.6,
             inertia: 1.0, /* idk */
+            friction: 1.0,
+            spring: 0.0,
+            max_torque: 10.0,
             net_sock_addr: "127.0.0.1:16027".into(),
             device_resolution: 32768,
             device_name: "G29 Driving Force Racing Wheel [PS3]".into(),

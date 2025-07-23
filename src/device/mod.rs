@@ -17,6 +17,14 @@ pub enum Device {
 }
 
 impl Device {
+    pub fn get_feedback(&self) -> f32 {
+        match self {
+            Device::Dummy => 0.0,
+            #[cfg(target_os = "linux")]
+            Device::UInput(uinput_dev) => uinput_dev.get_feedback(),
+        }
+    }
+
     pub fn set_wheel(&mut self, angle: f32) {
         match self {
             Device::Dummy => (),

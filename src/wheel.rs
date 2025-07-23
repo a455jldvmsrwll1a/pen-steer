@@ -15,12 +15,40 @@ pub struct Wheel {
 impl Wheel {
     pub fn update(
         &mut self,
-        device: Option<&mut Device>,
+        mut device: Option<&mut Device>,
         config: &Config,
         pen: Option<Pen>,
         dt: f32,
-    ) {
+    ) -> bool {
         let pen = pen.unwrap_or_default();
+        let mut significant_change = false;
+
+        if !self.dragging {
+            let feedback_normalised = device.as_ref().map(|d| d.get_feedback()).unwrap_or(0.0);
+            let feedback = feedback_normalised * config.max_torque;
+
+            let w = self.velocity.to_radians();
+            let theta = self.angle.to_radians();
+
+            let net_force = feedback - config.friction * w - config.spring * theta;
+            let acc = net_force / config.inertia;
+
+            self.velocity += (acc * dt).to_degrees();
+            if self.velocity.abs() < 0.05 {
+                self.velocity = 0.0;
+            }
+
+            let old_angle = self.angle;
+            self.angle += self.velocity * dt;
+
+            if let Some(dev) = device.as_mut()
+                && (self.angle - old_angle).abs() > 0.1
+            {
+                let normalised = self.angle / (config.range * 0.5);
+                dev.set_wheel(normalised);
+                significant_change = true;
+            }
+        }
 
         self.angle = clamp_symmetric(config.range * 0.5, self.angle);
 
@@ -36,13 +64,13 @@ impl Wheel {
             self.honking = false;
             self.dragging = false;
 
-            return;
+            return significant_change;
         }
 
         // wheel is held
 
         if self.honking {
-            return;
+            return significant_change;
         }
 
         let centre_dist = dist_sq(pen.x, pen.y).sqrt();
@@ -54,7 +82,7 @@ impl Wheel {
                 dev.set_horn(true);
             }
 
-            return;
+            return significant_change;
         }
 
         // check if we were already dragging
@@ -68,15 +96,18 @@ impl Wheel {
             let new_angle = self.angle + adjusted;
             self.angle = clamp_symmetric(config.range * 0.5, new_angle);
 
-            let normalised = self.angle / (config.range * 0.5);
             if let Some(dev) = device {
+                let normalised = self.angle / (config.range * 0.5);
                 dev.set_wheel(normalised);
+                significant_change = true;
             }
         }
 
         self.dragging = true;
         self.prev_pos.x = pen.x;
         self.prev_pos.y = pen.y;
+
+        return significant_change;
     }
 }
 
