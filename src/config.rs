@@ -66,7 +66,7 @@ pub enum Device {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            update_frequency: 120,
+            update_frequency: 125,
             range: 1800.0,
             horn_radius: 0.3,
             pressure_threshold: 10,
