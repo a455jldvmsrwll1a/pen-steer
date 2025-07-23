@@ -43,6 +43,7 @@ pub fn update(state: &mut State) -> Result<()> {
 
     if let Some(device) = &mut state.device {
         device.apply().context("error applying device")?;
+        device.handle_events();
     }
 
     Ok(())

@@ -40,4 +40,12 @@ impl Device {
             Device::UInput(uinput_dev) => uinput_dev.apply(),
         }
     }
+
+    pub fn handle_events(&mut self) {
+        match self {
+            Device::Dummy => (),
+            #[cfg(target_os = "linux")]
+            Device::UInput(uinput_dev) => uinput_dev.handle_events(),
+        }
+    }
 }
