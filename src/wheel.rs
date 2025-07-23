@@ -23,6 +23,14 @@ impl Wheel {
         let pen = pen.unwrap_or_default();
         let mut significant_change = false;
 
+        if self.velocity.is_nan() || self.velocity.is_infinite() {
+            self.velocity = 0.0;
+        }
+
+        if self.angle.is_nan() || self.angle.is_infinite() {
+            self.angle = 0.0;
+        }
+
         if !self.dragging {
             let feedback_normalised = device.as_ref().map(|d| d.get_feedback()).unwrap_or(0.0);
             self.feedback_torque = feedback_normalised * config.max_torque;
