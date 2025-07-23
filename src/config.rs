@@ -36,6 +36,9 @@ pub struct Config {
     /// Virtual device version.
     pub device_version: u16,
 
+    /// Name of preferred tablet, if any.
+    pub preferred_tablet: Option<String>,
+
     pub source: Source,
     pub device: Device,
 }
@@ -46,6 +49,8 @@ pub enum Source {
     Net,
     #[cfg(target_os = "windows")]
     Wintab,
+    #[cfg(target_os = "linux")]
+    Evdev,
 }
 
 
@@ -76,6 +81,7 @@ impl Default for Config {
             device_vendor: 0x46D,
             device_product: 0xC24F,
             device_version: 0x3,
+            preferred_tablet: None,
             #[cfg(target_os = "linux")]
             source: Source::Net,
             #[cfg(target_os = "windows")]
@@ -95,6 +101,8 @@ impl Display for Source {
             Source::Net => "Network (over UDP)",
             #[cfg(target_os = "windows")]
             Source::Wintab => "Wacom Wintab (Windows)",
+            #[cfg(target_os = "linux")]
+            Source::Evdev => "Evdev (Linux)",
         })
     }
 }
