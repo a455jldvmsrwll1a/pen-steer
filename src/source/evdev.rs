@@ -6,6 +6,7 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use input_linux::{AbsoluteAxis, EvdevHandle, EventKind, EventRef};
+use log::{debug, info, trace};
 use nix::libc::O_NONBLOCK;
 
 use crate::pen::Pen;
@@ -27,6 +28,7 @@ impl EvdevSource {
         if let Some(dev) = preferred_device_name {
             device_name = dev.to_string();
         } else {
+            debug!("No source device preference.");
             let devices = enumerate_available_devices()?;
             if let Some(first) = devices.get(0) {
                 device_name = first.clone();
@@ -34,6 +36,8 @@ impl EvdevSource {
                 bail!("No valid input devices available! (evdev)");
             }
         }
+
+        debug!("Using source device: {device_name}");
 
         let Some(handle) =
             open_device_with_name(&device_name).context("Failed to open evdev device.")?
@@ -45,6 +49,12 @@ impl EvdevSource {
         let width = x_max - x_min;
         let height = y_max - y_min;
         let aspect_ratio = width as f32 / height as f32;
+
+        debug!(
+            "\nArea:\n\tx-axis: {x_min} .. {x_max}\n\ty-axis: {y_min} .. {y_max}\naspect ratio: {aspect_ratio}"
+        );
+
+        info!("Initialised!");
 
         Ok(Self {
             handle,
@@ -172,6 +182,7 @@ pub fn enumerate_available_devices() -> Result<Vec<String>> {
         };
 
         let string = String::from_utf8_lossy(&dev_name).into_owned();
+        trace!("Found valid input: {string}");
         valid_devices.push(string);
     }
 

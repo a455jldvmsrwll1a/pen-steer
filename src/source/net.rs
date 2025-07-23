@@ -1,4 +1,5 @@
 use anyhow::Result;
+use log::info;
 use std::net::UdpSocket;
 
 use crate::pen::Pen;
@@ -13,6 +14,8 @@ impl NetSource {
     pub fn new(addr: &str) -> Result<Self> {
         let socket = UdpSocket::bind(addr)?;
         socket.set_nonblocking(true)?;
+
+        info!("Bound to {addr}");
 
         Ok(Self {
             socket,

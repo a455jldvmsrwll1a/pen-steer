@@ -18,7 +18,7 @@ use input_linux::{
         uinput_ff_erase, uinput_ff_upload,
     },
 };
-use log::{debug, error};
+use log::{debug, error, info, trace};
 use nix::libc::{
     O_NONBLOCK, ff_constant_effect, ff_effect, ff_replay, ff_trigger, input_event, timeval,
 };
@@ -128,7 +128,14 @@ impl UInputDev {
             version: config.device_version,
         };
 
+        debug!(
+            "Creating virtual device:\n\tName: {}\n\tVendor: 0x{:X}\n\tProduct: 0x{:X}\n\tVersion: 0x{:X}",
+            config.device_name, config.device_vendor, config.device_product, config.device_version
+        );
+
         handle.create(&id, config.device_name.as_bytes(), 10, &[abs])?;
+
+        info!("Initialised!");
 
         Ok(Self {
             fd: handle.as_fd().as_raw_fd(),
@@ -246,6 +253,10 @@ impl UInputDev {
             .context("could not begin ff upload")?;
 
         if upload.effect.type_ == FF_CONSTANT {
+            if self.ff.is_none() {
+                debug!("Force-feedback active.");
+            }
+
             let ff = self.ff.get_or_insert_default();
             ff.request_id = request_id;
 
@@ -253,6 +264,7 @@ impl UInputDev {
             unsafe {
                 let constant = &*(upload.effect.u.as_ptr() as *const ff_constant_effect);
                 ff.force = constant.level;
+                trace!("ff = {}", constant.level);
             }
         }
 
@@ -278,6 +290,7 @@ impl UInputDev {
             && erase.effect_id == state.request_id
         {
             self.ff = None;
+            debug!("Force-feedback inactive.");
         }
 
         self.handle
