@@ -66,10 +66,10 @@ impl Default for Config {
             horn_radius: 0.3,
             pressure_threshold: 10,
             base_radius: 0.6,
-            inertia: 1.0, /* idk */
-            friction: 1.0,
+            inertia: 1.0,
+            friction: 25.0,
             spring: 0.0,
-            max_torque: 10.0,
+            max_torque: 300.0,
             net_sock_addr: "127.0.0.1:16027".into(),
             device_resolution: 32768,
             device_name: "G29 Driving Force Racing Wheel [PS3]".into(),
