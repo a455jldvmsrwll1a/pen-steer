@@ -4,6 +4,8 @@ Use a drawing tablet, or something similar, as a steering wheel.
 
 Available for Linux and ~~Windows~~ (WIP).
 
+**Notice: not very usable right now. Read on for more info.**
+
 ![screenshot](resources/screenshot.png)
 ---------
 
@@ -32,7 +34,7 @@ Pen input can be collected from a few sources:
 
 There are a few methods to fake a virtual controller:
   - Dummy - no output at all
-  - uinput - uses Linux's [uinput module](https://kernel.org/doc/html/v4.12/input/uinput.html). You may need to run as `root`, or better yet, just add your user to the `input` group. (Linux only)
+  - uinput - uses Linux's [uinput module](https://kernel.org/doc/html/v4.12/input/uinput.html). (Linux only)
   - ViGEm - [WIP] uses [ViGEm](https://docs.nefarius.at/projects/ViGEm/) (Windows only)
 
 ## TODO
@@ -62,3 +64,27 @@ To use this application without a GUI, simply use the `--headless` option:
 
 _Currently, the only way to adjust settings is by manually editing `src/config.rs` and recompiling._
 _Proper load/save is in the works._
+
+## Net Source
+Currently the only source available. It listens for pen input via UDP.
+
+By default, it will listen on `127.0.0.1:16027`.
+
+### Packet Format
+```
++-------------------------------------------------------+
+|                 Pen Packet (13 bytes)                 |
++------------+------------+---------------+-------------+
+| pos_X: f32 | pos_Y: f32 | pressure: u32 | buttons: u8 |
++------------+------------+---------------+-------------+
+```
+Fields are expected to be in little-endian.
+
+`pos_X` and `pos_Y` are expected to be normalised [-1.0, 1.0].
+
+`buttons` is a bitfield.
+
+## uinput Device
+Currently the only device available. It uses Linux's uinput API.
+
+**You may need to run as `root`, or better yet, just add your user to the `input` group.**
