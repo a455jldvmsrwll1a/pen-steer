@@ -34,15 +34,15 @@ impl Wheel {
             let acc = net_force / config.inertia;
 
             self.velocity += (acc * dt).to_degrees();
+
             if self.velocity.abs() < 0.05 {
                 self.velocity = 0.0;
             }
-
-            let old_angle = self.angle;
+            
             self.angle += self.velocity * dt;
 
             if let Some(dev) = device.as_mut()
-                && (self.angle - old_angle).abs() > 0.1
+                && self.velocity.abs() > 0.01
             {
                 let normalised = self.angle / (config.range * 0.5);
                 dev.set_wheel(normalised);
