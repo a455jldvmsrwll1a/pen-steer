@@ -18,6 +18,7 @@ use input_linux::{
         uinput_ff_erase, uinput_ff_upload,
     },
 };
+use log::{debug, error};
 use nix::libc::{
     O_NONBLOCK, ff_constant_effect, ff_effect, ff_replay, ff_trigger, input_event, timeval,
 };
@@ -203,16 +204,16 @@ impl UInputDev {
                 EV_UINPUT => match ev.code as i32 {
                     UI_FF_UPLOAD => {
                         if let Err(err) = self.handle_ff_upload(ev.value as u32) {
-                            eprintln!("Error handling ff upload: {err}");
+                            error!("Error handling ff upload: {err}");
                         }
                     }
                     UI_FF_ERASE => {
                         if let Err(err) = self.handle_ff_erase(ev.value as u32) {
-                            eprintln!("Error handling ff erase: {err}");
+                            error!("Error handling ff erase: {err}");
                         }
                     }
                     _ => {
-                        eprintln!("Unrecognised EV_UINPUT code {}.", ev.code);
+                        error!("Unrecognised EV_UINPUT code {}.", ev.code);
                     }
                 },
                 EV_FF => {
@@ -220,13 +221,13 @@ impl UInputDev {
                         // TODO: what does ev.code really do???
                         match ev.code {
                             0 => state.playing = ev.value != 0,
-                            FF_GAIN => eprintln!("FF_GAIN = {}", ev.value),
-                            n => eprintln!("Unexpected EV_FF code {n}."),
+                            FF_GAIN => debug!("FF_GAIN = {}", ev.value),
+                            n => debug!("Unexpected EV_FF code {n}."),
                         }
                     }
                 }
                 _ => {
-                    eprintln!("Unexpected event type {}.", ev.type_);
+                    debug!("Unexpected event type {}.", ev.type_);
                 }
             }
         }
@@ -290,7 +291,7 @@ impl UInputDev {
 impl Drop for UInputDev {
     fn drop(&mut self) {
         if let Err(err) = self.handle.dev_destroy() {
-            eprintln!("Error occured destroying uinput device: {err}");
+            error!("Error occured destroying uinput device: {err}");
         }
     }
 }
