@@ -10,6 +10,7 @@ lto = "fat"
 [dependencies]
 anyhow = "1.0.98"
 env_logger = "0.11.8"
+log = "0.4.27"
 
 [dependencies.eframe]
 version = "0.32.0"

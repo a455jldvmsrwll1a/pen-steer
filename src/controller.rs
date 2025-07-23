@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use log::error;
 use std::sync::{Arc, Mutex};
 
 use crate::{
@@ -20,7 +21,7 @@ pub fn controller(state: Arc<Mutex<State>>) -> ! {
 
     loop {
         if let Err(err) = update(&mut state.lock().unwrap()) {
-            eprintln!("Controller error: {err}");
+            error!("Controller error: {err}");
         }
 
         let current_update_frequency = state.lock().unwrap().config.update_frequency;
