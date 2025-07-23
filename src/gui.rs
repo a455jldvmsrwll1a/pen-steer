@@ -55,6 +55,22 @@ impl eframe::App for GuiApp {
             ui.heading("Control Panel");
 
             ui.separator();
+            let old_update_frequency = config.update_frequency;
+            egui::ComboBox::new("update_freq", "Update Frequency")
+                .selected_text(format!("{} Hz", config.update_frequency))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut config.update_frequency, 5, "5 Hz");
+                    ui.selectable_value(&mut config.update_frequency, 30, "30 Hz");
+                    ui.selectable_value(&mut config.update_frequency, 50, "50 Hz");
+                    ui.selectable_value(&mut config.update_frequency, 60, "60 Hz");
+                    ui.selectable_value(&mut config.update_frequency, 100, "100 Hz");
+                    ui.selectable_value(&mut config.update_frequency, 125, "125 Hz");
+                    ui.selectable_value(&mut config.update_frequency, 500, "500 Hz");
+                    ui.selectable_value(&mut config.update_frequency, 1000, "1000 Hz");
+                });
+            dirty_config |= config.update_frequency != old_update_frequency;
+
+            ui.separator();
             ui.heading("Steering Wheel");
             dirty_config |= ui
                 .add(
