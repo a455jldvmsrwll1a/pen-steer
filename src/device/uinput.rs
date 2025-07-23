@@ -1,7 +1,10 @@
 use std::{
     fmt::Debug,
     fs::{File, OpenOptions},
-    os::unix::fs::OpenOptionsExt,
+    os::{
+        fd::{AsFd, AsRawFd},
+        unix::fs::OpenOptionsExt,
+    },
 };
 
 use crate::config::Config;
@@ -9,9 +12,15 @@ use anyhow::{Context, Result, bail};
 use input_linux::{
     AbsoluteAxis, AbsoluteEvent, AbsoluteInfo, AbsoluteInfoSetup, EventKind, EventTime,
     ForceFeedbackKind, InputEvent, InputId, Key, KeyEvent, KeyState, SynchronizeEvent,
-    SynchronizeKind, UInputHandle, sys::BUS_USB,
+    SynchronizeKind, UInputHandle,
+    sys::{
+        BUS_USB, EV_FF, EV_UINPUT, FF_CONSTANT, FF_GAIN, UI_FF_ERASE, UI_FF_UPLOAD,
+        uinput_ff_erase, uinput_ff_upload,
+    },
 };
-use nix::libc::{O_NONBLOCK, input_event, timeval};
+use nix::libc::{
+    O_NONBLOCK, ff_constant_effect, ff_effect, ff_replay, ff_trigger, input_event, timeval,
+};
 
 const ZERO: EventTime = EventTime::new(0, 0);
 const NULL_EVENT: input_event = input_event {
@@ -23,12 +32,35 @@ const NULL_EVENT: input_event = input_event {
     code: 0,
     value: 0,
 };
+const NULL_EFFECT: ff_effect = ff_effect {
+    type_: 0,
+    id: 0,
+    direction: 0,
+    trigger: ff_trigger {
+        button: 0,
+        interval: 0,
+    },
+    replay: ff_replay {
+        length: 0,
+        delay: 0,
+    },
+    u: [0u64; 4],
+};
+
+#[derive(Default, Clone, Copy)]
+struct FFState {
+    request_id: u32,
+    playing: bool,
+    force: i16,
+}
 
 pub struct UInputDev {
     handle: UInputHandle<File>,
+    fd: i32,
     resolution: f32,
     wheel_axis: Option<i32>,
     horn_key: Option<bool>,
+    ff: Option<FFState>,
     events_buf: [input_event; 3],
 }
 
@@ -98,10 +130,12 @@ impl UInputDev {
         handle.create(&id, config.device_name.as_bytes(), 10, &[abs])?;
 
         Ok(Self {
+            fd: handle.as_fd().as_raw_fd(),
             handle,
             resolution: config.device_resolution as f32,
             wheel_axis: None,
             horn_key: None,
+            ff: None,
             events_buf: [NULL_EVENT; 3],
         })
     }
@@ -145,6 +179,97 @@ impl UInputDev {
         self.handle
             .write(&self.events_buf[..=i])
             .context("could not write events")?;
+
+        Ok(())
+    }
+
+    pub fn handle_events(&mut self) {
+        let mut ev = NULL_EVENT;
+
+        while let Ok(1) = self.handle.read(std::slice::from_mut(&mut ev)) {
+            match ev.type_ as i32 {
+                EV_UINPUT => match ev.code as i32 {
+                    UI_FF_UPLOAD => {
+                        if let Err(err) = self.handle_ff_upload(ev.value as u32) {
+                            eprintln!("Error handling ff upload: {err}");
+                        }
+                    }
+                    UI_FF_ERASE => {
+                        if let Err(err) = self.handle_ff_erase(ev.value as u32) {
+                            eprintln!("Error handling ff erase: {err}");
+                        }
+                    }
+                    _ => {
+                        eprintln!("Unrecognised EV_UINPUT code {}.", ev.code);
+                    }
+                },
+                EV_FF => {
+                    if let Some(state) = &mut self.ff {
+                        // TODO: what does ev.code really do???
+                        match ev.code {
+                            0 => state.playing = ev.value != 0,
+                            FF_GAIN => eprintln!("FF_GAIN = {}", ev.value),
+                            n => eprintln!("Unexpected EV_FF code {n}."),
+                        }
+                    }
+                }
+                _ => {
+                    eprintln!("Unexpected event type {}.", ev.type_);
+                }
+            }
+        }
+    }
+
+    fn handle_ff_upload(&mut self, request_id: u32) -> Result<()> {
+        let mut upload = uinput_ff_upload {
+            request_id,
+            retval: 0,
+            effect: NULL_EFFECT,
+            old: NULL_EFFECT,
+        };
+
+        self.handle
+            .ff_upload_begin(&mut upload)
+            .context("could not begin ff upload")?;
+
+        if upload.effect.type_ == FF_CONSTANT {
+            let ff = self.ff.get_or_insert_default();
+            ff.request_id = request_id;
+
+            // SAFETY: the effect type is checked before accessing the union.
+            unsafe {
+                let constant = &*(upload.effect.u.as_ptr() as *const ff_constant_effect);
+                ff.force = constant.level;
+            }
+        }
+
+        self.handle
+            .ff_upload_end(&mut upload)
+            .context("could not end ff upload")?;
+
+        Ok(())
+    }
+
+    fn handle_ff_erase(&mut self, request_id: u32) -> Result<()> {
+        let mut erase = uinput_ff_erase {
+            request_id,
+            retval: 0,
+            effect_id: 0,
+        };
+
+        self.handle
+            .ff_erase_begin(&mut erase)
+            .context("could not begin ff erase")?;
+
+        if let Some(state) = self.ff
+            && erase.effect_id == state.request_id
+        {
+            self.ff = None;
+        }
+
+        self.handle
+            .ff_erase_end(&mut erase)
+            .context("could not end ff erase")?;
 
         Ok(())
     }
