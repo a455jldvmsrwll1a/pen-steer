@@ -31,6 +31,7 @@ Pen input can be collected from a few sources:
   - Dummy - does nothing
   - Net - reads input via UDP socket
   - Wintab - [WIP] uses Wacom Wintab API (Windows only)
+  - Evdev - reads input from `/dev/input/eventX`. (Linux only)
 
 There are a few methods to fake a virtual controller:
   - Dummy - no output at all
@@ -66,7 +67,7 @@ _Currently, the only way to adjust settings is by manually editing `src/config.r
 _Proper load/save is in the works._
 
 ## Net Source
-Currently the only source available. It listens for pen input via UDP.
+Listens for pen input via UDP.
 
 By default, it will listen on `127.0.0.1:16027`.
 
