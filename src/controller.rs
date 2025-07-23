@@ -15,11 +15,18 @@ use crate::device::uinput::UInputDev;
 use crate::source::evdev::EvdevSource;
 
 pub fn controller(state: Arc<Mutex<State>>) -> ! {
-    let mut timer = Timer::new(state.lock().unwrap().config.update_frequency);
+    let mut update_frequency = state.lock().unwrap().config.update_frequency;
+    let mut timer = Timer::new(update_frequency);
 
     loop {
         if let Err(err) = update(&mut state.lock().unwrap()) {
             eprintln!("Controller error: {err}");
+        }
+
+        let current_update_frequency = state.lock().unwrap().config.update_frequency;
+        if current_update_frequency != update_frequency {
+            update_frequency = current_update_frequency;
+            timer = Timer::new(update_frequency);
         }
 
         timer.wait();
