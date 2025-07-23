@@ -30,8 +30,6 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         let mut pen_override = None;
         drop(state2);
 
-        let mut dev_started = false;
-
         let mut dirty_wheel = false;
         let mut dirty_config = false;
 
@@ -52,27 +50,6 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
             ui.style_mut().spacing.slider_width = 200.0;
 
             ui.heading("Control Panel");
-
-            ui.separator();
-            ui.horizontal_top(|ui| {
-                if dev_started {
-                    if ui
-                        .button(RichText::new("Stop virtual wheel").color(Color32::RED))
-                        .clicked()
-                    {
-                        dev_started = false;
-                    }
-
-                    if outdated {
-                        ui.colored_label(Color32::YELLOW, "Stop to apply changes.");
-                    }
-                } else if ui
-                    .button(RichText::new("Start virtual wheel").color(Color32::GREEN))
-                    .clicked()
-                {
-                    dev_started = true;
-                }
-            });
 
             ui.separator();
             ui.heading("Steering Wheel");
