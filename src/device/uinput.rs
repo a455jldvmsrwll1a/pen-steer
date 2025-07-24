@@ -1,10 +1,7 @@
 use std::{
     fmt::Debug,
     fs::{File, OpenOptions},
-    os::{
-        fd::{AsFd, AsRawFd},
-        unix::fs::OpenOptionsExt,
-    },
+    os::unix::fs::OpenOptionsExt,
 };
 
 use crate::{config::Config, device::Device};
@@ -57,7 +54,6 @@ struct FFState {
 
 pub struct UInputDevice {
     handle: UInputHandle<File>,
-    fd: i32,
     resolution: f32,
     wheel_axis: Option<i32>,
     horn_key: Option<bool>,
@@ -138,7 +134,6 @@ impl UInputDevice {
         info!("Initialised!");
 
         Ok(Self {
-            fd: handle.as_fd().as_raw_fd(),
             handle,
             resolution: config.device_resolution as f32,
             wheel_axis: None,
