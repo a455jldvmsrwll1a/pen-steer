@@ -29,7 +29,7 @@ impl GuiApp {
 }
 
 impl eframe::App for GuiApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let mut state2 = self.state.lock().unwrap();
         if state2.gui_context.is_none() {
             state2.gui_context = Some(ctx.clone());
@@ -38,7 +38,20 @@ impl eframe::App for GuiApp {
         let mut wheel = state2.wheel.clone();
         let pen = state2.pen_override.clone().or_else(|| state2.pen.clone());
         let mut pen_override = None;
+        let reported_error = state2.last_error.take();
         drop(state2);
+
+        if let Some(err) = reported_error {
+            error!("\n* * * * * * * * * *\n{err:?}\n* * * * * * * * * *");
+
+            let _ = native_dialog::MessageDialogBuilder::default()
+                .set_level(native_dialog::MessageLevel::Error)
+                .set_title("Pen Steer: Controller Error")
+                .set_owner(frame)
+                .set_text(format!("{err:?}"))
+                .alert()
+                .show();
+        }
 
         let mut dirty_wheel = false;
         let mut dirty_config = false;
