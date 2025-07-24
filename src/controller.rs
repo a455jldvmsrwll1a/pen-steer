@@ -12,17 +12,22 @@ pub fn controller(state: Arc<Mutex<State>>) -> ! {
     let mut timer = Timer::new(update_frequency);
 
     loop {
-        if let Err(err) = update(&mut state.lock().unwrap()) {
+        let mut locked = state.lock().unwrap();
+
+        if let Err(err) = update(&mut locked).context("Error during controller tick.") {
             error!("Controller error: {err}");
+            locked.last_error = Some(err);
         }
 
-        let current_update_frequency = state.lock().unwrap().config.update_frequency;
+        let current_update_frequency = locked.config.update_frequency;
         if current_update_frequency != update_frequency {
             update_frequency = current_update_frequency;
             timer = Timer::new(update_frequency);
             info!("Now updating at {update_frequency} Hz.");
         }
 
+        // unlock before waiting
+        drop(locked);
         timer.wait();
     }
 }
@@ -87,7 +92,7 @@ fn reset_device(state: &mut State) -> Result<()> {
     state.reset_device = false;
     state.device = None;
 
-    match create_device(&state.config) {
+    match create_device(&state.config).context("Could not create device.") {
         Ok(device) => state.device = Some(device),
         Err(err) => {
             error!("Failed to create device!");

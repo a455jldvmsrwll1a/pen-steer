@@ -8,6 +8,7 @@ pub struct State {
     pub device: Option<Box<dyn Device>>,
     pub config: Config,
     pub gui_context: Option<eframe::egui::Context>,
+    pub last_error: Option<anyhow::Error>,
     pub reset_source: bool,
     pub reset_device: bool,
 }
@@ -22,6 +23,7 @@ impl Default for State {
             device: None,
             config: Config::default(),
             gui_context: None,
+            last_error: None,
             reset_source: true,
             reset_device: true,
         }

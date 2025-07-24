@@ -67,6 +67,14 @@ impl UInputDevice {
             bail!("Device resolution too high!");
         }
 
+        if config.device_name.is_empty() {
+            bail!("Empty device name is prohibited!");
+        }
+
+        if config.device_name.len() >= 80 {
+            bail!("Device name can be up to 79 characters only!");
+        }
+
         let file = OpenOptions::new()
             .read(true)
             .write(true)
