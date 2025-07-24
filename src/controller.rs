@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 
+use crate::config::Config;
 use crate::device::create_device;
 use crate::source::create_source;
 use crate::{state::State, timer::Timer};
@@ -28,7 +29,7 @@ pub fn controller(state: Arc<Mutex<State>>) -> ! {
 }
 
 pub fn update(state: &mut State) -> Result<()> {
-    if state.outdated && state.device.is_none() {
+    if state.reset_pending {
         initialise_io(state)?;
     }
 
@@ -58,15 +59,25 @@ pub fn update(state: &mut State) -> Result<()> {
     Ok(())
 }
 
-pub fn initialise_io(state: &mut State) -> Result<()> {
+fn initialise_io(state: &mut State) -> Result<()> {
     debug!("initialising I/O");
 
     state.pen = None;
-    state.outdated = false;
+    state.reset_pending = false;
 
-    state.source = None;
-    state.device = None;
+    if let Err(e) = create_source_and_device(state) {
+        error!("Failed to create source and device!");
+        
+        state.source = None;
+        state.device = None;
 
+        return Err(e);
+    }
+
+    Ok(())
+}
+
+fn create_source_and_device(state: &mut State) -> Result<()> {
     state.source = Some(create_source(&state.config)?);
     state.device = Some(create_device(&state.config)?);
 
