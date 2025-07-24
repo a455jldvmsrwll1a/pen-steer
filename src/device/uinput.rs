@@ -237,13 +237,13 @@ impl Device for UInputDevice {
     fn apply(&mut self) -> Result<()> {
         let mut i = 0;
 
-        if let Some(axis_val) = self.wheel_axis {
+        if let Some(axis_val) = self.wheel_axis.take() {
             self.events_buf[i] =
                 InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, axis_val)).into_raw();
             i += 1;
         }
 
-        if let Some(key) = self.horn_key {
+        if let Some(key) = self.horn_key.take() {
             self.events_buf[i] = InputEvent::from(KeyEvent::new(
                 ZERO,
                 Key::ButtonThumbr,

@@ -560,7 +560,7 @@ impl eframe::App for GuiApp {
         }
 
         if dirty_wheel {
-            state2.wheel = wheel.clone();
+            state2.wheel.angle = wheel.angle;
         }
 
         state2.pen_override = pen_override.clone();
