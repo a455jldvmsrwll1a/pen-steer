@@ -30,7 +30,7 @@ impl EvdevSource {
         } else {
             debug!("No source device preference.");
             let devices = enumerate_available_devices()?;
-            if let Some(first) = devices.get(0) {
+            if let Some(first) = devices.first() {
                 device_name = first.clone();
             } else {
                 bail!("No valid input devices available! (evdev)");
@@ -81,29 +81,30 @@ impl Source for EvdevSource {
                 continue;
             };
 
-            match event {
-                EventRef::Absolute(abs) => match abs.axis {
-                    AbsoluteAxis::X => {
-                        self.current.x = norm(abs.value, self.x_min, self.x_max);
-                        if self.aspect_ratio > 1.0 {
-                            self.current.x = (self.current.x * self.aspect_ratio).clamp(-1.0, 1.0);
-                        }
-                        changed = true;
+            let EventRef::Absolute(abs) = event else {
+                continue;
+            };
+
+            match abs.axis {
+                AbsoluteAxis::X => {
+                    self.current.x = norm(abs.value, self.x_min, self.x_max);
+                    if self.aspect_ratio > 1.0 {
+                        self.current.x = (self.current.x * self.aspect_ratio).clamp(-1.0, 1.0);
                     }
-                    AbsoluteAxis::Y => {
-                        self.current.y = norm(abs.value, self.y_min, self.y_max);
-                        if self.aspect_ratio < 1.0 {
-                            self.current.y =
-                                (self.current.y * (1.0 / self.aspect_ratio)).clamp(-1.0, 1.0);
-                        }
-                        changed = true;
+                    changed = true;
+                }
+                AbsoluteAxis::Y => {
+                    self.current.y = norm(abs.value, self.y_min, self.y_max);
+                    if self.aspect_ratio < 1.0 {
+                        self.current.y =
+                            (self.current.y * (1.0 / self.aspect_ratio)).clamp(-1.0, 1.0);
                     }
-                    AbsoluteAxis::Pressure => {
-                        self.current.pressure = abs.value.max(0) as u32;
-                        changed = true;
-                    }
-                    _ => {}
-                },
+                    changed = true;
+                }
+                AbsoluteAxis::Pressure => {
+                    self.current.pressure = abs.value.max(0) as u32;
+                    changed = true;
+                }
                 _ => {}
             }
         }
