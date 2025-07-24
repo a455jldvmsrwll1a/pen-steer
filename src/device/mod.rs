@@ -28,9 +28,7 @@ impl Device for DummyDevice {
 
     fn set_wheel(&mut self, _angle: f32) {}
 
-    fn set_horn(&mut self, _honking: bool) {
-        todo!()
-    }
+    fn set_horn(&mut self, _honking: bool) {}
 
     fn apply(&mut self) -> Result<()> {
         Ok(())
