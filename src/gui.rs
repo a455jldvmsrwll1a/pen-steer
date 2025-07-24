@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
+use crate::{config, pen::Pen, state::State};
 use eframe::egui::{
     self, Color32, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, Vec2, ViewportBuilder,
 };
 use log::error;
-use crate::{config, pen::Pen, state::State};
 
 pub struct GuiApp {
     state: Arc<Mutex<State>>,
@@ -48,7 +48,8 @@ impl eframe::App for GuiApp {
             });
         });
 
-        egui::SidePanel::left("controls").show(ctx, |ui| {
+        #[rustfmt::skip]
+        egui::SidePanel::left("controls").resizable(false).show(ctx, |ui| {
             ui.set_width(350.0);
             ui.style_mut().spacing.slider_width = 200.0;
 
