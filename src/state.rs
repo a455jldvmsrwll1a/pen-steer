@@ -7,8 +7,8 @@ pub struct State {
     pub source: Option<Box<dyn Source>>,
     pub device: Option<Box<dyn Device>>,
     pub config: Config,
-    pub outdated: bool,
     pub gui_context: Option<eframe::egui::Context>,
+    pub reset_pending: bool,
 }
 
 impl Default for State {
@@ -20,8 +20,8 @@ impl Default for State {
             source: None,
             device: None,
             config: Config::default(),
-            outdated: true,
             gui_context: None,
+            reset_pending: true,
         }
     }
 }

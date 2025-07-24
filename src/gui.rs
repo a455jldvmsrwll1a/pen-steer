@@ -28,7 +28,6 @@ impl eframe::App for GuiApp {
         }
         let mut config = state2.config.clone();
         let mut wheel = state2.wheel.clone();
-        let mut outdated = state2.outdated;
         let pen = state2.pen_override.clone().or_else(|| state2.pen.clone());
         let mut pen_override = None;
         drop(state2);
@@ -51,13 +50,37 @@ impl eframe::App for GuiApp {
         egui::SidePanel::left("controls")
             .resizable(false)
             .show(ctx, |ui| {
+                ui.set_width(350.0);
+                ui.style_mut().spacing.slider_width = 200.0;
+
+                egui::TopBottomPanel::bottom("controls_footer")
+                    .exact_height(40.0)
+                    .show_inside(ui, |ui| {
+                        ui.add_space(10.0);
+                        ui.horizontal(|ui| {
+                            ui.label("Reset source & device: ");
+                            if ui.button("Apply").clicked() {
+                                self.state.lock().unwrap().reset_pending = true;
+                            }
+                        })
+                    });
+
+                ui.heading("Control Panel");
+                ui.separator();
+
+                // hack to prevent text clipping through the footer bar
+                ui.shrink_clip_rect(Rect {
+                    min: Pos2 {
+                        x: f32::NEG_INFINITY,
+                        y: 0.0,
+                    },
+                    max: Pos2 {
+                        x: f32::INFINITY,
+                        y: ui.clip_rect().bottom() - 45.0,
+                    },
+                });
+
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.set_width(350.0);
-                    ui.style_mut().spacing.slider_width = 200.0;
-
-                    ui.heading("Control Panel");
-
-                    ui.separator();
                     let old_update_frequency = config.update_frequency;
                     egui::ComboBox::new("update_freq", "Update Frequency")
                         .selected_text(format!("{} Hz", config.update_frequency))
@@ -204,7 +227,6 @@ impl eframe::App for GuiApp {
                             );
                         });
                     dirty_config |= config.source != old_source;
-                    outdated |= config.source != old_source;
 
                     match old_source {
                         config::Source::None => {
@@ -287,7 +309,6 @@ impl eframe::App for GuiApp {
                             );
                         });
                     dirty_config |= config.device != old_device;
-                    outdated |= config.device != old_device;
 
                     match old_device {
                         config::Device::None => {
@@ -463,8 +484,6 @@ impl eframe::App for GuiApp {
         }
 
         state2.pen_override = pen_override.clone();
-
-        state2.outdated |= outdated;
     }
 }
 
