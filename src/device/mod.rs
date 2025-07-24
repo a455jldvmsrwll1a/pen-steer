@@ -1,59 +1,50 @@
 #[cfg(target_os = "linux")]
 pub mod uinput;
 
+use crate::config;
 #[cfg(target_os = "linux")]
-use crate::device::uinput::UInputDev;
+use crate::device::uinput::UInputDevice;
 
 use anyhow::Result;
 
-#[derive(Debug, Default)]
-pub enum Device {
-    /// Dummy device, does nothing.
-    #[default]
-    Dummy,
-    /// Presents a virtual device using Linux's uinput.
-    #[cfg(target_os = "linux")]
-    UInput(UInputDev),
+pub trait Device: Send + Sync {
+    fn get_feedback(&self) -> f32;
+
+    fn set_wheel(&mut self, angle: f32);
+
+    fn set_horn(&mut self, honking: bool);
+
+    fn apply(&mut self) -> Result<()>;
+
+    fn handle_events(&mut self);
 }
 
-impl Device {
-    pub fn get_feedback(&self) -> f32 {
-        match self {
-            Device::Dummy => 0.0,
-            #[cfg(target_os = "linux")]
-            Device::UInput(uinput_dev) => uinput_dev.get_feedback(),
-        }
+pub struct DummyDevice;
+
+impl Device for DummyDevice {
+    fn get_feedback(&self) -> f32 {
+        0.0
     }
 
-    pub fn set_wheel(&mut self, angle: f32) {
-        match self {
-            Device::Dummy => (),
-            #[cfg(target_os = "linux")]
-            Device::UInput(uinput_dev) => uinput_dev.set_wheel(angle),
-        }
+    fn set_wheel(&mut self, _angle: f32) {}
+
+    fn set_horn(&mut self, _honking: bool) {
+        todo!()
     }
 
-    pub fn set_horn(&mut self, honking: bool) {
-        match self {
-            Device::Dummy => (),
-            #[cfg(target_os = "linux")]
-            Device::UInput(uinput_dev) => uinput_dev.set_horn(honking),
-        }
+    fn apply(&mut self) -> Result<()> {
+        Ok(())
     }
 
-    pub fn apply(&mut self) -> Result<()> {
-        match self {
-            Device::Dummy => Ok(()),
-            #[cfg(target_os = "linux")]
-            Device::UInput(uinput_dev) => uinput_dev.apply(),
-        }
-    }
+    fn handle_events(&mut self) {}
+}
 
-    pub fn handle_events(&mut self) {
-        match self {
-            Device::Dummy => (),
-            #[cfg(target_os = "linux")]
-            Device::UInput(uinput_dev) => uinput_dev.handle_events(),
-        }
-    }
+pub fn create_device(config: &config::Config) -> Result<Box<dyn Device>> {
+    Ok(match config.device {
+        config::Device::None => Box::new(DummyDevice),
+        #[cfg(target_os = "linux")]
+        config::Device::UInput => Box::new(UInputDevice::new(config)?),
+        #[cfg(target_os = "windows")]
+        config::Device::VigemBus => Box::new(DummyDevice),
+    })
 }

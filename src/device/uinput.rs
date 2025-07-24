@@ -7,7 +7,7 @@ use std::{
     },
 };
 
-use crate::config::Config;
+use crate::{config::Config, device::Device};
 use anyhow::{Context, Result, bail};
 use input_linux::{
     AbsoluteAxis, AbsoluteEvent, AbsoluteInfo, AbsoluteInfoSetup, EventKind, EventTime,
@@ -55,7 +55,7 @@ struct FFState {
     force: i16,
 }
 
-pub struct UInputDev {
+pub struct UInputDevice {
     handle: UInputHandle<File>,
     fd: i32,
     resolution: f32,
@@ -65,7 +65,7 @@ pub struct UInputDev {
     events_buf: [input_event; 3],
 }
 
-impl UInputDev {
+impl UInputDevice {
     pub fn new(config: &Config) -> Result<Self> {
         if config.device_resolution > u16::MAX as u32 {
             bail!("Device resolution too high!");
@@ -148,98 +148,6 @@ impl UInputDev {
         })
     }
 
-    pub fn get_feedback(&self) -> f32 {
-        let Some(ff) = self.ff else {
-            return 0.0;
-        };
-
-        if !ff.playing {
-            return 0.0;
-        }
-
-        ff.force as f32 / i16::MAX as f32
-    }
-
-    pub fn set_wheel(&mut self, angle: f32) {
-        let value = (angle * self.resolution).round_ties_even();
-        self.wheel_axis = Some(value as i32);
-    }
-
-    pub fn set_horn(&mut self, honking: bool) {
-        self.horn_key = Some(honking);
-    }
-
-    pub fn apply(&mut self) -> Result<()> {
-        let mut i = 0;
-
-        if let Some(axis_val) = self.wheel_axis {
-            self.events_buf[i] =
-                InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, axis_val)).into_raw();
-            i += 1;
-        }
-
-        if let Some(key) = self.horn_key {
-            self.events_buf[i] = InputEvent::from(KeyEvent::new(
-                ZERO,
-                Key::ButtonThumbr,
-                KeyState::pressed(key),
-            ))
-            .into_raw();
-            i += 1;
-        }
-
-        if i == 0 {
-            return Ok(());
-        }
-
-        // Insert sync report event.
-        self.events_buf[i] =
-            InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).into_raw();
-
-        self.handle
-            .write(&self.events_buf[..=i])
-            .context("could not write events")?;
-
-        Ok(())
-    }
-
-    pub fn handle_events(&mut self) {
-        let mut ev = NULL_EVENT;
-
-        while let Ok(1) = self.handle.read(std::slice::from_mut(&mut ev)) {
-            match ev.type_ as i32 {
-                EV_UINPUT => match ev.code as i32 {
-                    UI_FF_UPLOAD => {
-                        if let Err(err) = self.handle_ff_upload(ev.value as u32) {
-                            error!("Error handling ff upload: {err}");
-                        }
-                    }
-                    UI_FF_ERASE => {
-                        if let Err(err) = self.handle_ff_erase(ev.value as u32) {
-                            error!("Error handling ff erase: {err}");
-                        }
-                    }
-                    _ => {
-                        error!("Unrecognised EV_UINPUT code {}.", ev.code);
-                    }
-                },
-                EV_FF => {
-                    if let Some(state) = &mut self.ff {
-                        // TODO: what does ev.code really do???
-                        match ev.code {
-                            0 => state.playing = ev.value != 0,
-                            FF_GAIN => debug!("FF_GAIN = {}", ev.value),
-                            n => debug!("Unexpected EV_FF code {n}."),
-                        }
-                    }
-                }
-                _ => {
-                    debug!("Unexpected event type {}.", ev.type_);
-                }
-            }
-        }
-    }
-
     fn handle_ff_upload(&mut self, request_id: u32) -> Result<()> {
         let mut upload = uinput_ff_upload {
             request_id,
@@ -301,7 +209,101 @@ impl UInputDev {
     }
 }
 
-impl Drop for UInputDev {
+impl Device for UInputDevice {
+    fn get_feedback(&self) -> f32 {
+        let Some(ff) = self.ff else {
+            return 0.0;
+        };
+
+        if !ff.playing {
+            return 0.0;
+        }
+
+        ff.force as f32 / i16::MAX as f32
+    }
+
+    fn set_wheel(&mut self, angle: f32) {
+        let value = (angle * self.resolution).round_ties_even();
+        self.wheel_axis = Some(value as i32);
+    }
+
+    fn set_horn(&mut self, honking: bool) {
+        self.horn_key = Some(honking);
+    }
+
+    fn apply(&mut self) -> Result<()> {
+        let mut i = 0;
+
+        if let Some(axis_val) = self.wheel_axis {
+            self.events_buf[i] =
+                InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, axis_val)).into_raw();
+            i += 1;
+        }
+
+        if let Some(key) = self.horn_key {
+            self.events_buf[i] = InputEvent::from(KeyEvent::new(
+                ZERO,
+                Key::ButtonThumbr,
+                KeyState::pressed(key),
+            ))
+            .into_raw();
+            i += 1;
+        }
+
+        if i == 0 {
+            return Ok(());
+        }
+
+        // Insert sync report event.
+        self.events_buf[i] =
+            InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).into_raw();
+
+        self.handle
+            .write(&self.events_buf[..=i])
+            .context("could not write events")?;
+
+        Ok(())
+    }
+
+    fn handle_events(&mut self) {
+        let mut ev = NULL_EVENT;
+
+        while let Ok(1) = self.handle.read(std::slice::from_mut(&mut ev)) {
+            match ev.type_ as i32 {
+                EV_UINPUT => match ev.code as i32 {
+                    UI_FF_UPLOAD => {
+                        if let Err(err) = self.handle_ff_upload(ev.value as u32) {
+                            error!("Error handling ff upload: {err}");
+                        }
+                    }
+                    UI_FF_ERASE => {
+                        if let Err(err) = self.handle_ff_erase(ev.value as u32) {
+                            error!("Error handling ff erase: {err}");
+                        }
+                    }
+                    _ => {
+                        error!("Unrecognised EV_UINPUT code {}.", ev.code);
+                    }
+                },
+                EV_FF => {
+                    if let Some(state) = &mut self.ff {
+                        // TODO: what does ev.code really do???
+                        match ev.code {
+                            0 => state.playing = ev.value != 0,
+                            FF_GAIN => debug!("FF_GAIN = {}", ev.value),
+                            n => debug!("Unexpected EV_FF code {n}."),
+                        }
+                    }
+                }
+                _ => {
+                    debug!("Unexpected event type {}.", ev.type_);
+                }
+            }
+        }
+    }
+}
+
+impl Drop for UInputDevice {
     fn drop(&mut self) {
         if let Err(err) = self.handle.dev_destroy() {
             error!("Error occured destroying uinput device: {err}");
@@ -309,7 +311,7 @@ impl Drop for UInputDev {
     }
 }
 
-impl Debug for UInputDev {
+impl Debug for UInputDevice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("UInputDev { /* fields */ }")
     }

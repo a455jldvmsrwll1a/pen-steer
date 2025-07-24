@@ -15,7 +15,7 @@ pub struct Wheel {
 impl Wheel {
     pub fn update(
         &mut self,
-        mut device: Option<&mut Device>,
+        mut device: Option<&mut Box<dyn Device>>,
         config: &Config,
         pen: Option<Pen>,
         dt: f32,

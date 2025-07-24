@@ -2,30 +2,32 @@
 pub mod evdev;
 pub mod net;
 
-use crate::{pen::Pen, source::net::NetSource};
+use crate::{config, pen::Pen, source::net::NetSource};
 
 #[cfg(target_os = "linux")]
 use crate::source::evdev::EvdevSource;
 
-#[derive(Debug, Default)]
-pub enum Source {
-    /// Dummy source, does nothing.
-    #[default]
-    Dummy,
-    /// Receive input events from external software via network.
-    Net(NetSource),
-    /// Reads input events from /dev/input/eventX.
-    #[cfg(target_os = "linux")]
-    Evdev(EvdevSource),
+use anyhow::Result;
+
+pub trait Source: Send + Sync {
+    fn get(&mut self) -> Option<Pen>;
 }
 
-impl Source {
-    pub fn get(&mut self) -> Option<Pen> {
-        match self {
-            Source::Dummy => None,
-            Source::Net(net_source) => net_source.try_read(),
-            #[cfg(target_os = "linux")]
-            Self::Evdev(evdev_source) => evdev_source.try_read(),
-        }
+pub struct DummySource;
+
+impl Source for DummySource {
+    fn get(&mut self) -> Option<Pen> {
+        None
     }
+}
+
+pub fn create_source(config: &config::Config) -> Result<Box<dyn Source>> {
+    Ok(match config.source {
+        config::Source::None => Box::new(DummySource),
+        config::Source::Net => Box::new(NetSource::new(&config.net_sock_addr)?),
+        #[cfg(target_os = "windows")]
+        config::Source::Wintab => Box::new(DummySource),
+        #[cfg(target_os = "linux")]
+        config::Source::Evdev => Box::new(EvdevSource::new(config.preferred_tablet.as_deref())?),
+    })
 }
