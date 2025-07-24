@@ -172,7 +172,7 @@ impl UInputDevice {
         }
 
         self.handle
-            .ff_upload_end(&mut upload)
+            .ff_upload_end(&upload)
             .context("could not end ff upload")?;
 
         Ok(())
@@ -197,7 +197,7 @@ impl UInputDevice {
         }
 
         self.handle
-            .ff_erase_end(&mut erase)
+            .ff_erase_end(&erase)
             .context("could not end ff erase")?;
 
         Ok(())

@@ -115,7 +115,7 @@ impl Wheel {
         self.prev_pos.x = pen.x;
         self.prev_pos.y = pen.y;
 
-        return significant_change;
+        significant_change
     }
 }
 
