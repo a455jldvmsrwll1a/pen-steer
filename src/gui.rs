@@ -58,9 +58,26 @@ impl eframe::App for GuiApp {
                     .show_inside(ui, |ui| {
                         ui.add_space(10.0);
                         ui.horizontal(|ui| {
-                            ui.label("Reset source & device: ");
-                            if ui.button("Apply").clicked() {
-                                self.state.lock().unwrap().reset_pending = true;
+                            let width = ui.clip_rect().width() * 0.46;
+
+                            if ui
+                                .add(
+                                    egui::Button::new("Reset Source")
+                                        .min_size(Vec2::new(width, 0.0)),
+                                )
+                                .clicked()
+                            {
+                                self.state.lock().unwrap().reset_source = true;
+                            }
+
+                            if ui
+                                .add(
+                                    egui::Button::new("Reset Device")
+                                        .min_size(Vec2::new(width, 0.0)),
+                                )
+                                .clicked()
+                            {
+                                self.state.lock().unwrap().reset_device = true;
                             }
                         })
                     });
