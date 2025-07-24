@@ -10,6 +10,7 @@ pub struct Wheel {
     pub honking: bool,
     pub dragging: bool,
     pub prev_pos: Pos2,
+    pub prev_angle: f32,
 }
 
 impl Wheel {
@@ -22,6 +23,14 @@ impl Wheel {
     ) -> bool {
         let pen = pen.unwrap_or_default();
         let mut significant_change = false;
+
+        if self.angle != self.prev_angle
+            && let Some(dev) = device.as_mut()
+        {
+            let normalised = self.angle / (config.range * 0.5);
+            dev.set_wheel(normalised);
+            significant_change = true;
+        }
 
         if self.velocity.is_nan() || self.velocity.is_infinite() {
             self.velocity = 0.0;
@@ -46,7 +55,8 @@ impl Wheel {
             if self.velocity.abs() < 0.05 {
                 self.velocity = 0.0;
             }
-            
+
+            self.prev_angle = self.angle;
             self.angle += self.velocity * dt;
 
             if let Some(dev) = device.as_mut()
