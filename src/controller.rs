@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 
-use crate::config::Config;
 use crate::device::create_device;
 use crate::source::create_source;
 use crate::{state::State, timer::Timer};
@@ -29,8 +28,12 @@ pub fn controller(state: Arc<Mutex<State>>) -> ! {
 }
 
 pub fn update(state: &mut State) -> Result<()> {
-    if state.reset_pending {
-        initialise_io(state)?;
+    if state.reset_source {
+        reset_source(state)?;
+    }
+
+    if state.reset_device {
+        reset_device(state)?;
     }
 
     let mut needs_redraw = false;
@@ -59,27 +62,38 @@ pub fn update(state: &mut State) -> Result<()> {
     Ok(())
 }
 
-fn initialise_io(state: &mut State) -> Result<()> {
-    debug!("initialising I/O");
+fn reset_source(state: &mut State) -> Result<()> {
+    debug!("resetting source.");
 
     state.pen = None;
-    state.reset_pending = false;
+    state.reset_source = false;
+    state.source = None;
 
-    if let Err(e) = create_source_and_device(state) {
-        error!("Failed to create source and device!");
-        
-        state.source = None;
-        state.device = None;
-
-        return Err(e);
+    match create_source(&state.config) {
+        Ok(source) => state.source = Some(source),
+        Err(err) => {
+            error!("Failed to create source!");
+            return Err(err);
+        }
     }
 
     Ok(())
 }
 
-fn create_source_and_device(state: &mut State) -> Result<()> {
-    state.source = Some(create_source(&state.config)?);
-    state.device = Some(create_device(&state.config)?);
+fn reset_device(state: &mut State) -> Result<()> {
+    debug!("resetting device.");
+
+    state.pen = None;
+    state.reset_device = false;
+    state.device = None;
+
+    match create_device(&state.config) {
+        Ok(device) => state.device = Some(device),
+        Err(err) => {
+            error!("Failed to create device!");
+            return Err(err);
+        }
+    }
 
     Ok(())
 }
