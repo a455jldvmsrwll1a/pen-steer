@@ -7,7 +7,6 @@ use crate::{pen::Pen, source::Source};
 #[derive(Debug)]
 pub struct NetSource {
     socket: UdpSocket,
-    pub aspect_ratio: f32,
 }
 
 impl NetSource {
@@ -19,7 +18,6 @@ impl NetSource {
 
         Ok(Self {
             socket,
-            aspect_ratio: 1.0,
         })
     }
 }
