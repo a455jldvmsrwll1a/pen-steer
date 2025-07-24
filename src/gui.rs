@@ -2,13 +2,17 @@ use std::sync::{Arc, Mutex};
 
 use crate::{config, pen::Pen, state::State};
 use eframe::egui::{
-    self, Color32, CornerRadius, Id, Pos2, Rect, Sense, Stroke, Vec2, ViewportBuilder,
+    self, Color32, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, Vec2, ViewportBuilder,
 };
 use log::error;
 
 pub struct GuiApp {
     state: Arc<Mutex<State>>,
     evdev_available_devices: Option<Vec<String>>,
+    dirty_source_config: bool,
+    dirty_device_config: bool,
+    flash_cooldown: f32,
+    flash_state: bool,
 }
 
 impl GuiApp {
@@ -16,6 +20,10 @@ impl GuiApp {
         Self {
             state,
             evdev_available_devices: None,
+            dirty_source_config: false,
+            dirty_device_config: false,
+            flash_cooldown: 0.0,
+            flash_state: false,
         }
     }
 }
@@ -34,6 +42,16 @@ impl eframe::App for GuiApp {
 
         let mut dirty_wheel = false;
         let mut dirty_config = false;
+
+        self.flash_cooldown -= ctx.input(|i| i.unstable_dt);
+        if self.flash_cooldown <= 0.0 {
+            self.flash_cooldown = 1.0 / 3.0;
+            self.flash_state = !self.flash_state;
+        }
+
+        if (self.dirty_source_config || self.dirty_device_config) && !ctx.has_requested_repaint() {
+            ctx.request_repaint_after_secs(self.flash_cooldown);
+        }
 
         egui::TopBottomPanel::top("menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -62,22 +80,36 @@ impl eframe::App for GuiApp {
 
                             if ui
                                 .add(
-                                    egui::Button::new("Reset Source")
-                                        .min_size(Vec2::new(width, 0.0)),
+                                    egui::Button::new(RichText::new("Reset Source").color(
+                                        if self.dirty_source_config && self.flash_state {
+                                            Color32::ORANGE
+                                        } else {
+                                            Color32::WHITE
+                                        },
+                                    ))
+                                    .min_size(Vec2::new(width, 0.0)),
                                 )
                                 .clicked()
                             {
                                 self.state.lock().unwrap().reset_source = true;
+                                self.dirty_source_config = false;
                             }
 
                             if ui
                                 .add(
-                                    egui::Button::new("Reset Device")
-                                        .min_size(Vec2::new(width, 0.0)),
+                                    egui::Button::new(RichText::new("Reset Device").color(
+                                        if self.dirty_device_config && self.flash_state {
+                                            Color32::ORANGE
+                                        } else {
+                                            Color32::WHITE
+                                        },
+                                    ))
+                                    .min_size(Vec2::new(width, 0.0)),
                                 )
                                 .clicked()
                             {
                                 self.state.lock().unwrap().reset_device = true;
+                                self.dirty_device_config = false;
                             }
                         })
                     });
@@ -243,7 +275,11 @@ impl eframe::App for GuiApp {
                                 "Evdev (Linux)",
                             );
                         });
-                    dirty_config |= config.source != old_source;
+
+                    if config.source != old_source {
+                        dirty_config = true;
+                        self.dirty_source_config = true;
+                    }
 
                     match old_source {
                         config::Source::None => {
@@ -263,6 +299,7 @@ impl eframe::App for GuiApp {
                         #[cfg(target_os = "linux")]
                         config::Source::Evdev => {
                             ui.heading("Evdev:");
+                            let mut changed = false;
                             egui::ComboBox::new("tablet_pref", "Preferred Tablet")
                                 .width(200.0)
                                 .selected_text(if let Some(dev) = &config.preferred_tablet {
@@ -271,7 +308,7 @@ impl eframe::App for GuiApp {
                                     "Automatic"
                                 })
                                 .show_ui(ui, |ui| {
-                                    dirty_config |= ui
+                                    changed |= ui
                                         .selectable_value(
                                             &mut config.preferred_tablet,
                                             None,
@@ -281,7 +318,7 @@ impl eframe::App for GuiApp {
 
                                     if let Some(devices) = &self.evdev_available_devices {
                                         for dev in devices {
-                                            dirty_config |= ui
+                                            changed |= ui
                                                 .selectable_value(
                                                     &mut config.preferred_tablet,
                                                     Some(dev.clone()),
@@ -297,6 +334,12 @@ impl eframe::App for GuiApp {
                                         }
                                     }
                                 });
+
+                            if changed {
+                                dirty_config = true;
+                                self.dirty_device_config = true;
+                                self.flash_cooldown = 0.0;
+                            }
                         }
                     }
 
@@ -325,7 +368,12 @@ impl eframe::App for GuiApp {
                                 "ViGEm Bus",
                             );
                         });
-                    dirty_config |= config.device != old_device;
+
+                    if config.device != old_device {
+                        dirty_config = true;
+                        self.dirty_device_config = true;
+                        self.flash_cooldown = 0.0;
+                    }
 
                     match old_device {
                         config::Device::None => {
@@ -336,8 +384,10 @@ impl eframe::App for GuiApp {
                             ui.heading("Virtual Controller: (via uinput)");
                             ui.horizontal(|ui| {
                                 ui.label("Name:");
-                                dirty_config |=
-                                    ui.text_edit_singleline(&mut config.device_name).changed();
+                                if ui.text_edit_singleline(&mut config.device_name).changed() {
+                                    dirty_config = true;
+                                    self.dirty_device_config = true;
+                                }
                             });
                             ui.monospace(format!("vendor = 0x{:x}", config.device_vendor));
                             ui.monospace(format!("product = 0x{:x}", config.device_product));
