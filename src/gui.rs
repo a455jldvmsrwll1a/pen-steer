@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{config, pen::Pen, state::State};
 use eframe::egui::{
-    self, Color32, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, Vec2, ViewportBuilder,
+    self, Color32, CornerRadius, Id, Pos2, Rect, Sense, Stroke, Vec2, ViewportBuilder,
 };
 use log::error;
 
@@ -12,7 +12,7 @@ pub struct GuiApp {
 }
 
 impl GuiApp {
-    pub fn new(state: Arc<Mutex<State>>, cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(state: Arc<Mutex<State>>, _cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             state,
             evdev_available_devices: None,
@@ -21,7 +21,7 @@ impl GuiApp {
 }
 
 impl eframe::App for GuiApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let mut state2 = self.state.lock().unwrap();
         if state2.gui_context.is_none() {
             state2.gui_context = Some(ctx.clone());
@@ -48,246 +48,270 @@ impl eframe::App for GuiApp {
             });
         });
 
-        #[rustfmt::skip]
-        egui::SidePanel::left("controls").resizable(false).show(ctx, |ui| {
-            ui.set_width(350.0);
-            ui.style_mut().spacing.slider_width = 200.0;
+        egui::SidePanel::left("controls")
+            .resizable(false)
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.set_width(350.0);
+                    ui.style_mut().spacing.slider_width = 200.0;
 
-            ui.heading("Control Panel");
+                    ui.heading("Control Panel");
 
-            ui.separator();
-            let old_update_frequency = config.update_frequency;
-            egui::ComboBox::new("update_freq", "Update Frequency")
-                .selected_text(format!("{} Hz", config.update_frequency))
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut config.update_frequency, 5, "5 Hz");
-                    ui.selectable_value(&mut config.update_frequency, 30, "30 Hz");
-                    ui.selectable_value(&mut config.update_frequency, 50, "50 Hz");
-                    ui.selectable_value(&mut config.update_frequency, 60, "60 Hz");
-                    ui.selectable_value(&mut config.update_frequency, 100, "100 Hz");
-                    ui.selectable_value(&mut config.update_frequency, 125, "125 Hz");
-                    ui.selectable_value(&mut config.update_frequency, 500, "500 Hz");
-                    ui.selectable_value(&mut config.update_frequency, 1000, "1000 Hz");
-                });
-            dirty_config |= config.update_frequency != old_update_frequency;
-
-            ui.separator();
-            ui.heading("Steering Wheel");
-            dirty_config |= ui
-                .add(
-                    egui::Slider::new(&mut config.range, 30.0..=1800.0)
-                        .step_by(30.0)
-                        .custom_formatter(|v, _| format!("±{v:.0}°"))
-                        .text("Range"),
-                )
-                .changed();
-
-            dirty_config |= ui
-                .add(
-                    egui::Slider::new(&mut config.horn_radius, 0.1..=1.0)
-                        .step_by(0.1)
-                        .text("Horn Radius"),
-                )
-                .changed();
-
-            dirty_config |= ui
-                .add(
-                    egui::Slider::new(&mut config.base_radius, 0.0..=1.0)
-                        .step_by(0.1)
-                        .text("Base Radius"),
-                )
-                .changed();
-
-            ui.horizontal(|ui| {
-                dirty_config |= ui
-                    .add(
-                        egui::DragValue::new(&mut config.inertia)
-                            .speed(0.1)
-                            .range(0.1..=1000.0)
-                            .clamp_existing_to_range(true),
-                    )
-                    .changed();
-                ui.label("Inertia (kg*m^2)");
-            });
-
-            ui.horizontal(|ui| {
-                dirty_config |= ui
-                    .add(
-                        egui::DragValue::new(&mut config.friction)
-                            .speed(0.5)
-                            .range(0.0..=100.0)
-                            .clamp_existing_to_range(true),
-                    )
-                    .changed();
-                ui.label("Friction");
-            });
-
-            ui.horizontal(|ui| {
-                dirty_config |= ui
-                    .add(
-                        egui::DragValue::new(&mut config.spring)
-                            .speed(0.5)
-                            .range(0.0..=100.0)
-                            .clamp_existing_to_range(true),
-                    )
-                    .changed();
-                ui.label("Spring");
-            });
-
-            ui.horizontal(|ui| {
-                dirty_config |= ui
-                    .add(
-                        egui::DragValue::new(&mut config.max_torque)
-                            .speed(0.1)
-                            .range(-1000.0..=1000.0)
-                            .clamp_existing_to_range(true),
-                    )
-                    .changed();
-                ui.label("Max Torque (Nm)");
-            });
-
-            ui.separator();
-            dirty_wheel |= ui
-                .add(
-                    egui::Slider::new(
-                        &mut wheel.angle,
-                        -(config.range * 0.5)..=(config.range * 0.5),
-                    )
-                    .drag_value_speed(1.0)
-                    .custom_formatter(|v, _| format!("{v:.1}°"))
-                    .text("Angle"),
-                )
-                .changed();
-
-            ui.separator();
-            ui.heading("Input");
-
-            ui.horizontal(|ui| {
-                dirty_config |= ui
-                    .add(
-                        egui::DragValue::new(&mut config.pressure_threshold)
-                            .speed(1)
-                            .range(0..=2048)
-                            .clamp_existing_to_range(true),
-                    )
-                    .changed();
-                ui.label("Pen Pressure Threshold");
-            });
-
-            let old_source = config.source;
-            egui::ComboBox::new("source", "Input Source")
-                .selected_text(old_source.to_string())
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut config.source, config::Source::None, "Disabled");
-                    ui.selectable_value(
-                        &mut config.source,
-                        config::Source::Net,
-                        "Network (over UDP)",
-                    );
-                    #[cfg(target_os = "windows")]
-                    ui.selectable_value(
-                        &mut config.source,
-                        config::Source::Wintab,
-                        "Wacom Wintab (Windows)",
-                    );
-                    #[cfg(target_os = "linux")]
-                    ui.selectable_value(&mut config.source, config::Source::Evdev, "Evdev (Linux)");
-                });
-            dirty_config |= config.source != old_source;
-            outdated |= config.source != old_source;
-
-            match old_source {
-                config::Source::None => {
-                    ui.colored_label(Color32::YELLOW, "No input available!");
-                }
-                config::Source::Net => {
-                    ui.horizontal(|ui| {
-                        ui.label("Listen to: ");
-                        dirty_config |=
-                            ui.text_edit_singleline(&mut config.net_sock_addr).changed();
-                    });
-                }
-                #[cfg(target_os = "windows")]
-                config::Source::Wintab => {
-                    ui.colored_label(Color32::YELLOW, "Work in progress...");
-                }
-                #[cfg(target_os = "linux")]
-                config::Source::Evdev => {
-                    ui.heading("Evdev:");
-                    egui::ComboBox::new("tablet_pref", "Preferred Tablet")
-                        .width(200.0)
-                        .selected_text(if let Some(dev) = &config.preferred_tablet {
-                            dev.as_str()
-                        } else {
-                            "Automatic"
-                        })
+                    ui.separator();
+                    let old_update_frequency = config.update_frequency;
+                    egui::ComboBox::new("update_freq", "Update Frequency")
+                        .selected_text(format!("{} Hz", config.update_frequency))
                         .show_ui(ui, |ui| {
-                            dirty_config |= ui
-                                .selectable_value(&mut config.preferred_tablet, None, "Automatic")
-                                .clicked();
+                            ui.selectable_value(&mut config.update_frequency, 5, "5 Hz");
+                            ui.selectable_value(&mut config.update_frequency, 30, "30 Hz");
+                            ui.selectable_value(&mut config.update_frequency, 50, "50 Hz");
+                            ui.selectable_value(&mut config.update_frequency, 60, "60 Hz");
+                            ui.selectable_value(&mut config.update_frequency, 100, "100 Hz");
+                            ui.selectable_value(&mut config.update_frequency, 125, "125 Hz");
+                            ui.selectable_value(&mut config.update_frequency, 500, "500 Hz");
+                            ui.selectable_value(&mut config.update_frequency, 1000, "1000 Hz");
+                        });
+                    dirty_config |= config.update_frequency != old_update_frequency;
 
-                            if let Some(devices) = &self.evdev_available_devices {
-                                for dev in devices {
+                    ui.separator();
+                    ui.heading("Steering Wheel");
+                    dirty_config |= ui
+                        .add(
+                            egui::Slider::new(&mut config.range, 30.0..=1800.0)
+                                .step_by(30.0)
+                                .custom_formatter(|v, _| format!("±{v:.0}°"))
+                                .text("Range"),
+                        )
+                        .changed();
+
+                    dirty_config |= ui
+                        .add(
+                            egui::Slider::new(&mut config.horn_radius, 0.1..=1.0)
+                                .step_by(0.1)
+                                .text("Horn Radius"),
+                        )
+                        .changed();
+
+                    dirty_config |= ui
+                        .add(
+                            egui::Slider::new(&mut config.base_radius, 0.0..=1.0)
+                                .step_by(0.1)
+                                .text("Base Radius"),
+                        )
+                        .changed();
+
+                    ui.horizontal(|ui| {
+                        dirty_config |= ui
+                            .add(
+                                egui::DragValue::new(&mut config.inertia)
+                                    .speed(0.1)
+                                    .range(0.1..=1000.0)
+                                    .clamp_existing_to_range(true),
+                            )
+                            .changed();
+                        ui.label("Inertia (kg*m^2)");
+                    });
+
+                    ui.horizontal(|ui| {
+                        dirty_config |= ui
+                            .add(
+                                egui::DragValue::new(&mut config.friction)
+                                    .speed(0.5)
+                                    .range(0.0..=100.0)
+                                    .clamp_existing_to_range(true),
+                            )
+                            .changed();
+                        ui.label("Friction");
+                    });
+
+                    ui.horizontal(|ui| {
+                        dirty_config |= ui
+                            .add(
+                                egui::DragValue::new(&mut config.spring)
+                                    .speed(0.5)
+                                    .range(0.0..=100.0)
+                                    .clamp_existing_to_range(true),
+                            )
+                            .changed();
+                        ui.label("Spring");
+                    });
+
+                    ui.horizontal(|ui| {
+                        dirty_config |= ui
+                            .add(
+                                egui::DragValue::new(&mut config.max_torque)
+                                    .speed(0.1)
+                                    .range(-1000.0..=1000.0)
+                                    .clamp_existing_to_range(true),
+                            )
+                            .changed();
+                        ui.label("Max Torque (Nm)");
+                    });
+
+                    ui.separator();
+                    dirty_wheel |= ui
+                        .add(
+                            egui::Slider::new(
+                                &mut wheel.angle,
+                                -(config.range * 0.5)..=(config.range * 0.5),
+                            )
+                            .drag_value_speed(1.0)
+                            .custom_formatter(|v, _| format!("{v:.1}°"))
+                            .text("Angle"),
+                        )
+                        .changed();
+
+                    ui.separator();
+                    ui.heading("Input");
+
+                    ui.horizontal(|ui| {
+                        dirty_config |= ui
+                            .add(
+                                egui::DragValue::new(&mut config.pressure_threshold)
+                                    .speed(1)
+                                    .range(0..=2048)
+                                    .clamp_existing_to_range(true),
+                            )
+                            .changed();
+                        ui.label("Pen Pressure Threshold");
+                    });
+
+                    let old_source = config.source;
+                    egui::ComboBox::new("source", "Input Source")
+                        .selected_text(old_source.to_string())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut config.source,
+                                config::Source::None,
+                                "Disabled",
+                            );
+                            ui.selectable_value(
+                                &mut config.source,
+                                config::Source::Net,
+                                "Network (over UDP)",
+                            );
+                            #[cfg(target_os = "windows")]
+                            ui.selectable_value(
+                                &mut config.source,
+                                config::Source::Wintab,
+                                "Wacom Wintab (Windows)",
+                            );
+                            #[cfg(target_os = "linux")]
+                            ui.selectable_value(
+                                &mut config.source,
+                                config::Source::Evdev,
+                                "Evdev (Linux)",
+                            );
+                        });
+                    dirty_config |= config.source != old_source;
+                    outdated |= config.source != old_source;
+
+                    match old_source {
+                        config::Source::None => {
+                            ui.colored_label(Color32::YELLOW, "No input available!");
+                        }
+                        config::Source::Net => {
+                            ui.horizontal(|ui| {
+                                ui.label("Listen to: ");
+                                dirty_config |=
+                                    ui.text_edit_singleline(&mut config.net_sock_addr).changed();
+                            });
+                        }
+                        #[cfg(target_os = "windows")]
+                        config::Source::Wintab => {
+                            ui.colored_label(Color32::YELLOW, "Work in progress...");
+                        }
+                        #[cfg(target_os = "linux")]
+                        config::Source::Evdev => {
+                            ui.heading("Evdev:");
+                            egui::ComboBox::new("tablet_pref", "Preferred Tablet")
+                                .width(200.0)
+                                .selected_text(if let Some(dev) = &config.preferred_tablet {
+                                    dev.as_str()
+                                } else {
+                                    "Automatic"
+                                })
+                                .show_ui(ui, |ui| {
                                     dirty_config |= ui
                                         .selectable_value(
                                             &mut config.preferred_tablet,
-                                            Some(dev.clone()),
-                                            dev,
+                                            None,
+                                            "Automatic",
                                         )
                                         .clicked();
-                                }
-                            } else {
-                                use crate::source::evdev;
-                                match evdev::enumerate_available_devices() {
-                                    Ok(devs) => self.evdev_available_devices = Some(devs),
-                                    Err(err) => error!("Device enumeration error: {err}"),
-                                }
-                            }
-                        });
-                }
-            }
 
-            ui.separator();
-            ui.heading("Mapping");
-            ui.colored_label(Color32::YELLOW, "Work in progress...");
+                                    if let Some(devices) = &self.evdev_available_devices {
+                                        for dev in devices {
+                                            dirty_config |= ui
+                                                .selectable_value(
+                                                    &mut config.preferred_tablet,
+                                                    Some(dev.clone()),
+                                                    dev,
+                                                )
+                                                .clicked();
+                                        }
+                                    } else {
+                                        use crate::source::evdev;
+                                        match evdev::enumerate_available_devices() {
+                                            Ok(devs) => self.evdev_available_devices = Some(devs),
+                                            Err(err) => error!("Device enumeration error: {err}"),
+                                        }
+                                    }
+                                });
+                        }
+                    }
 
-            ui.separator();
-            ui.heading("Output");
-
-            let old_device = config.device;
-            egui::ComboBox::new("device", "Output Device")
-                .selected_text(old_device.to_string())
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut config.device, config::Device::None, "Null");
-                    #[cfg(target_os = "linux")]
-                    ui.selectable_value(&mut config.device, config::Device::UInput, "Linux uinput");
-                    #[cfg(target_os = "windows")]
-                    ui.selectable_value(&mut config.device, config::Device::VigemBus, "ViGEm Bus");
-                });
-            dirty_config |= config.device != old_device;
-            outdated |= config.device != old_device;
-
-            match old_device {
-                config::Device::None => {
-                    ui.colored_label(Color32::YELLOW, "No output available!");
-                }
-                #[cfg(target_os = "linux")]
-                config::Device::UInput => {
-                    ui.heading("Virtual Controller: (via uinput)");
-                    ui.horizontal(|ui| {
-                        ui.label("Name:");
-                        dirty_config |= ui.text_edit_singleline(&mut config.device_name).changed();
-                    });
-                    ui.monospace(format!("vendor = 0x{:x}", config.device_vendor));
-                    ui.monospace(format!("product = 0x{:x}", config.device_product));
-                    ui.monospace(format!("version = 0x{:x}", config.device_version));
-                }
-                #[cfg(target_os = "windows")]
-                config::Device::VigemBus => {
+                    ui.separator();
+                    ui.heading("Mapping");
                     ui.colored_label(Color32::YELLOW, "Work in progress...");
-                }
-            }
-        });
+
+                    ui.separator();
+                    ui.heading("Output");
+
+                    let old_device = config.device;
+                    egui::ComboBox::new("device", "Output Device")
+                        .selected_text(old_device.to_string())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(&mut config.device, config::Device::None, "Null");
+                            #[cfg(target_os = "linux")]
+                            ui.selectable_value(
+                                &mut config.device,
+                                config::Device::UInput,
+                                "Linux uinput",
+                            );
+                            #[cfg(target_os = "windows")]
+                            ui.selectable_value(
+                                &mut config.device,
+                                config::Device::VigemBus,
+                                "ViGEm Bus",
+                            );
+                        });
+                    dirty_config |= config.device != old_device;
+                    outdated |= config.device != old_device;
+
+                    match old_device {
+                        config::Device::None => {
+                            ui.colored_label(Color32::YELLOW, "No output available!");
+                        }
+                        #[cfg(target_os = "linux")]
+                        config::Device::UInput => {
+                            ui.heading("Virtual Controller: (via uinput)");
+                            ui.horizontal(|ui| {
+                                ui.label("Name:");
+                                dirty_config |=
+                                    ui.text_edit_singleline(&mut config.device_name).changed();
+                            });
+                            ui.monospace(format!("vendor = 0x{:x}", config.device_vendor));
+                            ui.monospace(format!("product = 0x{:x}", config.device_product));
+                            ui.monospace(format!("version = 0x{:x}", config.device_version));
+                        }
+                        #[cfg(target_os = "windows")]
+                        config::Device::VigemBus => {
+                            ui.colored_label(Color32::YELLOW, "Work in progress...");
+                        }
+                    }
+                });
+            });
 
         egui::TopBottomPanel::bottom("steer_bar")
             .exact_height(32.0)
