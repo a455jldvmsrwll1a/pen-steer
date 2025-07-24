@@ -2,7 +2,7 @@ use anyhow::Result;
 use log::info;
 use std::net::UdpSocket;
 
-use crate::pen::Pen;
+use crate::{pen::Pen, source::Source};
 
 #[derive(Debug)]
 pub struct NetSource {
@@ -22,8 +22,10 @@ impl NetSource {
             aspect_ratio: 1.0,
         })
     }
+}
 
-    pub fn try_read(&mut self) -> Option<Pen> {
+impl Source for NetSource {
+    fn get(&mut self) -> Option<Pen> {
         let mut pen = Pen::default();
         let mut buf = [0u8; 13];
         let mut filled = false;

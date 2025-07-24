@@ -2,18 +2,9 @@ use anyhow::{Context, Result};
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 
-use crate::{
-    config,
-    device::Device,
-    source::{Source, net::NetSource},
-    state::State,
-    timer::Timer,
-};
-
-#[cfg(target_os = "linux")]
-use crate::device::uinput::UInputDev;
-#[cfg(target_os = "linux")]
-use crate::source::evdev::EvdevSource;
+use crate::device::create_device;
+use crate::source::create_source;
+use crate::{state::State, timer::Timer};
 
 pub fn controller(state: Arc<Mutex<State>>) -> ! {
     let mut update_frequency = state.lock().unwrap().config.update_frequency;
@@ -43,7 +34,7 @@ pub fn update(state: &mut State) -> Result<()> {
 
     let mut needs_redraw = false;
 
-    if let Some(ref pen) = state.source.get() {
+    if let Some(Some(ref pen)) = state.source.as_mut().map(|s| s.get()) {
         state.pen = Some(pen.clone());
         needs_redraw = true;
     }
@@ -69,33 +60,15 @@ pub fn update(state: &mut State) -> Result<()> {
 
 pub fn initialise_io(state: &mut State) -> Result<()> {
     debug!("initialising I/O");
-    
+
     state.pen = None;
     state.outdated = false;
 
-    state.source = Source::Dummy;
+    state.source = None;
     state.device = None;
 
-    state.source = match state.config.source {
-        config::Source::None => Source::Dummy,
-        config::Source::Net => Source::Net(NetSource::new(&state.config.net_sock_addr)?),
-        #[cfg(target_os = "windows")]
-        config::Source::Wintab => Source::Dummy,
-        #[cfg(target_os = "linux")]
-        config::Source::Evdev => {
-            Source::Evdev(EvdevSource::new(state.config.preferred_tablet.as_deref())?)
-        }
-    };
-
-    state.device = Some(match state.config.device {
-        config::Device::None => Device::Dummy,
-        #[cfg(target_os = "linux")]
-        config::Device::UInput => Device::UInput(
-            UInputDev::new(&state.config).context("Could not set up uinput device!")?,
-        ),
-        #[cfg(target_os = "windows")]
-        config::Device::VigemBus => Device::Dummy,
-    });
+    state.source = Some(create_source(&state.config)?);
+    state.device = Some(create_device(&state.config)?);
 
     Ok(())
 }
