@@ -1,10 +1,17 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{config, pen::Pen, state::State};
+use crate::{
+    config::{self, Config},
+    pen::Pen,
+    save::{compile_parse_errors, load_file, save_file},
+    save_path::{save_dir, save_path},
+    state::State,
+};
+use anyhow::anyhow;
 use eframe::egui::{
     self, Color32, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, Vec2, ViewportBuilder,
 };
-use log::error;
+use log::{debug, error};
 
 pub struct GuiApp {
     state: Arc<Mutex<State>>,
@@ -55,6 +62,8 @@ impl eframe::App for GuiApp {
 
         let mut dirty_wheel = false;
         let mut dirty_config = false;
+        let mut load_path = None;
+        let mut should_save = false;
 
         self.flash_cooldown -= ctx.input(|i| i.unstable_dt);
         if self.flash_cooldown <= 0.0 {
@@ -85,12 +94,12 @@ impl eframe::App for GuiApp {
                 ui.style_mut().spacing.slider_width = 200.0;
 
                 egui::TopBottomPanel::bottom("controls_footer")
-                    .exact_height(40.0)
+                    .exact_height(70.0)
                     .show_inside(ui, |ui| {
                         ui.add_space(10.0);
-                        ui.horizontal(|ui| {
-                            let width = ui.clip_rect().width() * 0.46;
+                        let width = ui.clip_rect().width() * 0.46;
 
+                        ui.horizontal(|ui| {
                             if ui
                                 .add(
                                     egui::Button::new(RichText::new("Reset Source").color(
@@ -124,7 +133,33 @@ impl eframe::App for GuiApp {
                                 self.state.lock().unwrap().reset_device = true;
                                 self.dirty_device_config = false;
                             }
-                        })
+                        });
+
+                        ui.add_space(5.0);
+
+                        ui.horizontal(|ui| {
+                            if ui
+                                .add(egui::Button::new("Save").min_size(Vec2::new(width, 0.0)))
+                                .clicked()
+                            {
+                                // save
+                                should_save = true;
+                            }
+
+                            if ui
+                                .add(egui::Button::new("Load...").min_size(Vec2::new(width, 0.0)))
+                                .clicked()
+                            {
+                                match native_dialog::FileDialogBuilder::default()
+                                    .set_location(&save_dir())
+                                    .open_single_file()
+                                    .show()
+                                {
+                                    Ok(result) => load_path = result,
+                                    Err(err) => error!("Could not pick config file path: {err}"),
+                                }
+                            }
+                        });
                     });
 
                 ui.heading("Control Panel");
@@ -564,6 +599,40 @@ impl eframe::App for GuiApp {
         }
 
         state2.pen_override = pen_override.clone();
+
+        // prevent double lock with the save/load code below
+        drop(state2);
+
+        if should_save {
+            let path = save_path();
+            debug!("Saving configuration to {}", path.display());
+            if let Err(err) = save_file(&config, &path) {
+                self.state.lock().unwrap().last_error =
+                    Some(err.context("Could not save configuration file."));
+            }
+        }
+
+        if let Some(path) = load_path {
+            debug!("Loading configuration at {}", path.display());
+            let mut new_config = Config::default();
+            match load_file(&mut new_config, &path) {
+                Ok(parse_errors) => {
+                    if !parse_errors.is_empty() {
+                        self.state.lock().unwrap().last_error =
+                            Some(anyhow!(compile_parse_errors(parse_errors)));
+                    }
+
+                    let mut state2 = self.state.lock().unwrap();
+                    state2.config = new_config;
+                    state2.reset_device = true;
+                    state2.reset_source = true;
+                }
+                Err(load_err) => {
+                    self.state.lock().unwrap().last_error =
+                        Some(load_err.context("Could not load configuration file."));
+                }
+            }
+        }
     }
 }
 
