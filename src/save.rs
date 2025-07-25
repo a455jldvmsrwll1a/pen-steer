@@ -1,4 +1,5 @@
 use std::{
+    fmt::Write as FmtWrite,
     fs::OpenOptions,
     io::{BufWriter, Read, Write},
     path::Path,
@@ -68,13 +69,45 @@ pub fn save_file(config: &Config, path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn load_file(config: &mut Config, path: &Path) -> Result<Vec<ParseError>> {
-    config.source = Source::None;
-    config.device = Device::None;
+pub fn compile_parse_errors(errors: Vec<ParseError>) -> String {
+    const MAX_ERRORS: usize = 30;
 
+    let mut message = String::new();
+    let mut lines_left = MAX_ERRORS;
+    let mut errors_left = errors.len();
+
+    writeln!(
+        &mut message,
+        "{} parsing errors encountered while loading configuration file:",
+        errors.len()
+    )
+    .unwrap();
+    for error in errors {
+        if lines_left == 0 {
+            break;
+        }
+
+        writeln!(&mut message, "    line {}: {}", error.line + 1, error.msg).unwrap();
+        lines_left -= 1;
+        errors_left -= 1;
+    }
+
+    if errors_left > 0 {
+        writeln!(&mut message, "... and {errors_left} more!").unwrap();
+    }
+
+    message.push('\n');
+
+    message
+}
+
+pub fn load_file(config: &mut Config, path: &Path) -> Result<Vec<ParseError>> {
     let mut file = OpenOptions::new().read(true).open(path)?;
     let mut content = String::new();
     file.read_to_string(&mut content)?;
+
+    config.source = Source::None;
+    config.device = Device::None;
 
     let mut errors = vec![];
     for (line, text) in content.lines().enumerate() {

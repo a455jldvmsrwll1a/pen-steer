@@ -6,18 +6,23 @@ mod device;
 mod gui;
 mod pen;
 mod save;
+mod save_path;
 mod source;
 mod state;
 mod timer;
 mod wheel;
 
-use std::sync::{Arc, Mutex};
+use std::{
+    env::args,
+    fs::create_dir_all,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::{Result, bail};
 
-use log::{info, LevelFilter};
+use log::{LevelFilter, error, info};
 
-use crate::state::State;
+use crate::{save_path::save_dir, state::State};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -25,7 +30,11 @@ fn main() -> Result<()> {
     init_logging();
     info!("pen-steer v{VERSION}");
 
-    let cli_mode = std::env::args().any(|arg| arg.trim() == "--headless");
+    if let Err(err) = create_dir_all(save_dir()) {
+        error!("Could not create configuration directory: {err}");
+    }
+
+    let cli_mode = args().any(|arg| arg.trim() == "--headless");
 
     if cli_mode {
         start_headless()
@@ -35,7 +44,7 @@ fn main() -> Result<()> {
 }
 
 fn start_gui() -> Result<()> {
-    let state = Arc::new(Mutex::new(State::default()));
+    let state = Arc::new(Mutex::new(State::create()));
 
     let state_clone = state.clone();
     std::thread::spawn(move || controller::controller(state_clone));
