@@ -5,6 +5,7 @@ mod controller;
 mod device;
 mod gui;
 mod pen;
+mod save;
 mod source;
 mod state;
 mod timer;
