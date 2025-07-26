@@ -431,7 +431,7 @@ impl GuiApp {
                     });
 
                 if changed {
-                    self.dirty_device_config = true;
+                    self.dirty_source_config = true;
                     self.flash_cooldown = 0.0;
                 }
             }
