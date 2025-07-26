@@ -24,8 +24,9 @@ This Rust application is not my first attempt, I wrote the initial prototype in 
   - Press the centre to activate the horn.
   - Configurable range.
   - Configurable physics settings. (inertia, friction, etc.)
-  - Force-feedback! Allows the wheel to i.e. centre itself in a realistic-ish way.
   - Run without the GUI via `--headless`. (quite limited at the moment)
+  - Force-feedback! Allows the wheel to i.e. centre itself in a realistic-ish way:
+![animation](resources/demo.gif)
 
 Pen input can be collected from a few sources:
   - Dummy - does nothing
@@ -39,10 +40,9 @@ There are a few methods to fake a virtual controller:
   - ViGEm - [WIP] uses [ViGEm](https://docs.nefarius.at/projects/ViGEm/) (Windows only)
 
 ## TODO
-This thing barely works, but is missing many features.
-  - Save/load configuration.
+This thing works okay, but is missing some features.
   - Adjustable area mapping.
-  - etc.
+  - Windows (Wintab and Vigem support)
 
 ## Building
 Clone the repository and compile with the command:
@@ -63,9 +63,6 @@ To use this application without a GUI, simply use the `--headless` option:
 ./pen-steer --headless
 ```
 
-_Currently, the only way to adjust settings is by manually editing `src/config.rs` and recompiling._
-_Proper load/save is in the works._
-
 ## Net Source
 Listens for pen input via UDP.
 
@@ -84,6 +81,10 @@ Fields are expected to be in little-endian.
 `pos_X` and `pos_Y` are expected to be normalised [-1.0, 1.0].
 
 `buttons` is a bitfield.
+
+## Evdev Source
+Reads from a `/dev/input/event*` file. You may need to run as `root`, or better yet, just add your user to the `input` group.
+
 
 ## uinput Device
 Currently the only device available. It uses Linux's uinput API.
