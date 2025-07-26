@@ -10,8 +10,8 @@ use crate::{
 };
 use anyhow::anyhow;
 use eframe::egui::{
-    self, Color32, Context, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2,
-    ViewportBuilder,
+    self, Color32, Context, CornerRadius, Id, Layout, Pos2, Rect, RichText, Sense, Stroke, Ui,
+    Vec2, ViewportBuilder,
 };
 use log::{debug, error};
 
@@ -24,6 +24,7 @@ pub struct GuiApp {
     flash_state: bool,
     should_save: bool,
     should_load: bool,
+    show_wheel: bool,
 }
 
 impl eframe::App for GuiApp {
@@ -33,6 +34,13 @@ impl eframe::App for GuiApp {
 
         if let Some(err) = state.last_error.take() {
             show_error(frame, err);
+        }
+
+        // if wheel is hidden, prevent controller from requesting repaints
+        if self.show_wheel && state.gui_context.is_none() {
+            state.gui_context = Some(ctx.clone());
+        } else if state.gui_context.is_some() {
+            state.gui_context = None;
         }
 
         self.update_flashing_buttons(ctx);
@@ -45,9 +53,7 @@ impl eframe::App for GuiApp {
 }
 
 impl GuiApp {
-    pub fn new(state: Arc<Mutex<State>>, cc: &eframe::CreationContext<'_>) -> Self {
-        state.lock().unwrap().gui_context = Some(cc.egui_ctx.clone());
-
+    pub fn new(state: Arc<Mutex<State>>, _cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             state,
             evdev_available_devices: None,
@@ -57,6 +63,7 @@ impl GuiApp {
             flash_state: false,
             should_save: false,
             should_load: false,
+            show_wheel: true,
         }
     }
 
@@ -131,18 +138,6 @@ fn show_error(frame: &eframe::Frame, err: anyhow::Error) {
         .show();
 }
 
-fn draw_menu(ui: &mut Ui) {
-    ui.horizontal(|ui| {
-        ui.menu_button("File", |ui| {
-            if ui.button("Quit").clicked() {
-                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
-            }
-        });
-
-        ui.menu_button("Help", |ui| if ui.button("About").clicked() {});
-    });
-}
-
 impl GuiApp {
     fn update_flashing_buttons(&mut self, ctx: &Context) {
         self.flash_cooldown -= ctx.input(|i| i.unstable_dt);
@@ -156,8 +151,27 @@ impl GuiApp {
         }
     }
 
+    fn draw_menu(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.menu_button("File", |ui| {
+                if ui.button("Quit").clicked() {
+                    ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                }
+            });
+
+            ui.menu_button("Help", |ui| if ui.button("About").clicked() {});
+
+            ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
+                let string = if self.show_wheel { "<" } else { ">" };
+                if ui.button(string).clicked() {
+                    self.show_wheel = !self.show_wheel;
+                }
+            });
+        });
+    }
+
     fn draw_ui(&mut self, ctx: &Context, state: &mut State) {
-        egui::TopBottomPanel::top("menu").show(ctx, draw_menu);
+        egui::TopBottomPanel::top("menu").show(ctx, |ui| self.draw_menu(ui));
 
         egui::SidePanel::left("controls")
             .resizable(false)
@@ -191,6 +205,10 @@ impl GuiApp {
                     self.draw_controls(state, ui);
                 });
             });
+
+        if !self.show_wheel {
+            return;
+        }
 
         egui::TopBottomPanel::bottom("steer_bar")
             .exact_height(32.0)
@@ -632,6 +650,8 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         viewport: ViewportBuilder {
             title: Some("Pen Steer".into()),
             app_id: Some("pen-steer".into()),
+            inner_size: Some(Vec2::new(800.0, 600.0)),
+            min_inner_size: Some(Vec2::new(365.0, 0.0)),
             ..Default::default()
         },
         persist_window: false,
