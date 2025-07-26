@@ -32,7 +32,7 @@ impl eframe::App for GuiApp {
         let mut state = state_arc.lock().unwrap();
 
         if let Some(err) = state.last_error.take() {
-            show_error(&frame, err);
+            show_error(frame, err);
         }
 
         self.update_flashing_buttons(ctx);
@@ -206,7 +206,7 @@ impl GuiApp {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let pen = state.pen_override.as_ref().or_else(|| state.pen.as_ref());
+            let pen = state.pen_override.as_ref().or(state.pen.as_ref());
             state.pen_override = draw_steering_wheel(&state.config, &state.wheel, pen.cloned(), ui);
         });
     }
