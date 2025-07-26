@@ -168,7 +168,7 @@ impl GuiApp {
                 egui::TopBottomPanel::bottom("controls_footer")
                     .exact_height(70.0)
                     .show_inside(ui, |ui| {
-                        self.draw_controls_footer(ui);
+                        self.draw_controls_footer(ui, state);
                     });
 
                 ui.heading("Control Panel");
@@ -211,7 +211,7 @@ impl GuiApp {
         });
     }
 
-    fn draw_controls_footer(&mut self, ui: &mut Ui) {
+    fn draw_controls_footer(&mut self, ui: &mut Ui, state: &mut State) {
         ui.add_space(10.0);
         let width = ui.clip_rect().width() * 0.46;
 
@@ -235,12 +235,12 @@ impl GuiApp {
 
         ui.horizontal(|ui| {
             if ui.add(source_btn).clicked() {
-                self.state.lock().unwrap().reset_source = true;
+                state.reset_source = true;
                 self.dirty_source_config = false;
             }
 
             if ui.add(device_btn).clicked() {
-                self.state.lock().unwrap().reset_device = true;
+                state.reset_device = true;
                 self.dirty_device_config = false;
             }
         });
