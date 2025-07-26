@@ -165,8 +165,9 @@ impl GuiApp {
                 ui.set_width(350.0);
                 ui.style_mut().spacing.slider_width = 200.0;
 
+                const FOOTER_HEIGHT: f32 = 70.0;
                 egui::TopBottomPanel::bottom("controls_footer")
-                    .exact_height(70.0)
+                    .exact_height(FOOTER_HEIGHT)
                     .show_inside(ui, |ui| {
                         self.draw_controls_footer(ui, state);
                     });
@@ -182,7 +183,7 @@ impl GuiApp {
                     },
                     max: Pos2 {
                         x: f32::INFINITY,
-                        y: ui.clip_rect().bottom() - 45.0,
+                        y: ui.clip_rect().bottom() - FOOTER_HEIGHT - 4.0,
                     },
                 });
 
@@ -571,17 +572,17 @@ fn draw_steering_wheel(
 
     let size = rect.size().x.min(rect.size().y) * 0.45;
     let stroke = Stroke::new(size * 0.1, colour);
-    
+
     let sin = wheel.angle.to_radians().sin();
     let cos = wheel.angle.to_radians().cos();
     let rightward = Vec2::new(size * cos, size * sin);
     let downward = Vec2::new(-size * sin, size * cos);
-    
+
     let left = rect.left();
     let right = rect.right();
     let bottom = rect.bottom();
     let top = rect.top();
-    
+
     let origin = rect.center();
     painter.circle_stroke(origin, size, stroke);
     painter.line_segment([origin + rightward, origin - rightward], stroke);
