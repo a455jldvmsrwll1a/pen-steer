@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::mapping::Mapping;
+
 #[derive(Debug, Clone)]
 pub struct Config {
     /// How many updates per second.
@@ -21,6 +23,9 @@ pub struct Config {
     pub spring: f32,
     /// Maximum feedback torque that can be applied (in Nm).
     pub max_torque: f32,
+
+    /// Information to map source input to normalised coordinates.
+    pub mapping: Mapping,
 
     /// Socket address to listen for data from, if using a `Net` source.
     pub net_sock_addr: String,
@@ -75,6 +80,7 @@ impl Default for Config {
             friction: 25.0,
             spring: 0.0,
             max_torque: 300.0,
+            mapping: Mapping::default(),
             net_sock_addr: "127.0.0.1:16027".into(),
             device_resolution: 32768,
             device_name: "G29 Driving Force Racing Wheel [PS3]".into(),
