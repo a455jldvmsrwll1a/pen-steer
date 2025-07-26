@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     config::{self, Config},
@@ -15,14 +18,22 @@ use eframe::egui::{
 };
 use log::{debug, error};
 
+#[derive(Clone, Copy)]
+enum SaveAction {
+    None,
+    ToCurrentPath,
+    ToCustomPath,
+}
+
 pub struct GuiApp {
     state: Arc<Mutex<State>>,
+    save_path: PathBuf,
     evdev_available_devices: Option<Vec<String>>,
     dirty_source_config: bool,
     dirty_device_config: bool,
     flash_cooldown: f32,
     flash_state: bool,
-    should_save: bool,
+    save_action: SaveAction,
     should_load: bool,
     show_wheel: bool,
 }
@@ -56,26 +67,44 @@ impl GuiApp {
     pub fn new(state: Arc<Mutex<State>>, _cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             state,
+            save_path: save_path(),
             evdev_available_devices: None,
             dirty_source_config: false,
             dirty_device_config: false,
             flash_cooldown: 0.0,
             flash_state: false,
-            should_save: false,
+            save_action: SaveAction::None,
             should_load: false,
             show_wheel: true,
         }
     }
 
     fn save(&mut self) {
-        if !self.should_save {
-            return;
-        }
+        let action = self.save_action;
+        self.save_action = SaveAction::None;
 
-        self.should_save = false;
+        let path = match action {
+            SaveAction::None => {
+                return;
+            }
+            SaveAction::ToCurrentPath => self.save_path.clone(),
+            SaveAction::ToCustomPath => {
+                match native_dialog::FileDialogBuilder::default()
+                    .set_location(&save_dir())
+                    .save_single_file()
+                    .show()
+                {
+                    Ok(Some(path)) => path,
+                    Ok(None) => return,
+                    Err(err) => {
+                        error!("Could not pick config file save path: {err}");
+                        return;
+                    }
+                }
+            }
+        };
 
         let config = self.state.lock().unwrap().config.clone();
-        let path = save_path();
         debug!("Saving configuration to {}", path.display());
         if let Err(err) = save_file(&config, &path) {
             self.state.lock().unwrap().last_error =
@@ -154,6 +183,17 @@ impl GuiApp {
     fn draw_menu(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.menu_button("File", |ui| {
+                if ui.button("Save").clicked() {
+                    self.save_action = SaveAction::ToCurrentPath;
+                }
+
+                if ui.button("Save as...").clicked() {
+                    self.save_action = SaveAction::ToCustomPath;
+                }
+
+                self.should_load |= ui.button("Load...").clicked();
+
+                ui.separator();
                 if ui.button("Quit").clicked() {
                     ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                 }
@@ -267,9 +307,12 @@ impl GuiApp {
         ui.add_space(5.0);
 
         ui.horizontal(|ui| {
-            self.should_save |= ui
+            if ui
                 .add(egui::Button::new("Save").min_size(Vec2::new(width, 0.0)))
-                .clicked();
+                .clicked()
+            {
+                self.save_action = SaveAction::ToCurrentPath;
+            }
 
             self.should_load |= ui
                 .add(egui::Button::new("Load...").min_size(Vec2::new(width, 0.0)))
