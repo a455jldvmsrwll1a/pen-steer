@@ -4,6 +4,7 @@ mod config;
 mod controller;
 mod device;
 mod gui;
+mod mapping;
 mod pen;
 mod save;
 mod save_path;
