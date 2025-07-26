@@ -247,6 +247,7 @@ impl GuiApp {
             });
 
         if !self.show_wheel {
+            self.draw_steering_wheel_placeholder(ctx);
             return;
         }
 
@@ -543,6 +544,25 @@ impl GuiApp {
                 ui.colored_label(Color32::YELLOW, "Work in progress...");
             }
         }
+    }
+
+    fn draw_steering_wheel_placeholder(&mut self, ctx: &Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.centered_and_justified(|ui| {
+                if ui
+                    .add(
+                        egui::Button::new(
+                            RichText::new("Steering wheel view disabled. Click to enable.")
+                                .underline(),
+                        )
+                        .frame(false),
+                    )
+                    .clicked()
+                {
+                    self.show_wheel = true;
+                }
+            })
+        });
     }
 }
 
