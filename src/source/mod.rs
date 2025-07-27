@@ -2,7 +2,7 @@
 pub mod evdev;
 pub mod net;
 
-use crate::{config, pen::Pen, source::net::NetSource};
+use crate::{config, pen::RawPen, source::net::NetSource};
 
 #[cfg(target_os = "linux")]
 use crate::source::evdev::EvdevSource;
@@ -10,13 +10,13 @@ use crate::source::evdev::EvdevSource;
 use anyhow::Result;
 
 pub trait Source: Send + Sync {
-    fn get(&mut self) -> Option<Pen>;
+    fn get(&mut self) -> Option<RawPen>;
 }
 
 pub struct DummySource;
 
 impl Source for DummySource {
-    fn get(&mut self) -> Option<Pen> {
+    fn get(&mut self) -> Option<RawPen> {
         None
     }
 }
