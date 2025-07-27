@@ -9,7 +9,7 @@ use input_linux::{AbsoluteAxis, EvdevHandle, EventKind, EventRef};
 use log::{debug, info, trace};
 use nix::libc::O_NONBLOCK;
 
-use crate::{pen::Pen, source::Source};
+use crate::{pen::RawPen, source::Source};
 
 pub struct EvdevSource {
     handle: EvdevHandle<File>,
@@ -18,7 +18,7 @@ pub struct EvdevSource {
     y_min: i32,
     y_max: i32,
     aspect_ratio: f32,
-    current: Pen,
+    current: RawPen,
 }
 
 impl EvdevSource {
@@ -63,13 +63,13 @@ impl EvdevSource {
             y_min,
             y_max,
             aspect_ratio,
-            current: Pen::default(),
+            current: RawPen::default(),
         })
     }
 }
 
 impl Source for EvdevSource {
-    fn get(&mut self) -> Option<Pen> {
+    fn get(&mut self) -> Option<RawPen> {
         fn norm(t: i32, a1: i32, a2: i32) -> f32 {
             ((-1.0) + (t as f64 - a1 as f64) * (1.0 - (-1.0)) / (a2 as f64 - a1 as f64)) as f32
         }

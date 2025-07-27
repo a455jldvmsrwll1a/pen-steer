@@ -43,8 +43,9 @@ pub fn update(state: &mut State) -> Result<()> {
 
     let mut needs_redraw = false;
 
-    if let Some(Some(ref pen)) = state.source.as_mut().map(|s| s.get()) {
-        state.pen = Some(pen.clone());
+    if let Some(Some(ref raw_pen)) = state.source.as_mut().map(|s| s.get()) {
+        let pen = state.config.mapping.pen(raw_pen.clone());
+        state.pen = Some(pen);
         needs_redraw = true;
     }
 
