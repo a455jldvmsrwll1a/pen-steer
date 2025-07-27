@@ -1,6 +1,9 @@
 #[cfg(target_os = "linux")]
 pub mod uinput;
 
+#[cfg(target_os = "windows")]
+pub mod vigem;
+
 use crate::config;
 #[cfg(target_os = "linux")]
 use crate::device::uinput::UInputDevice;
