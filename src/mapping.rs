@@ -1,6 +1,6 @@
 use crate::pen::{Pen, RawPen};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapOrientation {
     None,
     A90,
