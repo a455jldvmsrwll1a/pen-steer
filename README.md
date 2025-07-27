@@ -24,6 +24,7 @@ This Rust application is not my first attempt, I wrote the initial prototype in 
   - Press the centre to activate the horn.
   - Configurable range.
   - Configurable physics settings. (inertia, friction, etc.)
+  - Adjustable area mapping.
   - Run without the GUI via `--headless`. (quite limited at the moment)
   - Force-feedback! Allows the wheel to i.e. centre itself in a realistic-ish way:
 ![animation](resources/demo.gif)
@@ -41,8 +42,8 @@ There are a few methods to fake a virtual controller:
 
 ## TODO
 This thing works okay, but is missing some features.
-  - Adjustable area mapping.
   - Windows (Wintab and Vigem support)
+  - Less clunky control panel.
 
 ## Building
 Clone the repository and compile with the command:
