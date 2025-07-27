@@ -1927,6 +1927,7 @@ dependencies = [
  "log",
  "native-dialog",
  "nix 0.30.1",
+ "vigem-client",
 ]
 
 [[package]]
@@ -2534,6 +2535,15 @@ checksum = "80a7e511ce1795821207a837b7b1c8d8aca0c648810966ad200446ae58f6667f"
 dependencies = [
  "itertools",
  "nom",
+]
+
+[[package]]
+name = "vigem-client"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b857e6f99efe1e1eb1e4dfb035de8ae7ec8ec56bd1928edcbd7c6e4427634d52"
+dependencies = [
+ "winapi",
 ]
 
 [[package]]
