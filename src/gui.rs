@@ -5,6 +5,7 @@ use std::{
 
 use crate::{
     config::{self, Config},
+    mapping::MapOrientation,
     pen::Pen,
     save::{compile_parse_errors, load_file, save_file},
     save_path::{save_dir, save_path},
@@ -502,7 +503,35 @@ impl GuiApp {
 
         ui.separator();
         ui.heading("Mapping");
-        ui.colored_label(Color32::YELLOW, "Work in progress...");
+        let map = &mut config.mapping;
+        ui.horizontal(|ui| {
+            ui.label("Input:");
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add(egui::DragValue::new(&mut map.min_in_x).speed(0.1));
+                ui.add(egui::DragValue::new(&mut map.min_in_y).speed(0.1));
+                ui.add(egui::DragValue::new(&mut map.max_in_x).speed(0.1));
+                ui.add(egui::DragValue::new(&mut map.max_in_y).speed(0.1));
+            });
+        });
+        ui.horizontal(|ui| {
+            ui.label("Output:");
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add(egui::DragValue::new(&mut map.min_out_x).speed(0.1));
+                ui.add(egui::DragValue::new(&mut map.min_out_y).speed(0.1));
+                ui.add(egui::DragValue::new(&mut map.max_out_x).speed(0.1));
+                ui.add(egui::DragValue::new(&mut map.max_out_y).speed(0.1));
+            });
+        });
+        egui::ComboBox::new("map-orient", "Orientation")
+            .selected_text(format!("{:?}", map.orientation))
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut map.orientation, MapOrientation::None, "A0");
+                ui.selectable_value(&mut map.orientation, MapOrientation::A90, "A90");
+                ui.selectable_value(&mut map.orientation, MapOrientation::A180, "A180");
+                ui.selectable_value(&mut map.orientation, MapOrientation::A270, "A270");
+            });
+        ui.checkbox(&mut map.invert_x, "Invert X axis");
+        ui.checkbox(&mut map.invert_y, "Invert Y axis");
 
         ui.separator();
         ui.heading("Output");
