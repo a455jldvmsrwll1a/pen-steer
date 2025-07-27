@@ -8,7 +8,10 @@ use std::{
 use anyhow::{Context, Result, bail};
 use log::error;
 
-use crate::config::{Config, Device, Source};
+use crate::{
+    config::{Config, Device, Source},
+    mapping::MapOrientation,
+};
 
 #[derive(Debug)]
 pub struct ParseError {
@@ -41,6 +44,44 @@ pub fn save_file(config: &Config, path: &Path) -> Result<()> {
     writeln!(&mut w, "friction = {}", config.friction)?;
     writeln!(&mut w, "spring = {}", config.spring)?;
     writeln!(&mut w, "max_torque = {}", config.max_torque)?;
+    writeln!(&mut w)?;
+
+    writeln!(
+        &mut w,
+        "map_input_rect = {} {} {} {}",
+        config.mapping.min_in_x,
+        config.mapping.min_in_y,
+        config.mapping.max_in_x,
+        config.mapping.max_in_y
+    )?;
+    writeln!(
+        &mut w,
+        "map_output_rect = {} {} {} {}",
+        config.mapping.min_out_x,
+        config.mapping.min_out_y,
+        config.mapping.max_out_x,
+        config.mapping.max_out_y
+    )?;
+    writeln!(
+        &mut w,
+        "map_orientation = {}",
+        match config.mapping.orientation {
+            MapOrientation::None => "A0",
+            MapOrientation::A90 => "A90",
+            MapOrientation::A180 => "A180",
+            MapOrientation::A270 => "A270",
+        }
+    )?;
+    writeln!(
+        &mut w,
+        "map_invert = {}",
+        match (config.mapping.invert_x, config.mapping.invert_y) {
+            (false, false) => "",
+            (false, true) => "y",
+            (true, false) => "x",
+            (true, true) => "xy",
+        }
+    )?;
     writeln!(&mut w)?;
 
     writeln!(&mut w, "net_sock_addr = {}", config.net_sock_addr)?;
@@ -158,6 +199,27 @@ fn load_from_line(config: &mut Config, text: &str) -> Result<()> {
         "spring" => config.spring = parse_sane_f32(value, -YES, YES)?,
         "max_torque" => config.max_torque = parse_sane_f32(value, -YES, YES)?,
 
+        "map_input_rect" => {
+            (
+                config.mapping.min_in_x,
+                config.mapping.min_in_y,
+                config.mapping.max_in_x,
+                config.mapping.max_in_y,
+            ) = parse_mapping_rect(value)?
+        }
+        "map_output_rect" => {
+            (
+                config.mapping.min_out_x,
+                config.mapping.min_out_y,
+                config.mapping.max_out_x,
+                config.mapping.max_out_y,
+            ) = parse_mapping_rect(value)?
+        }
+        "map_orientation" => config.mapping.orientation = parse_mapping_orientation(value)?,
+        "map_invert" => {
+            (config.mapping.invert_x, config.mapping.invert_y) = parse_mapping_invert(value)?
+        }
+
         "net_sock_addr" => config.net_sock_addr = value.to_owned(),
 
         "device_resolution" => config.device_resolution = parse_sane_u32(value, 2, 32768)?,
@@ -242,6 +304,50 @@ fn parse_device_id(text: &str) -> Result<(u16, u16, u16)> {
 fn parse_hex_u16(text: &str) -> Result<u16> {
     let clean = text.trim().trim_start_matches("0x");
     u16::from_str_radix(clean, 16).context("Invalid hexadecimal u16.")
+}
+
+fn parse_mapping_rect(text: &str) -> Result<(f32, f32, f32, f32)> {
+    let mut tokens = text.split_whitespace();
+    let min_x = tokens.next().context("Missing minimum X.")?;
+    let min_y = tokens.next().context("Missing minimum Y.")?;
+    let max_x = tokens.next().context("Missing maximum X.")?;
+    let max_y = tokens.next().context("Missing maximum Y.")?;
+
+    Ok((
+        parse_sane_f32(min_x, -1000000.0, 1000000.0)?,
+        parse_sane_f32(min_y, -1000000.0, 1000000.0)?,
+        parse_sane_f32(max_x, -1000000.0, 1000000.0)?,
+        parse_sane_f32(max_y, -1000000.0, 1000000.0)?,
+    ))
+}
+
+fn parse_mapping_orientation(text: &str) -> Result<MapOrientation> {
+    Ok(match text.trim() {
+        "A0" => MapOrientation::None,
+        "A90" => MapOrientation::A90,
+        "A180" => MapOrientation::A180,
+        "A270" => MapOrientation::A270,
+        unknown => bail!("Unknown orientation \"{unknown}\""),
+    })
+}
+
+fn parse_mapping_invert(text: &str) -> Result<(bool, bool)> {
+    let mut x = false;
+    let mut y = false;
+
+    for c in text.chars() {
+        if c.to_ascii_lowercase() == 'x' {
+            x = true;
+        } else if c.to_ascii_lowercase() == 'y' {
+            y = true;
+        }
+
+        if x && y {
+            break;
+        }
+    }
+
+    Ok((x, y))
 }
 
 fn parse_source(text: &str) -> Result<Source> {
