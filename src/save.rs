@@ -340,10 +340,8 @@ fn parse_mapping_invert(text: &str) -> Result<(bool, bool)> {
             x = true;
         } else if c.to_ascii_lowercase() == 'y' {
             y = true;
-        }
-
-        if x && y {
-            break;
+        } else if !c.is_whitespace() {
+            bail!("Invalid axis character {c}!");
         }
     }
 
