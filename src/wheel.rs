@@ -41,7 +41,11 @@ impl Wheel {
         }
 
         if !self.dragging {
-            let feedback_normalised = device.as_ref().map(|d| d.get_feedback()).unwrap_or(0.0);
+            let feedback_normalised = device
+                .as_ref()
+                .map(|d| d.get_feedback())
+                .flatten()
+                .unwrap_or(0.0);
             self.feedback_torque = feedback_normalised * config.max_torque;
 
             let w = self.velocity.to_radians();
