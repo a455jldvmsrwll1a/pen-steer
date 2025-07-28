@@ -13,7 +13,7 @@ use crate::device::vigem::VigemDevice;
 use anyhow::Result;
 
 pub trait Device: Send + Sync {
-    fn get_feedback(&self) -> f32;
+    fn get_feedback(&self) -> Option<f32>;
 
     fn set_wheel(&mut self, angle: f32);
 
@@ -27,8 +27,8 @@ pub trait Device: Send + Sync {
 pub struct DummyDevice;
 
 impl Device for DummyDevice {
-    fn get_feedback(&self) -> f32 {
-        0.0
+    fn get_feedback(&self) -> Option<f32> {
+        None
     }
 
     fn set_wheel(&mut self, _angle: f32) {}

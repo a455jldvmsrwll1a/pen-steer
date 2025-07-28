@@ -260,11 +260,15 @@ impl GuiApp {
                 }
             });
 
-        egui::TopBottomPanel::bottom("ff_bar")
-            .exact_height(16.0)
-            .show(ctx, |ui| {
-                draw_ff_bar(state.wheel.feedback_torque, state.config.max_torque, ui);
-            });
+        if let Some(device) = &state.device {
+            if device.get_feedback().is_some() {
+                egui::TopBottomPanel::bottom("ff_bar")
+                    .exact_height(16.0)
+                    .show(ctx, |ui| {
+                        draw_ff_bar(state.wheel.feedback_torque, state.config.max_torque, ui);
+                    });
+            }
+        }
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let pen = state.pen_override.as_ref().or(state.pen.as_ref());
