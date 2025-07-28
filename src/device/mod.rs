@@ -7,6 +7,8 @@ pub mod vigem;
 use crate::config;
 #[cfg(target_os = "linux")]
 use crate::device::uinput::UInputDevice;
+#[cfg(target_os = "windows")]
+use crate::device::vigem::VigemDevice;
 
 use anyhow::Result;
 
@@ -46,6 +48,6 @@ pub fn create_device(config: &config::Config) -> Result<Box<dyn Device>> {
         #[cfg(target_os = "linux")]
         config::Device::UInput => Box::new(UInputDevice::new(config)?),
         #[cfg(target_os = "windows")]
-        config::Device::VigemBus => Box::new(DummyDevice),
+        config::Device::VigemBus => Box::new(VigemDevice::new()?),
     })
 }
