@@ -18,8 +18,8 @@ impl VigemDevice {
 }
 
 impl Device for VigemDevice {
-    fn get_feedback(&self) -> f32 {
-        0.0
+    fn get_feedback(&self) -> Option<f32> {
+        None
     }
 
     fn set_wheel(&mut self, angle: f32) {
