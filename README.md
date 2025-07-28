@@ -27,7 +27,12 @@ This Rust application is not my first attempt, I wrote the initial prototype in 
   - Adjustable area mapping.
   - Run without the GUI via `--headless`. (quite limited at the moment)
   - Force-feedback! Allows the wheel to i.e. centre itself in a realistic-ish way:
+
 ![animation](resources/demo.gif)
+
+_Not all output devices support force-feedback._
+
+---
 
 Pen input can be collected from a few sources:
   - Dummy - does nothing
