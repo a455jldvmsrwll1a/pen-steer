@@ -116,7 +116,10 @@ impl Wheel {
             let adjusted = adjust_angle_delta(delta_t, centre_dist, config.base_radius);
 
             let new_angle = self.angle + adjusted;
+            self.prev_angle = self.angle;
             self.angle = clamp_symmetric(config.range * 0.5, new_angle);
+
+            self.velocity = (self.angle - self.prev_angle) / dt;
 
             if let Some(dev) = device {
                 let normalised = self.angle / (config.range * 0.5);
