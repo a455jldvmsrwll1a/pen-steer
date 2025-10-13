@@ -58,7 +58,7 @@ fn start_gui() -> Result<()> {
 }
 
 fn start_headless() -> ! {
-    controller::controller(Arc::new(Mutex::new(State::default())));
+    controller::controller(Arc::new(Mutex::new(State::create())));
 }
 
 fn init_logging() {
