@@ -214,15 +214,8 @@ impl UInputDevice {
 
 impl Device for UInputDevice {
     fn get_feedback(&self) -> Option<f32> {
-        let Some(ff) = self.ff else {
-            return Some(0.0);
-        };
-
-        if !ff.playing {
-            return Some(0.0);
-        }
-
-        Some(ff.force as f32 / i16::MAX as f32)
+        self.ff
+            .and_then(|ff| ff.playing.then(|| ff.force as f32 / i16::MAX as f32))
     }
 
     fn set_wheel(&mut self, angle: f32) {
