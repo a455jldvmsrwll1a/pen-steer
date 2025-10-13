@@ -343,6 +343,7 @@ impl GuiApp {
             });
 
         ui.separator();
+        ui.style_mut().spacing.interact_size.x = 60.0;
         ui.heading("Steering Wheel");
         ui.add(
             egui::Slider::new(&mut config.range, 30.0..=1800.0)
@@ -363,47 +364,61 @@ impl GuiApp {
                 .text("Base Radius"),
         );
 
+        ui.style_mut().spacing.interact_size.x = 150.0;
+
         ui.horizontal(|ui| {
-            ui.add(
-                egui::DragValue::new(&mut config.inertia)
-                    .speed(0.1)
-                    .range(0.1..=1000.0)
-                    .clamp_existing_to_range(true),
-            );
-            ui.label("Inertia (kg*m^2)");
+            ui.label("Inertia: ");
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add(
+                    egui::DragValue::new(&mut config.inertia)
+                        .speed(0.1)
+                        .range(0.1..=1000.0)
+                        .suffix(" kg×m²")
+                        .clamp_existing_to_range(true),
+                );
+            });
         });
 
         ui.horizontal(|ui| {
-            ui.add(
-                egui::DragValue::new(&mut config.friction)
-                    .speed(0.5)
-                    .range(0.0..=100.0)
-                    .clamp_existing_to_range(true),
-            );
-            ui.label("Friction");
+            ui.label("Friction coefficient: ");
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add(
+                    egui::DragValue::new(&mut config.friction)
+                        .speed(0.5)
+                        .range(0.0..=100.0)
+                        .clamp_existing_to_range(true),
+                );
+            });
         });
 
         ui.horizontal(|ui| {
-            ui.add(
-                egui::DragValue::new(&mut config.spring)
-                    .speed(0.5)
-                    .range(0.0..=100.0)
-                    .clamp_existing_to_range(true),
-            );
-            ui.label("Spring");
+            ui.label("Spring stiffness:");
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add(
+                    egui::DragValue::new(&mut config.spring)
+                        .speed(0.5)
+                        .range(0.0..=100.0)
+                        .suffix(" Nm/rad")
+                        .clamp_existing_to_range(true),
+                );
+            });
         });
 
         ui.horizontal(|ui| {
-            ui.add(
-                egui::DragValue::new(&mut config.max_torque)
-                    .speed(0.1)
-                    .range(-1000.0..=1000.0)
-                    .clamp_existing_to_range(true),
-            );
-            ui.label("Max Torque (Nm)");
+            ui.label("Max feedback torque: ");
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add(
+                    egui::DragValue::new(&mut config.max_torque)
+                        .speed(0.1)
+                        .range(-1000.0..=1000.0)
+                        .suffix(" Nm")
+                        .clamp_existing_to_range(true),
+                );
+            });
         });
 
         ui.separator();
+        ui.style_mut().spacing.interact_size.x = 40.0;
         ui.add(
             egui::Slider::new(
                 &mut state.wheel.angle,
@@ -507,6 +522,7 @@ impl GuiApp {
 
         ui.separator();
         ui.heading("Mapping");
+        ui.style_mut().spacing.interact_size.x = 65.0;
         let map = &mut config.mapping;
         ui.horizontal(|ui| {
             ui.label("Input:");
