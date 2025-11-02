@@ -2,20 +2,20 @@ pen-steer
 =========
 Use a drawing tablet, or something similar, as a steering wheel.
 
-Available for Linux and ~~Windows~~ (WIP).
+Available for Linux and Windows (WIP).
 
-**Notice: not very usable right now. Read on for more info.**
+**Notice: somewhat useable but unpolished. Read on for more info.**
 
 ![screenshot](resources/screenshot.png)
 ---------
 
 ## Why?
 Mouse steering is alright ([Euro Truck Simulator 2](https://eurotrucksimulator2.com/), etc.), but I wanted to see if it would be
-practical to use a drawing tablet. Surprisingly, it's not that bad. I would still use an actual
-wheel if I could afford one, though.
+practical to use a drawing tablet. Surprisingly, it's not that bad; it does take a bit of practice to draw a circle at the centre.
+I would still use an actual wheel if I could afford one, though.
 
 As far as I know, there isn't anything else like this (or I didn't search enough), so I made this.
-Though, I am definitely not the first person to try something like this.
+Though, I am probably not the first person to try something like this.
 
 This Rust application is not my first attempt, I wrote the initial prototype in C and a cursed bunch of `ioctl()`s.
 
@@ -24,8 +24,9 @@ This Rust application is not my first attempt, I wrote the initial prototype in 
   - Press the centre to activate the horn.
   - Configurable range.
   - Configurable physics settings. (inertia, friction, etc.)
-  - Adjustable area mapping.
+  - Adjustable area mapping. (needs more work)
   - Run without the GUI via `--headless`. (quite limited at the moment)
+  - Save/load configuration. (needs more work)
   - Force-feedback! Allows the wheel to i.e. centre itself in a realistic-ish way:
 
 ![animation](resources/demo.gif)
@@ -93,6 +94,14 @@ Reads from a `/dev/input/event*` file. You may need to run as `root`, or better 
 
 
 ## uinput Device
-Currently the only device available. It uses Linux's uinput API.
+Currently the only device available for Linux. It uses Linux's uinput API.
 
 **You may need to run as `root`, or better yet, just add your user to the `input` group.**
+
+## ViGEmBus Device
+Currently the only device available for Windows. It uses the [ViGEmBus driver](https://github.com/nefarius/ViGEmBus), which is
+no longer being updated, to emulate a virtual joystick.
+
+Force-feedback is *not supported*.
+
+**You will need to install the driver for this output method to work.**
