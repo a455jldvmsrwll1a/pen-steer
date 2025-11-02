@@ -1,6 +1,6 @@
 use std::{
     fmt::Debug,
-    fs::{self, File, OpenOptions},
+    fs::{self, DirEntry, File, OpenOptions},
     os::unix::fs::OpenOptionsExt,
 };
 
@@ -127,66 +127,17 @@ pub fn enumerate_available_devices() -> Result<Vec<String>> {
             continue;
         };
 
-        let Ok(name) = entry.file_name().into_string() else {
-            continue;
-        };
-
-        let stripped_name = name.trim_start_matches("event");
-
-        if stripped_name.parse::<u32>().is_err() {
-            continue;
-        }
-
-        let Ok(file_type) = entry.file_type() else {
-            continue;
-        };
-
-        if file_type.is_dir() || file_type.is_file() {
-            continue;
-        }
-
-        let Ok(file) = OpenOptions::new().read(true).open(entry.path()) else {
-            continue;
-        };
-
-        let handle = input_linux::EvdevHandle::new(file);
-
-        let Ok(events) = handle.event_bits() else {
-            continue;
-        };
-
-        if !events.iter().any(|e| matches!(e, EventKind::Absolute)) {
-            continue;
-        }
-
-        let Ok(abs) = handle.absolute_bits() else {
-            continue;
-        };
-
-        let mut has_x = false;
-        let mut has_y = false;
-        let mut has_pressure = false;
-
-        for abs in &abs {
-            match abs {
-                AbsoluteAxis::X => has_x = true,
-                AbsoluteAxis::Y => has_y = true,
-                AbsoluteAxis::Pressure => has_pressure = true,
-                _ => (),
+        let name = entry.file_name();
+        let handle = match open_evdev_tablet_device(entry) {
+            Ok(h) => h,
+            Err(err) => {
+                trace!("Skipping {name:?}: {err}");
+                continue;
             }
-        }
-
-        if !has_x || !has_y || !has_pressure {
-            continue;
-        }
-
-        let Ok(dev_name) = handle.device_name() else {
-            continue;
         };
-
-        let string = String::from_utf8_lossy(&dev_name).into_owned();
-        trace!("Found valid input: {string}");
-        valid_devices.push(string);
+        
+        trace!("Found valid input: {}", handle.name);
+        valid_devices.push(handle.name);
     }
 
     Ok(valid_devices)
@@ -198,75 +149,79 @@ fn open_device_with_name(target_name: &str) -> Result<Option<EvdevHandle<File>>>
             continue;
         };
 
-        let Ok(name) = entry.file_name().into_string() else {
-            continue;
-        };
-
-        let stripped_name = name.trim_start_matches("event");
-
-        if stripped_name.parse::<u32>().is_err() {
-            continue;
-        }
-
-        let Ok(file_type) = entry.file_type() else {
-            continue;
-        };
-
-        if file_type.is_dir() || file_type.is_file() {
-            continue;
-        }
-
-        let Ok(file) = OpenOptions::new()
-            .read(true)
-            .custom_flags(O_NONBLOCK)
-            .open(entry.path())
-        else {
-            continue;
-        };
-
-        let handle = input_linux::EvdevHandle::new(file);
-
-        let Ok(events) = handle.event_bits() else {
-            continue;
-        };
-
-        if !events.iter().any(|e| matches!(e, EventKind::Absolute)) {
-            continue;
-        }
-
-        let Ok(abs) = handle.absolute_bits() else {
-            continue;
-        };
-
-        let mut has_x = false;
-        let mut has_y = false;
-        let mut has_pressure = false;
-
-        for abs in &abs {
-            match abs {
-                AbsoluteAxis::X => has_x = true,
-                AbsoluteAxis::Y => has_y = true,
-                AbsoluteAxis::Pressure => has_pressure = true,
-                _ => (),
+        let name = entry.file_name();
+        let handle = match open_evdev_tablet_device(entry) {
+            Ok(h) => h,
+            Err(err) => {
+                trace!("Skipping {name:?}: {err}");
+                continue;
             }
-        }
-
-        if !has_x || !has_y || !has_pressure {
-            continue;
-        }
-
-        let Ok(dev_name) = handle.device_name() else {
-            continue;
         };
 
-        let string = String::from_utf8_lossy(&dev_name).into_owned();
-
-        if string.contains(target_name) {
-            return Ok(Some(handle));
+        if handle.name.contains(target_name) {
+            return Ok(Some(handle.handle));
         }
     }
 
     Ok(None)
+}
+
+struct EvdevDeviceHandle {
+    handle: EvdevHandle<File>,
+    name: String,
+}
+
+fn open_evdev_tablet_device(entry: DirEntry) -> Result<EvdevDeviceHandle> {
+    let Ok(name) = entry.file_name().into_string() else {
+        bail!("Invalid UTF-8 for entry: {:?}", entry.file_name());
+    };
+
+    let stripped_name = name.trim_start_matches("event");
+    stripped_name
+        .parse::<u32>()
+        .context("Not a valid event device file.")?;
+
+    let file_type = entry.file_type()?;
+    if file_type.is_dir() || file_type.is_file() {
+        bail!("Not a device file.");
+    }
+
+    let file = OpenOptions::new()
+        .read(true)
+        .custom_flags(O_NONBLOCK)
+        .open(entry.path())?;
+
+    let handle = input_linux::EvdevHandle::new(file);
+
+    let events = handle.event_bits()?;
+
+    if !events.iter().any(|e| matches!(e, EventKind::Absolute)) {
+        bail!("No absolute event type.");
+    }
+
+    let abs = handle.absolute_bits()?;
+
+    let mut has_x = false;
+    let mut has_y = false;
+    let mut has_pressure = false;
+
+    for abs in &abs {
+        match abs {
+            AbsoluteAxis::X => has_x = true,
+            AbsoluteAxis::Y => has_y = true,
+            AbsoluteAxis::Pressure => has_pressure = true,
+            _ => (),
+        }
+    }
+
+    if !has_x || !has_y || !has_pressure {
+        bail!("Input device must have X, Y, and pressure axes.");
+    }
+
+    let dev_name = handle.device_name()?;
+    let name = String::from_utf8_lossy(&dev_name).into_owned();
+
+    Ok(EvdevDeviceHandle { handle, name })
 }
 
 fn get_dimensions(handle: &EvdevHandle<File>) -> Result<(i32, i32, i32, i32)> {
