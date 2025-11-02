@@ -44,11 +44,11 @@ Pen input can be collected from a few sources:
 There are a few methods to fake a virtual controller:
   - Dummy - no output at all
   - uinput - uses Linux's [uinput module](https://kernel.org/doc/html/v4.12/input/uinput.html). (Linux only)
-  - ViGEm - [WIP] uses [ViGEm](https://docs.nefarius.at/projects/ViGEm/) (Windows only)
+  - ViGEm - uses [ViGEm](https://docs.nefarius.at/projects/ViGEm/) (Windows only)
 
 ## TODO
-This thing works okay, but is missing some features.
-  - Windows (Wintab and Vigem support)
+This thing works okay, but needs more work.
+  - Wintab support for Windows.
   - Less clunky control panel.
 
 ## Building
@@ -90,13 +90,13 @@ Fields are expected to be in little-endian.
 `buttons` is a bitfield.
 
 ## Evdev Source
-Reads from a `/dev/input/event*` file. You may need to run as `root`, or better yet, just add your user to the `input` group.
+Reads from a `/dev/input/event*` file. You may need to either run as the `root` user, or add your user to the `input` group.
 
 
 ## uinput Device
 Currently the only device available for Linux. It uses Linux's uinput API.
 
-**You may need to run as `root`, or better yet, just add your user to the `input` group.**
+**You may need to either run as the `root` user, or add your user to the `input` group.**
 
 ## ViGEmBus Device
 Currently the only device available for Windows. It uses the [ViGEmBus driver](https://github.com/nefarius/ViGEmBus), which is
