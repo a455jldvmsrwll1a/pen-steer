@@ -62,8 +62,9 @@ fn start_headless() -> ! {
 }
 
 fn init_logging() {
-    env_logger::Builder::from_default_env()
+    env_logger::Builder::default()
         .filter_level(LevelFilter::Info)
+        .parse_default_env()
         .filter_module("eframe", LevelFilter::Warn)
         .filter_module("calloop", LevelFilter::Warn)
         .init();
