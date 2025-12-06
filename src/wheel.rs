@@ -20,17 +20,8 @@ impl Wheel {
         config: &Config,
         pen: Option<Pen>,
         dt: f32,
-    ) -> bool {
+    ) {
         let pen = pen.unwrap_or_default();
-        let mut significant_change = false;
-
-        if self.angle != self.prev_angle
-            && let Some(dev) = device.as_mut()
-        {
-            let normalised = self.angle / (config.range * 0.5);
-            dev.set_wheel(normalised);
-            significant_change = true;
-        }
 
         if self.velocity.is_nan() || self.velocity.is_infinite() {
             self.velocity = 0.0;
@@ -63,12 +54,9 @@ impl Wheel {
             self.prev_angle = self.angle;
             self.angle += self.velocity * dt;
 
-            if let Some(dev) = device.as_mut()
-                && self.velocity.abs() > 0.01
-            {
+            if let Some(dev) = device.as_mut() {
                 let normalised = self.angle / (config.range * 0.5);
                 dev.set_wheel(normalised);
-                significant_change = true;
             }
         }
 
@@ -86,13 +74,13 @@ impl Wheel {
             self.honking = false;
             self.dragging = false;
 
-            return significant_change;
+            return;
         }
 
         // wheel is held
 
         if self.honking {
-            return significant_change;
+            return;
         }
 
         let centre_dist = dist_sq(pen.x, pen.y).sqrt();
@@ -104,7 +92,7 @@ impl Wheel {
                 dev.set_horn(true);
             }
 
-            return significant_change;
+            return;
         }
 
         // check if we were already dragging
@@ -124,15 +112,12 @@ impl Wheel {
             if let Some(dev) = device {
                 let normalised = self.angle / (config.range * 0.5);
                 dev.set_wheel(normalised);
-                significant_change = true;
             }
         }
 
         self.dragging = true;
         self.prev_pos.x = pen.x;
         self.prev_pos.y = pen.y;
-
-        significant_change
     }
 }
 
