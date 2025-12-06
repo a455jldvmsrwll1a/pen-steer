@@ -32,8 +32,6 @@ pub struct GuiApp {
     evdev_available_devices: Option<Vec<String>>,
     dirty_source_config: bool,
     dirty_device_config: bool,
-    flash_cooldown: f32,
-    flash_state: bool,
     save_action: SaveAction,
     should_load: bool,
     show_wheel: bool,
@@ -55,9 +53,12 @@ impl eframe::App for GuiApp {
             state.gui_context = None;
         }
 
-        self.update_flashing_buttons(ctx);
         self.draw_ui(ctx, &mut state);
         drop(state);
+
+        if self.show_wheel {
+            ctx.request_repaint();
+        }
 
         self.save();
         self.load();
@@ -72,8 +73,6 @@ impl GuiApp {
             evdev_available_devices: None,
             dirty_source_config: false,
             dirty_device_config: false,
-            flash_cooldown: 0.0,
-            flash_state: false,
             save_action: SaveAction::None,
             should_load: false,
             show_wheel: true,
@@ -169,18 +168,6 @@ fn show_error(frame: &eframe::Frame, err: anyhow::Error) {
 }
 
 impl GuiApp {
-    fn update_flashing_buttons(&mut self, ctx: &Context) {
-        self.flash_cooldown -= ctx.input(|i| i.unstable_dt);
-        if self.flash_cooldown <= 0.0 {
-            self.flash_cooldown = 1.0 / 3.0;
-            self.flash_state = !self.flash_state;
-        }
-
-        if (self.dirty_source_config || self.dirty_device_config) && !ctx.has_requested_repaint() {
-            ctx.request_repaint_after_secs(self.flash_cooldown);
-        }
-    }
-
     fn draw_menu(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.menu_button("File", |ui| {
@@ -281,7 +268,7 @@ impl GuiApp {
         let width = ui.clip_rect().width() * 0.46;
 
         let source_btn = egui::Button::new(RichText::new("Reset Source").color(
-            if self.dirty_source_config && self.flash_state {
+            if self.dirty_source_config {
                 Color32::ORANGE
             } else {
                 Color32::WHITE
@@ -290,7 +277,7 @@ impl GuiApp {
         .min_size(Vec2::new(width, 0.0));
 
         let device_btn = egui::Button::new(RichText::new("Reset Device").color(
-            if self.dirty_device_config && self.flash_state {
+            if self.dirty_device_config {
                 Color32::ORANGE
             } else {
                 Color32::WHITE
@@ -515,7 +502,6 @@ impl GuiApp {
 
                 if changed {
                     self.dirty_source_config = true;
-                    self.flash_cooldown = 0.0;
                 }
             }
         }
@@ -569,7 +555,6 @@ impl GuiApp {
 
         if config.device != old_device {
             self.dirty_device_config = true;
-            self.flash_cooldown = 0.0;
         }
 
         match old_device {
