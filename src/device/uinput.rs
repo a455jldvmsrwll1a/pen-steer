@@ -60,7 +60,6 @@ pub struct UInputDevice {
     horn_key: bool,
     horn_key_prev: bool,
     ff: Option<FFState>,
-    events_buf: [input_event; 3],
 }
 
 impl UInputDevice {
@@ -151,7 +150,6 @@ impl UInputDevice {
             horn_key: false,
             horn_key_prev: false,
             ff: None,
-            events_buf: [NULL_EVENT; 3],
         })
     }
 
@@ -234,13 +232,15 @@ impl Device for UInputDevice {
     fn apply(&mut self) -> Result<()> {
         const DELTA_THRESHOLD: i32 = 1;
 
+        // We only ever submit up to three events.
+        let mut events_buf = [NULL_EVENT; 3];
         let mut events_emitted = 0;
 
         let delta_abs = (self.wheel_axis - self.wheel_axis_prev).abs();
         if delta_abs > DELTA_THRESHOLD {
             self.wheel_axis_prev = self.wheel_axis;
 
-            self.events_buf[events_emitted] =
+            events_buf[events_emitted] =
                 InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, self.wheel_axis))
                     .into_raw();
 
@@ -250,7 +250,7 @@ impl Device for UInputDevice {
         if self.horn_key != self.horn_key_prev {
             self.horn_key_prev = self.horn_key;
 
-            self.events_buf[events_emitted] = InputEvent::from(KeyEvent::new(
+            events_buf[events_emitted] = InputEvent::from(KeyEvent::new(
                 ZERO,
                 Key::ButtonThumbr,
                 KeyState::pressed(self.horn_key),
@@ -265,11 +265,11 @@ impl Device for UInputDevice {
         }
 
         // Insert sync report event.
-        self.events_buf[events_emitted] =
+        events_buf[events_emitted] =
             InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).into_raw();
 
         self.handle
-            .write(&self.events_buf[..=events_emitted])
+            .write(&events_buf[..=events_emitted])
             .context("could not write events")?;
 
         Ok(())
