@@ -49,13 +49,6 @@ impl eframe::App for GuiApp {
             show_error(frame, err);
         }
 
-        // if wheel is hidden, prevent controller from requesting repaints
-        if self.show_wheel && state.gui_context.is_none() {
-            state.gui_context = Some(ctx.clone());
-        } else if state.gui_context.is_some() {
-            state.gui_context = None;
-        }
-
         self.draw_ui(ctx, &mut state);
         drop(state);
 
