@@ -234,42 +234,42 @@ impl Device for UInputDevice {
     fn apply(&mut self) -> Result<()> {
         const DELTA_THRESHOLD: i32 = 1;
 
-        let mut i = 0;
+        let mut events_emitted = 0;
 
         let delta_abs = (self.wheel_axis - self.wheel_axis_prev).abs();
         if delta_abs > DELTA_THRESHOLD {
             self.wheel_axis_prev = self.wheel_axis;
 
-            self.events_buf[i] =
+            self.events_buf[events_emitted] =
                 InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, self.wheel_axis))
                     .into_raw();
 
-            i += 1;
+            events_emitted += 1;
         }
 
         if self.horn_key != self.horn_key_prev {
             self.horn_key_prev = self.horn_key;
 
-            self.events_buf[i] = InputEvent::from(KeyEvent::new(
+            self.events_buf[events_emitted] = InputEvent::from(KeyEvent::new(
                 ZERO,
                 Key::ButtonThumbr,
                 KeyState::pressed(self.horn_key),
             ))
             .into_raw();
 
-            i += 1;
+            events_emitted += 1;
         }
 
-        if i == 0 {
+        if events_emitted == 0 {
             return Ok(());
         }
 
         // Insert sync report event.
-        self.events_buf[i] =
+        self.events_buf[events_emitted] =
             InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).into_raw();
 
         self.handle
-            .write(&self.events_buf[..=i])
+            .write(&self.events_buf[..=events_emitted])
             .context("could not write events")?;
 
         Ok(())
