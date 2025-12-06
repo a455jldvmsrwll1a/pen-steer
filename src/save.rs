@@ -233,7 +233,7 @@ fn load_from_line(config: &mut Config, text: &str) -> Result<()> {
         }
 
         "preferred_tablet" => {
-            config.preferred_tablet = (!value.is_empty()).then(|| value.to_owned())
+            config.preferred_tablet = (!value.is_empty()).then(|| value.trim().to_owned())
         }
 
         "source" => config.source = parse_source(value)?,

@@ -26,7 +26,7 @@ impl EvdevSource {
         let device_name;
 
         if let Some(dev) = preferred_device_name {
-            device_name = dev.to_string();
+            device_name = dev.trim().to_string();
         } else {
             debug!("No source device preference.");
             let devices = enumerate_available_devices()?;
@@ -218,7 +218,13 @@ fn open_evdev_tablet_device(entry: DirEntry) -> Result<EvdevDeviceHandle> {
         bail!("Input device must have X, Y, and pressure axes.");
     }
 
-    let dev_name = handle.device_name()?;
+    let mut dev_name = handle.device_name()?;
+    
+    // Remove nul terminator.
+    if dev_name.len() > 0 && dev_name[dev_name.len() - 1] == b'\0' {
+        dev_name.pop();
+    }
+
     let name = String::from_utf8_lossy(&dev_name).into_owned();
 
     Ok(EvdevDeviceHandle { handle, name })
