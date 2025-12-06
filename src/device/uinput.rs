@@ -55,8 +55,10 @@ struct FFState {
 pub struct UInputDevice {
     handle: UInputHandle<File>,
     resolution: f32,
-    wheel_axis: Option<i32>,
-    horn_key: Option<bool>,
+    wheel_axis: i32,
+    wheel_axis_prev: i32,
+    horn_key: bool,
+    horn_key_prev: bool,
     ff: Option<FFState>,
     events_buf: [input_event; 3],
 }
@@ -144,8 +146,10 @@ impl UInputDevice {
         Ok(Self {
             handle,
             resolution: config.device_resolution as f32,
-            wheel_axis: None,
-            horn_key: None,
+            wheel_axis: 0,
+            wheel_axis_prev: 0,
+            horn_key: false,
+            horn_key_prev: false,
             ff: None,
             events_buf: [NULL_EVENT; 3],
         })
@@ -220,29 +224,39 @@ impl Device for UInputDevice {
 
     fn set_wheel(&mut self, angle: f32) {
         let value = (angle * self.resolution).round_ties_even();
-        self.wheel_axis = Some(value as i32);
+        self.wheel_axis = value as i32;
     }
 
     fn set_horn(&mut self, honking: bool) {
-        self.horn_key = Some(honking);
+        self.horn_key = honking;
     }
 
     fn apply(&mut self) -> Result<()> {
+        const DELTA_THRESHOLD: i32 = 1;
+
         let mut i = 0;
 
-        if let Some(axis_val) = self.wheel_axis.take() {
+        let delta_abs = (self.wheel_axis - self.wheel_axis_prev).abs();
+        if delta_abs > DELTA_THRESHOLD {
+            self.wheel_axis_prev = self.wheel_axis;
+
             self.events_buf[i] =
-                InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, axis_val)).into_raw();
+                InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, self.wheel_axis))
+                    .into_raw();
+
             i += 1;
         }
 
-        if let Some(key) = self.horn_key.take() {
+        if self.horn_key != self.horn_key_prev {
+            self.horn_key_prev = self.horn_key;
+
             self.events_buf[i] = InputEvent::from(KeyEvent::new(
                 ZERO,
                 Key::ButtonThumbr,
-                KeyState::pressed(key),
+                KeyState::pressed(self.horn_key),
             ))
             .into_raw();
+
             i += 1;
         }
 
