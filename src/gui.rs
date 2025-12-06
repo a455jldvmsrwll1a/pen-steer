@@ -35,6 +35,9 @@ pub struct GuiApp {
     save_action: SaveAction,
     should_load: bool,
     show_wheel: bool,
+    device_vendor_edit_buf: String,
+    device_product_edit_buf: String,
+    device_version_edit_buf: String,
 }
 
 impl eframe::App for GuiApp {
@@ -76,6 +79,9 @@ impl GuiApp {
             save_action: SaveAction::None,
             should_load: false,
             show_wheel: true,
+            device_vendor_edit_buf: String::new(),
+            device_product_edit_buf: String::new(),
+            device_version_edit_buf: String::new(),
         }
     }
 
@@ -152,6 +158,10 @@ impl GuiApp {
         state2.config = new_config;
         state2.reset_device = true;
         state2.reset_source = true;
+
+        self.device_vendor_edit_buf.clear();
+        self.device_product_edit_buf.clear();
+        self.device_version_edit_buf.clear();
     }
 }
 
@@ -569,9 +579,31 @@ impl GuiApp {
                     self.dirty_device_config |=
                         ui.text_edit_singleline(&mut config.device_name).changed();
                 });
-                ui.monospace(format!("vendor = 0x{:x}", config.device_vendor));
-                ui.monospace(format!("product = 0x{:x}", config.device_product));
-                ui.monospace(format!("version = 0x{:x}", config.device_version));
+
+                ui.horizontal(|ui| {
+                    ui.label("Vendor:");
+                    self.dirty_device_config |= edit_u16_hex(
+                        ui,
+                        &mut config.device_vendor,
+                        &mut self.device_vendor_edit_buf,
+                    );
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Product:");
+                    self.dirty_device_config |= edit_u16_hex(
+                        ui,
+                        &mut config.device_product,
+                        &mut self.device_product_edit_buf,
+                    );
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Version:");
+                    self.dirty_device_config |= edit_u16_hex(
+                        ui,
+                        &mut config.device_version,
+                        &mut self.device_version_edit_buf,
+                    );
+                });
             }
             #[cfg(target_os = "windows")]
             config::Device::VigemBus => {
@@ -761,6 +793,34 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         options,
         Box::new(|cc| Ok(Box::new(GuiApp::new(state, cc)))),
     )
+}
+
+fn edit_u16_hex(ui: &mut Ui, value: &mut u16, buf: &mut String) -> bool {
+    if buf.is_empty() {
+        *buf = format!("0x{value:04X}");
+    }
+
+    let out = egui::TextEdit::singleline(buf)
+        .char_limit(6)
+        .font(egui::TextStyle::Monospace)
+        .desired_width(48.0)
+        .show(ui);
+
+    let mut dirty = false;
+    if out.response.lost_focus() || out.response.clicked_elsewhere() {
+        let stripped = buf.trim().trim_start_matches("0x");
+
+        if let Ok(new_value) = u16::from_str_radix(stripped, 16) {
+            if new_value != *value {
+                *value = new_value;
+                dirty = true;
+            }
+        }
+
+        buf.clear();
+    }
+
+    dirty
 }
 
 fn remap(t: f32, a1: f32, a2: f32, b1: f32, b2: f32) -> f32 {
