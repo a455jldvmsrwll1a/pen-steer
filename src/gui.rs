@@ -14,8 +14,8 @@ use crate::{
 };
 use anyhow::anyhow;
 use eframe::egui::{
-    self, Color32, Context, CornerRadius, Id, Layout, Pos2, Rect, RichText, Sense, Stroke, Ui,
-    Vec2, ViewportBuilder,
+    self, Color32, Context, CornerRadius, Id, Layout, Pos2, Rect, RichText, Sense, Stroke,
+    Ui, Vec2, ViewportBuilder,
 };
 use log::{debug, error};
 
@@ -692,14 +692,13 @@ fn draw_steering_wheel(
     pen: Option<Pen>,
     ui: &mut Ui,
 ) -> Option<Pen> {
-    let colour = Color32::LIGHT_GRAY;
-    let pen_colour = Color32::MAGENTA;
-    let horn_colour = Color32::PURPLE;
+    const PEN_COLOUR: Color32 = Color32::CYAN;
+    const HORN_COLOUR: Color32 = Color32::PURPLE;
+    const PEN_SIZE: f32 = 12.0;
+    const HORN_PRESS_SCALE: f32 = 0.9;
 
     let available_rect = ui.ctx().available_rect();
     let mut rect = available_rect.scale_from_center(0.95);
-
-    let painter = ui.painter_at(available_rect);
 
     // keep the rect a square
     if rect.width() > rect.height() {
@@ -710,28 +709,33 @@ fn draw_steering_wheel(
         rect = rect.shrink2(Vec2::Y * extra * 0.5);
     }
 
-    let size = rect.size().x.min(rect.size().y) * 0.45;
-    let stroke = Stroke::new(size * 0.1, colour);
-
-    let sin = wheel.angle.to_radians().sin();
-    let cos = wheel.angle.to_radians().cos();
-    let rightward = Vec2::new(size * cos, size * sin);
-    let downward = Vec2::new(-size * sin, size * cos);
-
     let left = rect.left();
     let right = rect.right();
     let bottom = rect.bottom();
     let top = rect.top();
 
-    let origin = rect.center();
-    painter.circle_stroke(origin, size, stroke);
-    painter.line_segment([origin + rightward, origin - rightward], stroke);
-    painter.line_segment([origin, origin + downward], stroke);
-    painter.circle_filled(
-        origin,
-        size * config.horn_radius,
-        if wheel.honking { horn_colour } else { colour },
-    );
+    let horn_rect = rect.scale_from_center(if wheel.honking {
+        config.horn_radius * HORN_PRESS_SCALE
+    } else {
+        config.horn_radius
+    });
+
+    egui::Image::new(egui::include_image!("../resources/base.svg"))
+        .alt_text("Base Image")
+        .rotate(wheel.angle.to_radians(), Vec2::splat(0.5))
+        .paint_at(ui, rect);
+
+    egui::Image::new(egui::include_image!("../resources/inner.svg"))
+        .alt_text("Inner Image")
+        .rotate(wheel.angle.to_radians(), Vec2::splat(0.5))
+        .tint(if wheel.honking {
+            HORN_COLOUR
+        } else {
+            Color32::WHITE
+        })
+        .paint_at(ui, horn_rect);
+
+    let painter = ui.painter_at(available_rect);
 
     if let Some(pen) = pen {
         let pos = Pos2 {
@@ -740,9 +744,9 @@ fn draw_steering_wheel(
         };
 
         if pen.pressure > config.pressure_threshold {
-            painter.circle_filled(pos, 5.0, pen_colour);
+            painter.circle_filled(pos, PEN_SIZE, PEN_COLOUR);
         } else {
-            painter.circle_stroke(pos, 5.0, Stroke::new(1.0, pen_colour));
+            painter.circle_stroke(pos, PEN_SIZE, Stroke::new(2.0, PEN_COLOUR));
         }
     }
 
@@ -784,7 +788,10 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
     eframe::run_native(
         "pen-steer",
         options,
-        Box::new(|cc| Ok(Box::new(GuiApp::new(state, cc)))),
+        Box::new(|cc| {
+            egui_extras::install_image_loaders(&cc.egui_ctx);
+            Ok(Box::new(GuiApp::new(state, cc)))
+        }),
     )
 }
 
