@@ -407,17 +407,19 @@ impl GuiApp {
             });
         });
 
-        ui.separator();
-        ui.style_mut().spacing.interact_size.x = 40.0;
-        ui.add(
-            egui::Slider::new(
-                &mut state.wheel.angle,
-                -(config.range * 0.5)..=(config.range * 0.5),
-            )
-            .drag_value_speed(1.0)
-            .custom_formatter(|v, _| format!("{v:.1}°"))
-            .text("Angle"),
-        );
+        if self.show_wheel {
+            ui.separator();
+            ui.style_mut().spacing.interact_size.x = 40.0;
+            ui.add(
+                egui::Slider::new(
+                    &mut state.wheel.angle,
+                    -(config.range * 0.5)..=(config.range * 0.5),
+                )
+                .drag_value_speed(1.0)
+                .custom_formatter(|v, _| format!("{v:.1}°"))
+                .text("Angle"),
+            );
+        }
 
         ui.separator();
         ui.heading("Input");
