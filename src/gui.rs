@@ -363,8 +363,7 @@ impl GuiApp {
                     egui::DragValue::new(&mut config.inertia)
                         .speed(0.1)
                         .range(0.1..=1000.0)
-                        .suffix(" kg×m²")
-                        .clamp_existing_to_range(true),
+                        .suffix(" kg×m²"),
                 );
             });
         });
@@ -375,8 +374,7 @@ impl GuiApp {
                 ui.add(
                     egui::DragValue::new(&mut config.friction)
                         .speed(0.5)
-                        .range(0.0..=100.0)
-                        .clamp_existing_to_range(true),
+                        .range(0.0..=100.0),
                 );
             });
         });
@@ -388,8 +386,7 @@ impl GuiApp {
                     egui::DragValue::new(&mut config.spring)
                         .speed(0.5)
                         .range(0.0..=100.0)
-                        .suffix(" Nm/rad")
-                        .clamp_existing_to_range(true),
+                        .suffix(" Nm/rad"),
                 );
             });
         });
@@ -401,8 +398,7 @@ impl GuiApp {
                     egui::DragValue::new(&mut config.max_torque)
                         .speed(0.1)
                         .range(-1000.0..=1000.0)
-                        .suffix(" Nm")
-                        .clamp_existing_to_range(true),
+                        .suffix(" Nm"),
                 );
             });
         });
