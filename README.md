@@ -75,6 +75,10 @@ Listens for pen input via UDP.
 
 By default, it will listen on `127.0.0.1:16027`.
 
+As an example, an [OpenTabletDriver](https://opentabletdriver.net/) plugin can be used to send pen positions over UDP.
+
+See [OtdReport.cs](https://gist.github.com/a455jldvmsrwll1a/6caadae316594e1daa0cb0e9ec72eea6) for a (messy) code example.
+
 ### Packet Format
 ```
 +-------------------------------------------------------+
