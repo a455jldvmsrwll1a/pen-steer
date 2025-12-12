@@ -94,13 +94,13 @@ Fields are expected to be in little-endian.
 `buttons` is a bitfield.
 
 ## Evdev Source
-Reads from a `/dev/input/event*` file. You may need to either run as the `root` user, or add your user to the `input` group.
+Reads from a `/dev/input/event*` file. You may need to either run as the `root` user (not ideal), or add your user to the `input` group (less worse).
 
 
 ## uinput Device
 Currently the only device available for Linux. It uses Linux's uinput API.
 
-**You may need to either run as the `root` user, or add your user to the `input` group.**
+**You may need to either run as the `root` user (not ideal), or add your user to the `input` group (less worse).**
 
 ## ViGEmBus Device
 Currently the only device available for Windows. It uses the [ViGEmBus driver](https://github.com/nefarius/ViGEmBus), which is
