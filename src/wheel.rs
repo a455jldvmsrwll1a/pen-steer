@@ -1,8 +1,6 @@
-use std::f32::consts::PI;
-
 use eframe::egui::Pos2;
 
-use crate::{config::Config, device::Device, pen::Pen};
+use crate::{config::Config, device::Device, math, pen::Pen};
 
 #[derive(Debug, Default, Clone)]
 pub struct Wheel {
@@ -63,7 +61,7 @@ impl Wheel {
             }
         }
 
-        self.angle = clamp_symmetric(half_range, self.angle);
+        self.angle = math::clamp_symmetric(half_range, self.angle);
 
         // check if pen up
         if pen.pressure <= config.pressure_threshold {
@@ -86,7 +84,7 @@ impl Wheel {
             return;
         }
 
-        let centre_dist = dist_sq(pen.x, pen.y).sqrt();
+        let centre_dist = math::dist_sq(pen.x, pen.y).sqrt();
 
         if !self.dragging && centre_dist <= config.horn_radius {
             // start honking
@@ -103,12 +101,12 @@ impl Wheel {
             let prev_theta = self.prev_pos.x.atan2(self.prev_pos.y);
             let theta = pen.x.atan2(pen.y);
 
-            let delta_t = angle_delta(prev_theta, theta);
-            let adjusted = adjust_angle_delta(delta_t, centre_dist, config.base_radius);
+            let delta_t = math::angle_delta(prev_theta, theta);
+            let adjusted = math::adjust_angle_delta(delta_t, centre_dist, config.base_radius);
 
             let new_angle = self.angle + adjusted;
             self.prev_angle = self.angle;
-            self.angle = clamp_symmetric(half_range, new_angle);
+            self.angle = math::clamp_symmetric(half_range, new_angle);
 
             self.velocity = (self.angle - self.prev_angle) / dt;
 
@@ -122,38 +120,4 @@ impl Wheel {
         self.prev_pos.x = pen.x;
         self.prev_pos.y = pen.y;
     }
-}
-
-fn dist_sq(x: f32, y: f32) -> f32 {
-    x * x + y * y
-}
-
-fn clamp_symmetric(max_d: f32, v: f32) -> f32 {
-    if v < -max_d {
-        return -max_d;
-    }
-
-    if v > max_d {
-        return max_d;
-    }
-
-    v
-}
-
-fn angle_delta(a: f32, b: f32) -> f32 {
-    let mut delta = b - a;
-    while delta < -PI {
-        delta += 2.0 * PI;
-    }
-
-    while delta > PI {
-        delta -= 2.0 * PI;
-    }
-
-    delta
-}
-
-fn adjust_angle_delta(angle: f32, dist: f32, base: f32) -> f32 {
-    let factor = dist.min(base) / base;
-    angle * factor
 }

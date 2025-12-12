@@ -4,13 +4,7 @@ use std::{
 };
 
 use crate::{
-    config::{self, Config},
-    mapping::MapOrientation,
-    pen::Pen,
-    save::{compile_parse_errors, load_file, save_file},
-    save_path::{save_dir, save_path},
-    state::State,
-    wheel::Wheel,
+    config::{self, Config}, mapping::MapOrientation, math, pen::Pen, save::{compile_parse_errors, load_file, save_file}, save_path::{save_dir, save_path}, state::State, wheel::Wheel
 };
 use anyhow::anyhow;
 use eframe::egui::{
@@ -676,7 +670,7 @@ fn draw_steer_bar(angle: f32, config: &Config, ui: &mut Ui) -> Option<f32> {
         let right = ui_rect.right();
 
         if pos.x >= left && pos.x <= right && ui.input(|i| i.pointer.any_down()) {
-            return Some(remap(pos.x, left, right, -range, range));
+            return Some(math::remap(pos.x, left, right, -range, range));
         }
     }
 
@@ -769,8 +763,8 @@ fn draw_steering_wheel(
 
     if let Some(pen) = pen {
         let pos = Pos2 {
-            x: remap(pen.x, -1.0, 1.0, right, left),
-            y: remap(pen.y, -1.0, 1.0, top, bottom),
+            x: math::remap(pen.x, -1.0, 1.0, right, left),
+            y: math::remap(pen.y, -1.0, 1.0, top, bottom),
         };
 
         if pen.pressure > config.pressure_threshold {
@@ -786,8 +780,8 @@ fn draw_steering_wheel(
         .hover_pos()
     {
         if rect.contains(pos) && ui.input(|i| i.pointer.primary_down()) {
-            let x = remap(pos.x, right, left, -1.0, 1.0);
-            let y = remap(pos.y, top, bottom, -1.0, 1.0);
+            let x = math::remap(pos.x, right, left, -1.0, 1.0);
+            let y = math::remap(pos.y, top, bottom, -1.0, 1.0);
 
             return Some(Pen {
                 x,
@@ -851,8 +845,4 @@ fn edit_u16_hex(ui: &mut Ui, value: &mut u16, buf: &mut String) -> bool {
     }
 
     dirty
-}
-
-fn remap(t: f32, a1: f32, a2: f32, b1: f32, b2: f32) -> f32 {
-    b1 + (t - a1) * (b2 - b1) / (a2 - a1)
 }

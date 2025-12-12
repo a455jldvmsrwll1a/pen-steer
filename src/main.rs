@@ -5,6 +5,7 @@ mod controller;
 mod device;
 mod gui;
 mod mapping;
+mod math;
 mod pen;
 mod save;
 mod save_path;
