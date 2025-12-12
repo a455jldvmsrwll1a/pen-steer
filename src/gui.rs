@@ -195,7 +195,7 @@ impl GuiApp {
             ui.menu_button("Help", |ui| if ui.button("About").clicked() {});
 
             ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
-                let string = if self.show_wheel { "<" } else { ">" };
+                let string = if self.show_wheel { "Hide wheel" } else { "Show wheel" };
                 if ui.button(string).clicked() {
                     self.show_wheel = !self.show_wheel;
                 }
