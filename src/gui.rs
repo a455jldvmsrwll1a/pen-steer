@@ -8,8 +8,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use eframe::egui::{
-    self, Color32, Context, CornerRadius, Id, Layout, Pos2, Rect, RichText, Sense, Stroke, Ui,
-    Vec2, ViewportBuilder,
+    self, Color32, Context, CornerRadius, Frame, Id, Layout, OpenUrl, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2, ViewportBuilder
 };
 use log::{debug, error};
 
@@ -30,6 +29,7 @@ pub struct GuiApp {
     save_action: SaveAction,
     should_load: bool,
     show_wheel: bool,
+    show_about: bool,
     device_vendor_edit_buf: String,
     device_product_edit_buf: String,
     device_version_edit_buf: String,
@@ -63,16 +63,20 @@ impl eframe::App for GuiApp {
 
 impl GuiApp {
     pub fn new(state: Arc<Mutex<State>>, quit_flag: Arc<AtomicBool>) -> Self {
+        let save_path = save_path();
+        let show_about = !save_path.exists();
+
         Self {
             state,
             quit_flag,
-            save_path: save_path(),
+            save_path,
             evdev_available_devices: None,
             dirty_source_config: false,
             dirty_device_config: false,
             save_action: SaveAction::None,
             should_load: false,
             show_wheel: true,
+            show_about,
             device_vendor_edit_buf: String::new(),
             device_product_edit_buf: String::new(),
             device_version_edit_buf: String::new(),
@@ -192,7 +196,9 @@ impl GuiApp {
                 }
             });
 
-            ui.menu_button("Help", |ui| if ui.button("About").clicked() {});
+            ui.menu_button("Help", |ui| if ui.button("About").clicked() {
+                self.show_about = true;
+            });
 
             ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
                 let string = if self.show_wheel { "Hide wheel" } else { "Show wheel" };
@@ -272,6 +278,8 @@ impl GuiApp {
                 ui,
             );
         });
+
+        draw_about(ctx, &mut self.show_about);
     }
 
     fn draw_controls_footer(&mut self, ui: &mut Ui, state: &mut State) {
@@ -799,6 +807,53 @@ fn draw_steering_wheel(
     }
 
     None
+}
+
+fn draw_about(ctx: &Context, show_about: &mut bool) {
+    let response = egui::Window::new("barrier_block")
+        .open(&mut *show_about)
+        .order(egui::Order::Background)
+        .title_bar(false)
+        .fixed_rect(ctx.viewport_rect())
+        .frame(Frame {
+            fill: Color32::from_black_alpha(0x80),
+            ..Default::default()
+        })
+        .show(ctx, |ui| {
+            ui.allocate_space(ui.available_size());
+        });
+
+    if let Some(response) = response {
+        if response.response.clicked() {
+            *show_about = false;
+        }
+    }
+
+    egui::Window::new("About pen-steer")
+        .open(&mut *show_about)
+        .collapsible(false)
+        .order(egui::Order::Foreground)
+        .show(ctx, |ui| {
+            ui.heading("Pen Steer");
+            ui.small("By JL.");
+
+            ui.separator();
+            ui.label(
+                "(Ab)Use your graphics tablet as a virtual sim steering wheel. ('cause why not)",
+            );
+            ui.label("Draw circles to turn the steering wheel!");
+
+            ui.separator();
+            if ui.link("Github").clicked() {
+                ctx.open_url(OpenUrl::new_tab(
+                    "https://github.com/a455jldvmsrwll1a/pen-steer",
+                ));
+            }
+        });
+
+    if ctx.input(|i| i.key_released(egui::Key::Escape)) {
+        *show_about = false;
+    }
 }
 
 pub fn gui(state: Arc<Mutex<State>>, quit_flag: Arc<AtomicBool>) -> eframe::Result {
