@@ -14,8 +14,8 @@ use crate::{
 };
 use anyhow::anyhow;
 use eframe::egui::{
-    self, Color32, Context, CornerRadius, Id, Layout, Pos2, Rect, RichText, Sense, Stroke,
-    Ui, Vec2, ViewportBuilder,
+    self, Color32, Context, CornerRadius, Id, Layout, Pos2, Rect, RichText, Sense, Stroke, Ui,
+    Vec2, ViewportBuilder,
 };
 use log::{debug, error};
 
@@ -38,6 +38,7 @@ pub struct GuiApp {
     device_vendor_edit_buf: String,
     device_product_edit_buf: String,
     device_version_edit_buf: String,
+    base_radius_selection: Option<f32>,
 }
 
 impl eframe::App for GuiApp {
@@ -75,6 +76,7 @@ impl GuiApp {
             device_vendor_edit_buf: String::new(),
             device_product_edit_buf: String::new(),
             device_version_edit_buf: String::new(),
+            base_radius_selection: None,
         }
     }
 
@@ -262,7 +264,13 @@ impl GuiApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let pen = state.pen_override.as_ref().or(state.pen.as_ref());
-            state.pen_override = draw_steering_wheel(&state.config, &state.wheel, pen.cloned(), ui);
+            state.pen_override = draw_steering_wheel(
+                &state.config,
+                &state.wheel,
+                self.base_radius_selection,
+                pen.cloned(),
+                ui,
+            );
         });
     }
 
@@ -348,11 +356,22 @@ impl GuiApp {
                 .text("Horn Radius"),
         );
 
-        ui.add(
+        let base_radius_response = ui.add(
             egui::Slider::new(&mut config.base_radius, 0.0..=1.0)
                 .step_by(0.1)
                 .text("Base Radius"),
         );
+
+        let base_radius_changing = base_radius_response.dragged() || base_radius_response.hovered();
+        self.base_radius_selection = base_radius_changing.then_some(config.base_radius);
+
+        const BASE_RADIUS_TOOLTIP: &str = "Minimum radius for angular \
+        displacement calculations.\nCircling the pen closer than this radius \
+        will not cause the wheel to spin faster.\n\n\
+        This can prevent issues when making off-centred circles, but if the \
+        pen is consistently too close, it will cause the wheel to turn slower \
+        than intended.";
+        base_radius_response.on_hover_text(BASE_RADIUS_TOOLTIP);
 
         ui.style_mut().spacing.interact_size.x = 150.0;
 
@@ -687,9 +706,12 @@ fn draw_ff_bar(torque: f32, max: f32, ui: &mut Ui) {
 fn draw_steering_wheel(
     config: &Config,
     wheel: &Wheel,
+    base_radius_selection: Option<f32>,
     pen: Option<Pen>,
     ui: &mut Ui,
 ) -> Option<Pen> {
+    const BASE_RADIUS_HIGHLIGHT_COLOUR: Color32 =
+        Color32::from_rgba_premultiplied(0xAD, 0xD8, 0xE6, 0x80);
     const PEN_COLOUR: Color32 = Color32::CYAN;
     const HORN_COLOUR: Color32 = Color32::PURPLE;
     const PEN_SIZE: f32 = 12.0;
@@ -734,6 +756,14 @@ fn draw_steering_wheel(
         .paint_at(ui, horn_rect);
 
     let painter = ui.painter_at(available_rect);
+
+    if let Some(radius) = base_radius_selection {
+        painter.circle_filled(
+            rect.center(),
+            radius * rect.width() * 0.5,
+            BASE_RADIUS_HIGHLIGHT_COLOUR,
+        );
+    }
 
     if let Some(pen) = pen {
         let pos = Pos2 {
