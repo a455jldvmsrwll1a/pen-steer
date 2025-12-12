@@ -1,29 +1,32 @@
 use std::time::{Duration, Instant};
 
 pub struct Timer {
-    last_tick: Instant,
+    next_tick: Instant,
     period: Duration,
 }
 
 impl Timer {
     pub fn new(freq: u32) -> Self {
+        let now = Instant::now();
+        let period = Duration::from_secs_f64(1.0 / freq as f64);
+
         Self {
-            last_tick: Instant::now(),
-            period: Duration::from_secs_f64(1.0 / freq as f64),
+            next_tick: now + period,
+            period,
         }
     }
 
     pub fn wait(&mut self) {
         loop {
             let now = Instant::now();
-            let elapsed = now - self.last_tick;
 
-            if elapsed >= self.period {
-                self.last_tick = now;
+            if now >= self.next_tick {
                 break;
             }
 
-            std::thread::sleep(self.period - elapsed);
+            std::thread::sleep(self.next_tick - now);
         }
+
+        self.next_tick += self.period;
     }
 }
