@@ -6,6 +6,7 @@ edition = "2024"
 [profile.release]
 strip = true
 lto = "fat"
+codegen-units = 1
 
 [dependencies]
 anyhow = { version = "1.0.100", features = ["backtrace"] }
