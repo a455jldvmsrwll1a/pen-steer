@@ -39,13 +39,12 @@ fn main() -> Result<()> {
         error!("Could not create configuration directory: {err}");
     }
 
-    let cli_mode = args().any(|arg| arg.trim() == "--headless");
-
     let state = Arc::new(Mutex::new(State::create()));
     let quit_flag = Arc::new(AtomicBool::new(false));
 
     set_handler(quit_flag.clone());
 
+    let cli_mode = args().any(|arg| arg.trim() == "--headless");
     if cli_mode {
         controller::controller(state, quit_flag);
         return Ok(());
