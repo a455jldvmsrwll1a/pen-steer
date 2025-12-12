@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use eframe::egui::Pos2;
 
 use crate::{config::Config, device::Device, pen::Pen};
@@ -21,6 +23,8 @@ impl Wheel {
         pen: Option<Pen>,
         dt: f32,
     ) {
+        let half_range = config.half_range_rad();
+
         let pen = pen.unwrap_or_default();
 
         if self.velocity.is_nan() || self.velocity.is_infinite() {
@@ -39,15 +43,14 @@ impl Wheel {
                 .unwrap_or(0.0);
             self.feedback_torque = feedback_normalised * config.max_torque;
 
-            let w = self.velocity.to_radians();
-            let theta = self.angle.to_radians();
+            let friction_torque = config.friction * self.velocity;
+            let spring_torque = config.spring * self.angle;
+            let net_force = self.feedback_torque - friction_torque - spring_torque;
+            let angular_acceleration = net_force / config.inertia;
 
-            let net_force = self.feedback_torque - config.friction * w - config.spring * theta;
-            let acc = net_force / config.inertia;
+            self.velocity += angular_acceleration * dt;
 
-            self.velocity += (acc * dt).to_degrees();
-
-            if self.velocity.abs() < 0.05 {
+            if self.velocity.abs() < 1e-5 {
                 self.velocity = 0.0;
             }
 
@@ -55,12 +58,12 @@ impl Wheel {
             self.angle += self.velocity * dt;
 
             if let Some(dev) = device.as_mut() {
-                let normalised = self.angle / (config.range * 0.5);
+                let normalised = self.angle / half_range;
                 dev.set_wheel(normalised);
             }
         }
 
-        self.angle = clamp_symmetric(config.range * 0.5, self.angle);
+        self.angle = clamp_symmetric(half_range, self.angle);
 
         // check if pen up
         if pen.pressure <= config.pressure_threshold {
@@ -97,20 +100,20 @@ impl Wheel {
 
         // check if we were already dragging
         if self.dragging {
-            let prev_theta = self.prev_pos.x.atan2(self.prev_pos.y).to_degrees();
-            let theta = pen.x.atan2(pen.y).to_degrees();
+            let prev_theta = self.prev_pos.x.atan2(self.prev_pos.y);
+            let theta = pen.x.atan2(pen.y);
 
             let delta_t = angle_delta(prev_theta, theta);
             let adjusted = adjust_angle_delta(delta_t, centre_dist, config.base_radius);
 
             let new_angle = self.angle + adjusted;
             self.prev_angle = self.angle;
-            self.angle = clamp_symmetric(config.range * 0.5, new_angle);
+            self.angle = clamp_symmetric(half_range, new_angle);
 
             self.velocity = (self.angle - self.prev_angle) / dt;
 
             if let Some(dev) = device {
-                let normalised = self.angle / (config.range * 0.5);
+                let normalised = self.angle / half_range;
                 dev.set_wheel(normalised);
             }
         }
@@ -139,12 +142,12 @@ fn clamp_symmetric(max_d: f32, v: f32) -> f32 {
 
 fn angle_delta(a: f32, b: f32) -> f32 {
     let mut delta = b - a;
-    while delta < -180.0 {
-        delta += 360.0;
+    while delta < -PI {
+        delta += 2.0 * PI;
     }
 
-    while delta > 180.0 {
-        delta -= 360.0;
+    while delta > PI {
+        delta -= 2.0 * PI;
     }
 
     delta

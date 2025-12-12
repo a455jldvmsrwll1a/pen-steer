@@ -247,7 +247,7 @@ impl GuiApp {
         egui::TopBottomPanel::bottom("steer_bar")
             .exact_height(32.0)
             .show(ctx, |ui| {
-                if let Some(new_angle) = draw_steer_bar(state.wheel.angle, state.config.range, ui) {
+                if let Some(new_angle) = draw_steer_bar(state.wheel.angle, &state.config, ui) {
                     state.wheel.angle = new_angle;
                 }
             });
@@ -423,15 +423,17 @@ impl GuiApp {
         });
 
         if self.show_wheel {
+            let half_range = config.half_range_rad();
+
             ui.separator();
             ui.style_mut().spacing.interact_size.x = 40.0;
             ui.add(
                 egui::Slider::new(
                     &mut state.wheel.angle,
-                    -(config.range * 0.5)..=(config.range * 0.5),
+                    -half_range..=half_range,
                 )
-                .drag_value_speed(1.0)
-                .custom_formatter(|v, _| format!("{v:.1}°"))
+                .drag_value_speed(1.0f64.to_radians())
+                .custom_formatter(|v, _| format!("{:.1}°", v.to_degrees()))
                 .text("Angle"),
             );
         }
@@ -642,12 +644,12 @@ impl GuiApp {
     }
 }
 
-fn draw_steer_bar(angle: f32, range: f32, ui: &mut Ui) -> Option<f32> {
+fn draw_steer_bar(angle: f32, config: &Config, ui: &mut Ui) -> Option<f32> {
     let ui_rect = ui.min_rect();
 
     let centre = ui_rect.center().x;
     let bound = ui_rect.width() * 0.5;
-    let range = range * 0.5;
+    let range = config.half_range_rad();
     let mut min = 0.0;
     let mut max = (angle / range) * bound;
     let mut colour = Color32::BLUE;
@@ -742,12 +744,12 @@ fn draw_steering_wheel(
 
     egui::Image::new(egui::include_image!("../resources/base.svg"))
         .alt_text("Base Image")
-        .rotate(wheel.angle.to_radians(), Vec2::splat(0.5))
+        .rotate(wheel.angle, Vec2::splat(0.5))
         .paint_at(ui, rect);
 
     egui::Image::new(egui::include_image!("../resources/inner.svg"))
         .alt_text("Inner Image")
-        .rotate(wheel.angle.to_radians(), Vec2::splat(0.5))
+        .rotate(wheel.angle, Vec2::splat(0.5))
         .tint(if wheel.honking {
             HORN_COLOUR
         } else {

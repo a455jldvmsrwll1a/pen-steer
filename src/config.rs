@@ -124,3 +124,10 @@ impl Display for Device {
         })
     }
 }
+
+impl Config {
+    /// Half angle range in radians.
+    pub fn half_range_rad(&self) -> f32 {
+        0.5 * self.range.to_radians()
+    }
+}
