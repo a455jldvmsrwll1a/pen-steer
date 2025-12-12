@@ -1,6 +1,6 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}},
 };
 
 use crate::{
@@ -22,6 +22,7 @@ enum SaveAction {
 
 pub struct GuiApp {
     state: Arc<Mutex<State>>,
+    quit_flag: Arc<AtomicBool>,
     save_path: PathBuf,
     evdev_available_devices: Option<Vec<String>>,
     dirty_source_config: bool,
@@ -37,6 +38,10 @@ pub struct GuiApp {
 
 impl eframe::App for GuiApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        if self.quit_flag.load(Ordering::Acquire) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
+
         let state_arc = self.state.clone();
         let mut state = state_arc.lock().unwrap();
 
@@ -57,9 +62,10 @@ impl eframe::App for GuiApp {
 }
 
 impl GuiApp {
-    pub fn new(state: Arc<Mutex<State>>, _cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(state: Arc<Mutex<State>>, quit_flag: Arc<AtomicBool>) -> Self {
         Self {
             state,
+            quit_flag,
             save_path: save_path(),
             evdev_available_devices: None,
             dirty_source_config: false,
@@ -795,7 +801,7 @@ fn draw_steering_wheel(
     None
 }
 
-pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
+pub fn gui(state: Arc<Mutex<State>>, quit_flag: Arc<AtomicBool>) -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder {
             title: Some("Pen Steer".into()),
@@ -814,7 +820,7 @@ pub fn gui(state: Arc<Mutex<State>>) -> eframe::Result {
         options,
         Box::new(|cc| {
             egui_extras::install_image_loaders(&cc.egui_ctx);
-            Ok(Box::new(GuiApp::new(state, cc)))
+            Ok(Box::new(GuiApp::new(state, quit_flag)))
         }),
     )
 }

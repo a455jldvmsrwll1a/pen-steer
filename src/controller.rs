@@ -1,17 +1,23 @@
 use anyhow::{Context, Result};
 use log::{debug, error, info};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::device::create_device;
 use crate::source::create_source;
 use crate::{state::State, timer::Timer};
 
-pub fn controller(state: Arc<Mutex<State>>) -> ! {
+pub fn controller(state: Arc<Mutex<State>>, quit_flag: Arc<AtomicBool>) {
     let mut update_frequency = state.lock().unwrap().config.update_frequency;
     info!("Using {update_frequency} Hz rate.");
     let mut timer = Timer::new(update_frequency);
 
     loop {
+        if quit_flag.load(Ordering::Acquire) {
+            info!("Controller stopping!");
+            break;
+        }
+
         let mut locked = state.lock().unwrap();
 
         if let Err(err) = update(&mut locked).context("Error during controller tick.") {

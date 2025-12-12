@@ -17,7 +17,10 @@ mod wheel;
 use std::{
     env::args,
     fs::create_dir_all,
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 use anyhow::{Result, bail};
@@ -38,28 +41,36 @@ fn main() -> Result<()> {
 
     let cli_mode = args().any(|arg| arg.trim() == "--headless");
 
-    if cli_mode {
-        start_headless()
-    } else {
-        start_gui()
-    }
-}
-
-fn start_gui() -> Result<()> {
     let state = Arc::new(Mutex::new(State::create()));
+    let quit_flag = Arc::new(AtomicBool::new(false));
+
+    set_handler(quit_flag.clone());
+
+    if cli_mode {
+        controller::controller(state, quit_flag);
+        return Ok(());
+    }
 
     let state_clone = state.clone();
-    std::thread::spawn(move || controller::controller(state_clone));
+    let quit_flag_clone = quit_flag.clone();
+    let thread = std::thread::spawn(move || controller::controller(state_clone, quit_flag_clone));
 
-    if let Err(err) = gui::gui(state.clone()) {
+    if let Err(err) = gui::gui(state, quit_flag.clone()) {
         bail!("GUI error: {err}");
     }
+
+    quit_flag.store(true, Ordering::Release);
+    let _ = thread.join();
 
     Ok(())
 }
 
-fn start_headless() -> ! {
-    controller::controller(Arc::new(Mutex::new(State::create())));
+fn set_handler(quit_flag: Arc<AtomicBool>) {
+    if let Err(err) = ctrlc::set_handler(move || {
+        quit_flag.store(true, Ordering::Release);
+    }) {
+        error!("Could not set signal handler: {err}");
+    }
 }
 
 fn init_logging() {
