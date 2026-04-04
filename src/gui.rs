@@ -1,14 +1,25 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 use crate::{
-    config::{self, Config}, mapping::MapOrientation, math, pen::Pen, save::{compile_parse_errors, load_file, save_file}, save_path::{save_dir, save_path}, state::State, wheel::Wheel
+    config::{self, Config},
+    mapping::MapOrientation,
+    math,
+    pen::Pen,
+    save::{compile_parse_errors, load_file, save_file},
+    save_path::{save_dir, save_path},
+    state::State,
+    wheel::Wheel,
 };
 use anyhow::anyhow;
 use eframe::egui::{
-    self, Color32, Context, CornerRadius, Frame, Id, Layout, OpenUrl, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2, ViewportBuilder
+    self, Color32, Context, CornerRadius, Frame, Id, Layout, OpenUrl, Pos2, Rect, RichText, Sense,
+    Stroke, Ui, Vec2, ViewportBuilder,
 };
 use log::{debug, error};
 
@@ -45,6 +56,8 @@ impl eframe::App for GuiApp {
         let state_arc = self.state.clone();
         let mut state = state_arc.lock().unwrap();
 
+        debug!("Pen: {:#?}", state.pen);
+
         if let Some(err) = state.last_error.take() {
             show_error(frame, err);
         }
@@ -58,6 +71,10 @@ impl eframe::App for GuiApp {
 
         self.save();
         self.load();
+    }
+
+    fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
+        [0.0, 1.0, 0.0, 0.0]
     }
 }
 
@@ -196,12 +213,18 @@ impl GuiApp {
                 }
             });
 
-            ui.menu_button("Help", |ui| if ui.button("About").clicked() {
-                self.show_about = true;
+            ui.menu_button("Help", |ui| {
+                if ui.button("About").clicked() {
+                    self.show_about = true;
+                }
             });
 
             ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
-                let string = if self.show_wheel { "Hide wheel" } else { "Show wheel" };
+                let string = if self.show_wheel {
+                    "Hide wheel"
+                } else {
+                    "Show wheel"
+                };
                 if ui.button(string).clicked() {
                     self.show_wheel = !self.show_wheel;
                 }
@@ -251,6 +274,10 @@ impl GuiApp {
         }
 
         egui::TopBottomPanel::bottom("steer_bar")
+            .frame(Frame {
+                fill: Color32::TRANSPARENT,
+                ..Default::default()
+            })
             .exact_height(32.0)
             .show(ctx, |ui| {
                 if let Some(new_angle) = draw_steer_bar(state.wheel.angle, &state.config, ui) {
@@ -261,6 +288,10 @@ impl GuiApp {
         if let Some(device) = &state.device {
             if device.get_feedback().is_some() {
                 egui::TopBottomPanel::bottom("ff_bar")
+                    .frame(Frame {
+                        fill: Color32::TRANSPARENT,
+                        ..Default::default()
+                    })
                     .exact_height(16.0)
                     .show(ctx, |ui| {
                         draw_ff_bar(state.wheel.feedback_torque, state.config.max_torque, ui);
@@ -268,16 +299,25 @@ impl GuiApp {
             }
         }
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            let pen = state.pen_override.as_ref().or(state.pen.as_ref());
-            state.pen_override = draw_steering_wheel(
-                &state.config,
-                &state.wheel,
-                self.base_radius_selection,
-                pen.cloned(),
-                ui,
-            );
-        });
+        egui::CentralPanel::default()
+            .frame(Frame {
+                fill: Color32::TRANSPARENT,
+                ..Default::default()
+            })
+            .show(ctx, |ui| {
+                let style = ui.style_mut();
+                style.visuals.panel_fill = Color32::TRANSPARENT;
+                style.visuals.window_fill = Color32::TRANSPARENT;
+
+                let pen = state.pen_override.as_ref().or(state.pen.as_ref());
+                state.pen_override = draw_steering_wheel(
+                    &state.config,
+                    &state.wheel,
+                    self.base_radius_selection,
+                    pen.cloned(),
+                    ui,
+                );
+            });
 
         draw_about(ctx, &mut self.show_about);
     }
@@ -437,13 +477,10 @@ impl GuiApp {
             ui.separator();
             ui.style_mut().spacing.interact_size.x = 40.0;
             ui.add(
-                egui::Slider::new(
-                    &mut state.wheel.angle,
-                    -half_range..=half_range,
-                )
-                .drag_value_speed(1.0f64.to_radians())
-                .custom_formatter(|v, _| format!("{:.1}°", v.to_degrees()))
-                .text("Angle"),
+                egui::Slider::new(&mut state.wheel.angle, -half_range..=half_range)
+                    .drag_value_speed(1.0f64.to_radians())
+                    .custom_formatter(|v, _| format!("{:.1}°", v.to_degrees()))
+                    .text("Angle"),
             );
         }
 
@@ -864,6 +901,7 @@ pub fn gui(state: Arc<Mutex<State>>, quit_flag: Arc<AtomicBool>) -> eframe::Resu
             app_id: Some("pen-steer".into()),
             inner_size: Some(Vec2::new(800.0, 600.0)),
             min_inner_size: Some(Vec2::new(365.0, 0.0)),
+            transparent: Some(true),
             ..Default::default()
         },
         persist_window: false,
