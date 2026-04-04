@@ -47,15 +47,16 @@ pub fn update(state: &mut State) -> Result<()> {
         reset_device(state)?;
     }
 
-    if let Some(Some(ref raw_pen)) = state.source.as_mut().map(|s| s.get()) {
-        let pen = state.config.mapping.pen(raw_pen.clone());
+    if let Some(Some(raw_pen)) = state.source.as_mut().map(|s| s.get()) {
+        let pen = state.config.mapping.pen(raw_pen);
         state.pen = Some(pen);
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     state.wheel.update(
         state.device.as_mut(),
         &state.config,
-        state.pen_override.clone().or_else(|| state.pen.clone()),
+        state.pen_override.or(state.pen),
         1.0 / state.config.update_frequency as f32,
     );
 

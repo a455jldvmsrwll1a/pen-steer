@@ -38,14 +38,14 @@ impl State {
             Err(load_err) => {
                 // Do not show error if it just does not exist.
                 let mut escalate_error = true;
-                if let Some(err) = load_err.downcast_ref::<std::io::Error>() {
-                    if let std::io::ErrorKind::NotFound = err.kind() {
-                        escalate_error = false;
-                    }
+                if let Some(err) = load_err.downcast_ref::<std::io::Error>()
+                    && let std::io::ErrorKind::NotFound = err.kind()
+                {
+                    escalate_error = false;
                 }
-                
+
                 if escalate_error {
-                    state.last_error = Some(load_err.context("Could not load configuration file."))
+                    state.last_error = Some(load_err.context("Could not load configuration file."));
                 } else {
                     warn!("Did not load a configuration file:\n{load_err:?}");
                 }

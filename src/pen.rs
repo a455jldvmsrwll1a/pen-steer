@@ -1,4 +1,4 @@
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Pen {
     pub x: f32,
     pub y: f32,
@@ -6,7 +6,7 @@ pub struct Pen {
     pub buttons: u8,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct RawPen {
     pub x: f32,
     pub y: f32,

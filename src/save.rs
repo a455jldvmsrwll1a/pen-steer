@@ -174,6 +174,8 @@ pub fn load_file(config: &mut Config, path: &Path) -> Result<Vec<ParseError>> {
 }
 
 fn load_from_line(config: &mut Config, text: &str) -> Result<()> {
+    const YES: f32 = 36000.0;
+
     // Ignore empty lines and comments.
     if text.is_empty() || text.starts_with('#') || text.starts_with(';') {
         return Ok(());
@@ -184,8 +186,6 @@ fn load_from_line(config: &mut Config, text: &str) -> Result<()> {
     if key.is_empty() {
         bail!("Expected a key.");
     }
-
-    const YES: f32 = 36000.0;
 
     match key {
         "update_frequency" => config.update_frequency = parse_sane_u32(value, 5, 1000)?,
@@ -205,7 +205,7 @@ fn load_from_line(config: &mut Config, text: &str) -> Result<()> {
                 config.mapping.min_in_y,
                 config.mapping.max_in_x,
                 config.mapping.max_in_y,
-            ) = parse_mapping_rect(value)?
+            ) = parse_mapping_rect(value)?;
         }
         "map_output_rect" => {
             (
@@ -213,27 +213,27 @@ fn load_from_line(config: &mut Config, text: &str) -> Result<()> {
                 config.mapping.min_out_y,
                 config.mapping.max_out_x,
                 config.mapping.max_out_y,
-            ) = parse_mapping_rect(value)?
+            ) = parse_mapping_rect(value)?;
         }
         "map_orientation" => config.mapping.orientation = parse_mapping_orientation(value)?,
         "map_invert" => {
-            (config.mapping.invert_x, config.mapping.invert_y) = parse_mapping_invert(value)?
+            (config.mapping.invert_x, config.mapping.invert_y) = parse_mapping_invert(value)?;
         }
 
-        "net_sock_addr" => config.net_sock_addr = value.to_owned(),
+        "net_sock_addr" => value.clone_into(&mut config.net_sock_addr),
 
         "device_resolution" => config.device_resolution = parse_sane_u32(value, 2, 32768)?,
-        "device_name" => config.device_name = value.to_owned(),
+        "device_name" => value.clone_into(&mut config.device_name),
         "device_id" => {
             (
                 config.device_vendor,
                 config.device_product,
                 config.device_version,
-            ) = parse_device_id(value)?
+            ) = parse_device_id(value)?;
         }
 
         "preferred_tablet" => {
-            config.preferred_tablet = (!value.is_empty()).then(|| value.trim().to_owned())
+            config.preferred_tablet = (!value.is_empty()).then(|| value.trim().to_owned());
         }
 
         "source" => config.source = parse_source(value)?,
@@ -314,10 +314,10 @@ fn parse_mapping_rect(text: &str) -> Result<(f32, f32, f32, f32)> {
     let max_y = tokens.next().context("Missing maximum Y.")?;
 
     Ok((
-        parse_sane_f32(min_x, -1000000.0, 1000000.0)?,
-        parse_sane_f32(min_y, -1000000.0, 1000000.0)?,
-        parse_sane_f32(max_x, -1000000.0, 1000000.0)?,
-        parse_sane_f32(max_y, -1000000.0, 1000000.0)?,
+        parse_sane_f32(min_x, -1_000_000.0, 1_000_000.0)?,
+        parse_sane_f32(min_y, -1_000_000.0, 1_000_000.0)?,
+        parse_sane_f32(max_x, -1_000_000.0, 1_000_000.0)?,
+        parse_sane_f32(max_y, -1_000_000.0, 1_000_000.0)?,
     ))
 }
 
@@ -336,9 +336,9 @@ fn parse_mapping_invert(text: &str) -> Result<(bool, bool)> {
     let mut y = false;
 
     for c in text.chars() {
-        if c.to_ascii_lowercase() == 'x' {
+        if c.eq_ignore_ascii_case(&'x') {
             x = true;
-        } else if c.to_ascii_lowercase() == 'y' {
+        } else if c.eq_ignore_ascii_case(&'y') {
             y = true;
         } else if !c.is_whitespace() {
             bail!("Invalid axis character {c}!");

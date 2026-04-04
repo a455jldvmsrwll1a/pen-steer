@@ -36,8 +36,7 @@ impl Wheel {
         if !self.dragging {
             let feedback_normalised = device
                 .as_ref()
-                .map(|d| d.get_feedback())
-                .flatten()
+                .and_then(|d| d.get_feedback())
                 .unwrap_or(0.0);
             self.feedback_torque = feedback_normalised * config.max_torque;
 
@@ -66,10 +65,10 @@ impl Wheel {
         // check if pen up
         if pen.pressure <= config.pressure_threshold {
             // stop honking
-            if self.honking {
-                if let Some(dev) = device {
-                    dev.set_horn(false);
-                }
+            if self.honking
+                && let Some(dev) = device
+            {
+                dev.set_horn(false);
             }
 
             self.honking = false;

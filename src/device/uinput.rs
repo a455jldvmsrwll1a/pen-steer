@@ -64,7 +64,7 @@ pub struct UInputDevice {
 
 impl UInputDevice {
     pub fn new(config: &Config) -> Result<Self> {
-        if config.device_resolution > u16::MAX as u32 {
+        if config.device_resolution > u32::from(u16::MAX) {
             bail!("Device resolution too high!");
         }
 
@@ -175,7 +175,7 @@ impl UInputDevice {
 
             // SAFETY: the effect type is checked before accessing the union.
             unsafe {
-                let constant = &*(upload.effect.u.as_ptr() as *const ff_constant_effect);
+                let constant = &*upload.effect.u.as_ptr().cast::<ff_constant_effect>();
                 ff.force = constant.level;
                 trace!("ff = {}", constant.level);
             }
@@ -216,10 +216,13 @@ impl UInputDevice {
 
 impl Device for UInputDevice {
     fn get_feedback(&self) -> Option<f32> {
-        self.ff
-            .and_then(|ff| ff.playing.then(|| ff.force as f32 / i16::MAX as f32))
+        self.ff.and_then(|ff| {
+            ff.playing
+                .then(|| f32::from(ff.force) / f32::from(i16::MAX))
+        })
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn set_wheel(&mut self, angle: f32) {
         let value = (angle * self.resolution).round_ties_even();
         self.wheel_axis = value as i32;
@@ -279,15 +282,15 @@ impl Device for UInputDevice {
         let mut ev = NULL_EVENT;
 
         while let Ok(1) = self.handle.read(std::slice::from_mut(&mut ev)) {
-            match ev.type_ as i32 {
-                EV_UINPUT => match ev.code as i32 {
+            match i32::from(ev.type_) {
+                EV_UINPUT => match i32::from(ev.code) {
                     UI_FF_UPLOAD => {
-                        if let Err(err) = self.handle_ff_upload(ev.value as u32) {
+                        if let Err(err) = self.handle_ff_upload(ev.value.cast_unsigned()) {
                             error!("Error handling ff upload: {err}");
                         }
                     }
                     UI_FF_ERASE => {
-                        if let Err(err) = self.handle_ff_erase(ev.value as u32) {
+                        if let Err(err) = self.handle_ff_erase(ev.value.cast_unsigned()) {
                             error!("Error handling ff erase: {err}");
                         }
                     }

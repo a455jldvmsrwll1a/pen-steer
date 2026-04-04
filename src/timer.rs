@@ -8,7 +8,7 @@ pub struct Timer {
 impl Timer {
     pub fn new(freq: u32) -> Self {
         let now = Instant::now();
-        let period = Duration::from_secs_f64(1.0 / freq as f64);
+        let period = Duration::from_secs_f64(1.0 / f64::from(freq));
 
         Self {
             next_tick: now + period,

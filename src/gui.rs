@@ -74,7 +74,7 @@ impl eframe::App for GuiApp {
         debug!("Pen: {:#?}", state.pen);
 
         if let Some(err) = state.last_error.take() {
-            show_error(frame, err);
+            show_error(frame, &err);
         }
 
         self.draw_ui(ui, &mut state);
@@ -185,7 +185,7 @@ impl GuiApp {
     }
 }
 
-fn show_error(frame: &eframe::Frame, err: anyhow::Error) {
+fn show_error(frame: &eframe::Frame, err: &anyhow::Error) {
     error!("\n* * * * * * * * * *\n{err:?}\n* * * * * * * * * *");
 
     let _ = native_dialog::MessageDialogBuilder::default()
@@ -242,10 +242,11 @@ impl GuiApp {
         egui::Panel::left("controls")
             .resizable(false)
             .show_inside(ui, |ui| {
+                const FOOTER_HEIGHT: f32 = 70.0;
+
                 ui.set_width(350.0);
                 ui.style_mut().spacing.slider_width = 200.0;
 
-                const FOOTER_HEIGHT: f32 = 70.0;
                 egui::Panel::bottom("controls_footer")
                     .exact_size(FOOTER_HEIGHT)
                     .show_inside(ui, |ui| {
@@ -289,18 +290,18 @@ impl GuiApp {
                 }
             });
 
-        if let Some(device) = &state.device {
-            if device.get_feedback().is_some() {
-                egui::Panel::bottom("ff_bar")
-                    .frame(Frame {
-                        fill: Color32::TRANSPARENT,
-                        ..Default::default()
-                    })
-                    .exact_size(16.0)
-                    .show_inside(ui, |ui| {
-                        draw_ff_bar(state.wheel.feedback_torque, state.config.max_torque, ui);
-                    });
-            }
+        if let Some(device) = &state.device
+            && device.get_feedback().is_some()
+        {
+            egui::Panel::bottom("ff_bar")
+                .frame(Frame {
+                    fill: Color32::TRANSPARENT,
+                    ..Default::default()
+                })
+                .exact_size(16.0)
+                .show_inside(ui, |ui| {
+                    draw_ff_bar(state.wheel.feedback_torque, state.config.max_torque, ui);
+                });
         }
 
         egui::CentralPanel::default()
@@ -318,7 +319,7 @@ impl GuiApp {
                     &state.config,
                     &state.wheel,
                     self.base_radius_selection,
-                    pen.cloned(),
+                    pen.copied(),
                     ui,
                 );
             });
@@ -370,11 +371,18 @@ impl GuiApp {
 
             self.should_load |= ui
                 .add(egui::Button::new("Load...").min_size(Vec2::new(width, 0.0)))
-                .clicked()
+                .clicked();
         });
     }
 
     fn draw_controls(&mut self, state: &mut State, ui: &mut Ui) {
+        const BASE_RADIUS_TOOLTIP: &str = "Minimum radius for angular \
+        displacement calculations.\nCircling the pen closer than this radius \
+        will not cause the wheel to spin faster.\n\n\
+        This can prevent issues when making off-centred circles, but if the \
+        pen is consistently too close, it will cause the wheel to turn slower \
+        than intended.";
+
         let config = &mut state.config;
 
         egui::ComboBox::new("update_freq", "Update Frequency")
@@ -415,12 +423,6 @@ impl GuiApp {
         let base_radius_changing = base_radius_response.dragged() || base_radius_response.hovered();
         self.base_radius_selection = base_radius_changing.then_some(config.base_radius);
 
-        const BASE_RADIUS_TOOLTIP: &str = "Minimum radius for angular \
-        displacement calculations.\nCircling the pen closer than this radius \
-        will not cause the wheel to spin faster.\n\n\
-        This can prevent issues when making off-centred circles, but if the \
-        pen is consistently too close, it will cause the wheel to turn slower \
-        than intended.";
         base_radius_response.on_hover_text(BASE_RADIUS_TOOLTIP);
 
         ui.style_mut().spacing.interact_size.x = 150.0;
@@ -836,18 +838,18 @@ fn draw_steering_wheel(
     if let Some(pos) = ui
         .interact(rect, Id::new("wheel_box"), Sense::click_and_drag())
         .hover_pos()
+        && rect.contains(pos)
+        && ui.input(|i| i.pointer.primary_down())
     {
-        if rect.contains(pos) && ui.input(|i| i.pointer.primary_down()) {
-            let x = math::remap(pos.x, right, left, -1.0, 1.0);
-            let y = math::remap(pos.y, top, bottom, -1.0, 1.0);
+        let x = math::remap(pos.x, right, left, -1.0, 1.0);
+        let y = math::remap(pos.y, top, bottom, -1.0, 1.0);
 
-            return Some(Pen {
-                x,
-                y,
-                pressure: u32::MAX,
-                ..Default::default()
-            });
-        }
+        return Some(Pen {
+            x,
+            y,
+            pressure: u32::MAX,
+            ..Default::default()
+        });
     }
 
     None
@@ -867,10 +869,10 @@ fn draw_about(ctx: &Context, show_about: &mut bool) {
             ui.allocate_space(ui.available_size());
         });
 
-    if let Some(response) = response {
-        if response.response.clicked() {
-            *show_about = false;
-        }
+    if let Some(response) = response
+        && response.response.clicked()
+    {
+        *show_about = false;
     }
 
     egui::Window::new("About pen-steer")
@@ -940,11 +942,11 @@ fn edit_u16_hex(ui: &mut Ui, value: &mut u16, buf: &mut String) -> bool {
     if out.response.lost_focus() || out.response.clicked_elsewhere() {
         let stripped = buf.trim().trim_start_matches("0x");
 
-        if let Ok(new_value) = u16::from_str_radix(stripped, 16) {
-            if new_value != *value {
-                *value = new_value;
-                dirty = true;
-            }
+        if let Ok(new_value) = u16::from_str_radix(stripped, 16)
+            && new_value != *value
+        {
+            *value = new_value;
+            dirty = true;
         }
 
         buf.clear();

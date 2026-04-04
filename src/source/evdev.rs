@@ -70,8 +70,11 @@ impl EvdevSource {
 
 impl Source for EvdevSource {
     fn get(&mut self) -> Option<RawPen> {
+        #[allow(clippy::cast_possible_truncation)]
         fn norm(t: i32, a1: i32, a2: i32) -> f32 {
-            ((-1.0) + (t as f64 - a1 as f64) * (1.0 - (-1.0)) / (a2 as f64 - a1 as f64)) as f32
+            ((-1.0)
+                + (f64::from(t) - f64::from(a1)) * (1.0 - (-1.0)) / (f64::from(a2) - f64::from(a1)))
+                as f32
         }
 
         let mut changed = false;
@@ -102,14 +105,14 @@ impl Source for EvdevSource {
                     changed = true;
                 }
                 AbsoluteAxis::Pressure => {
-                    self.current.pressure = abs.value.max(0) as u32;
+                    self.current.pressure = abs.value.max(0).cast_unsigned();
                     changed = true;
                 }
                 _ => {}
             }
         }
 
-        changed.then_some(self.current.clone())
+        changed.then_some(self.current)
     }
 }
 
@@ -128,14 +131,14 @@ pub fn enumerate_available_devices() -> Result<Vec<String>> {
         };
 
         let name = entry.file_name();
-        let handle = match open_evdev_tablet_device(entry) {
+        let handle = match open_evdev_tablet_device(&entry) {
             Ok(h) => h,
             Err(err) => {
-                trace!("Skipping {name:?}: {err}");
+                trace!("Skipping {}: {err}", name.display());
                 continue;
             }
         };
-        
+
         trace!("Found valid input: {}", handle.name);
         valid_devices.push(handle.name);
     }
@@ -150,10 +153,10 @@ fn open_device_with_name(target_name: &str) -> Result<Option<EvdevHandle<File>>>
         };
 
         let name = entry.file_name();
-        let handle = match open_evdev_tablet_device(entry) {
+        let handle = match open_evdev_tablet_device(&entry) {
             Ok(h) => h,
             Err(err) => {
-                trace!("Skipping {name:?}: {err}");
+                trace!("Skipping {}: {err}", name.display());
                 continue;
             }
         };
@@ -171,9 +174,9 @@ struct EvdevDeviceHandle {
     name: String,
 }
 
-fn open_evdev_tablet_device(entry: DirEntry) -> Result<EvdevDeviceHandle> {
+fn open_evdev_tablet_device(entry: &DirEntry) -> Result<EvdevDeviceHandle> {
     let Ok(name) = entry.file_name().into_string() else {
-        bail!("Invalid UTF-8 for entry: {:?}", entry.file_name());
+        bail!("Invalid UTF-8 for entry: {}", entry.file_name().display());
     };
 
     let stripped_name = name.trim_start_matches("event");
@@ -219,9 +222,9 @@ fn open_evdev_tablet_device(entry: DirEntry) -> Result<EvdevDeviceHandle> {
     }
 
     let mut dev_name = handle.device_name()?;
-    
+
     // Remove nul terminator.
-    if dev_name.len() > 0 && dev_name[dev_name.len() - 1] == b'\0' {
+    if !dev_name.is_empty() && dev_name[dev_name.len() - 1] == b'\0' {
         dev_name.pop();
     }
 
