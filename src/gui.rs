@@ -48,22 +48,12 @@ pub struct GuiApp {
 }
 
 impl eframe::App for GuiApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if self.quit_flag.load(Ordering::Acquire) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
 
-        let state_arc = self.state.clone();
-        let mut state = state_arc.lock().unwrap();
-
-        debug!("Pen: {:#?}", state.pen);
-
-        if let Some(err) = state.last_error.take() {
-            show_error(frame, err);
-        }
-
-        self.draw_ui(ctx, &mut state);
-        drop(state);
+        draw_about(ctx, &mut self.show_about);
 
         if self.show_wheel {
             ctx.request_repaint();
@@ -75,6 +65,20 @@ impl eframe::App for GuiApp {
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
         [0.0, 1.0, 0.0, 0.0]
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        let state_arc = self.state.clone();
+        let mut state = state_arc.lock().unwrap();
+
+        debug!("Pen: {:#?}", state.pen);
+
+        if let Some(err) = state.last_error.take() {
+            show_error(frame, err);
+        }
+
+        self.draw_ui(ui, &mut state);
+        drop(state);
     }
 }
 
@@ -232,18 +236,18 @@ impl GuiApp {
         });
     }
 
-    fn draw_ui(&mut self, ctx: &Context, state: &mut State) {
-        egui::TopBottomPanel::top("menu").show(ctx, |ui| self.draw_menu(ui));
+    fn draw_ui(&mut self, ui: &mut Ui, state: &mut State) {
+        egui::Panel::top("menu").show_inside(ui, |ui| self.draw_menu(ui));
 
-        egui::SidePanel::left("controls")
+        egui::Panel::left("controls")
             .resizable(false)
-            .show(ctx, |ui| {
+            .show_inside(ui, |ui| {
                 ui.set_width(350.0);
                 ui.style_mut().spacing.slider_width = 200.0;
 
                 const FOOTER_HEIGHT: f32 = 70.0;
-                egui::TopBottomPanel::bottom("controls_footer")
-                    .exact_height(FOOTER_HEIGHT)
+                egui::Panel::bottom("controls_footer")
+                    .exact_size(FOOTER_HEIGHT)
                     .show_inside(ui, |ui| {
                         self.draw_controls_footer(ui, state);
                     });
@@ -269,17 +273,17 @@ impl GuiApp {
             });
 
         if !self.show_wheel {
-            self.draw_steering_wheel_placeholder(ctx);
+            self.draw_steering_wheel_placeholder(ui);
             return;
         }
 
-        egui::TopBottomPanel::bottom("steer_bar")
+        egui::Panel::bottom("steer_bar")
             .frame(Frame {
                 fill: Color32::TRANSPARENT,
                 ..Default::default()
             })
-            .exact_height(32.0)
-            .show(ctx, |ui| {
+            .exact_size(32.0)
+            .show_inside(ui, |ui| {
                 if let Some(new_angle) = draw_steer_bar(state.wheel.angle, &state.config, ui) {
                     state.wheel.angle = new_angle;
                 }
@@ -287,13 +291,13 @@ impl GuiApp {
 
         if let Some(device) = &state.device {
             if device.get_feedback().is_some() {
-                egui::TopBottomPanel::bottom("ff_bar")
+                egui::Panel::bottom("ff_bar")
                     .frame(Frame {
                         fill: Color32::TRANSPARENT,
                         ..Default::default()
                     })
-                    .exact_height(16.0)
-                    .show(ctx, |ui| {
+                    .exact_size(16.0)
+                    .show_inside(ui, |ui| {
                         draw_ff_bar(state.wheel.feedback_torque, state.config.max_torque, ui);
                     });
             }
@@ -304,7 +308,7 @@ impl GuiApp {
                 fill: Color32::TRANSPARENT,
                 ..Default::default()
             })
-            .show(ctx, |ui| {
+            .show_inside(ui, |ui| {
                 let style = ui.style_mut();
                 style.visuals.panel_fill = Color32::TRANSPARENT;
                 style.visuals.window_fill = Color32::TRANSPARENT;
@@ -318,8 +322,6 @@ impl GuiApp {
                     ui,
                 );
             });
-
-        draw_about(ctx, &mut self.show_about);
     }
 
     fn draw_controls_footer(&mut self, ui: &mut Ui, state: &mut State) {
@@ -608,6 +610,10 @@ impl GuiApp {
         ui.checkbox(&mut map.invert_y, "Invert Y axis");
 
         ui.separator();
+        ui.heading("Extra Buttons");
+        ui.style_mut().spacing.interact_size.x = 65.0;
+
+        ui.separator();
         ui.heading("Output");
 
         let old_device = config.device;
@@ -670,8 +676,8 @@ impl GuiApp {
         }
     }
 
-    fn draw_steering_wheel_placeholder(&mut self, ctx: &Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+    fn draw_steering_wheel_placeholder(&mut self, ui: &mut Ui) {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.centered_and_justified(|ui| {
                 if ui
                     .add(
@@ -765,7 +771,7 @@ fn draw_steering_wheel(
     const PEN_SIZE: f32 = 12.0;
     const HORN_PRESS_SCALE: f32 = 0.9;
 
-    let available_rect = ui.ctx().available_rect();
+    let available_rect = ui.clip_rect();
     let mut rect = available_rect.scale_from_center(0.95);
 
     // keep the rect a square

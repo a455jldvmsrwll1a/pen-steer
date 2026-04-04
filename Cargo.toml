@@ -9,16 +9,16 @@ lto = "fat"
 codegen-units = 1
 
 [dependencies]
-anyhow = { version = "1.0.100", features = ["backtrace"] }
-ctrlc = { version = "3.5.1", features = ["termination"] }
+anyhow = { version = "1.0.102", features = ["backtrace"] }
+ctrlc = { version = "3.5.2", features = ["termination"] }
 directories = "6.0.0"
-egui_extras = { version = "0.33.3", default-features = false, features = ["svg"] }
-env_logger = "0.11.8"
+egui_extras = { version = "0.34.1", default-features = false, features = ["svg"] }
+env_logger = "0.11.10"
 log = "0.4.29"
-native-dialog = { version = "0.9.4", features = ["windows_dpi_awareness", "windows_visual_styles"] }
+native-dialog = { version = "0.9.6", features = ["windows_dpi_awareness", "windows_visual_styles"] }
 
 [dependencies.eframe]
-version = "0.33.2"
+version = "0.34.1"
 default-features = false
 features = [
     "default_fonts",
@@ -28,7 +28,7 @@ features = [
 ]
 
 [target.'cfg(target_os = "linux")'.dependencies]
-nix = "0.30.1"
+nix = "0.31.2"
 input-linux = "0.7.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
