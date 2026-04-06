@@ -4,6 +4,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, Ordering},
     },
+    time::Duration,
 };
 
 use crate::{
@@ -55,10 +56,6 @@ impl eframe::App for GuiApp {
 
         draw_about(ctx, &mut self.show_about);
 
-        if self.show_wheel {
-            ctx.request_repaint();
-        }
-
         self.save();
         self.load();
     }
@@ -85,6 +82,11 @@ impl eframe::App for GuiApp {
         }
 
         self.draw_ui(ui, &mut state);
+        if self.show_wheel {
+            let cooldown = Duration::from_secs_f64(f64::from(state.config.update_frequency).recip());
+            ui.request_repaint_after(cooldown);
+        }
+
         drop(state);
     }
 }
