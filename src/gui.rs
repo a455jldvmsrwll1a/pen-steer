@@ -69,7 +69,14 @@ impl eframe::App for GuiApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         let state_arc = self.state.clone();
-        let mut state = state_arc.lock().unwrap();
+        let Ok(mut state) = state_arc.lock() else {
+            ui.send_viewport_cmd(egui::ViewportCommand::Close);
+            show_error(
+                frame,
+                &anyhow!("Failed to lock state mutex. Controller thread(s) may have panicked."),
+            );
+            return;
+        };
 
         debug!("Pen: {:#?}", state.pen);
 
