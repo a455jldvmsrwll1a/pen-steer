@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use input_linux::{AbsoluteAxis, EvdevHandle, EventKind, EventRef};
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use nix::libc::O_NONBLOCK;
 
 use crate::{pen::RawPen, source::Source};
@@ -45,6 +45,8 @@ impl EvdevSource {
             bail!("No such device found.");
         };
 
+        handle.grab(true)?;
+
         let (x_min, x_max, y_min, y_max) = get_dimensions(&handle)?;
         let width = x_max - x_min;
         let height = y_max - y_min;
@@ -65,6 +67,14 @@ impl EvdevSource {
             aspect_ratio,
             current: RawPen::default(),
         })
+    }
+}
+
+impl Drop for EvdevSource {
+    fn drop(&mut self) {
+        if let Err(err) = self.handle.grab(false) {
+            error!("Failed to release device: {err}");
+        }
     }
 }
 
