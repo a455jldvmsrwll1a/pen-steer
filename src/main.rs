@@ -4,15 +4,15 @@ mod config;
 mod controller;
 mod device;
 mod gui;
+mod headless;
 mod mapping;
 mod math;
 mod pen;
 mod save;
 mod save_path;
-mod util;
 mod source;
-mod headless;
 mod timer;
+mod util;
 mod wheel;
 
 use std::fs::create_dir_all;

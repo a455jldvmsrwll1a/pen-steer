@@ -16,9 +16,7 @@ impl NetSource {
 
         info!("Bound to {addr}");
 
-        Ok(Self {
-            socket,
-        })
+        Ok(Self { socket })
     }
 }
 

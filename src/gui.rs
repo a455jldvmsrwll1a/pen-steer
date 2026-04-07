@@ -1,12 +1,10 @@
 use std::{
-    ops::{Deref, DerefMut},
     path::PathBuf,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
     },
-    thread::JoinHandle,
-    time::{Duration, Instant, SystemTime},
+    time::Duration,
 };
 
 use crate::{
@@ -388,7 +386,9 @@ impl GuiApp {
                 );
 
                 if self.pen_override != pen_override {
-                    let _ = self.cmd_tx.push(Command::SetPenOverride { pen: pen_override });
+                    let _ = self
+                        .cmd_tx
+                        .push(Command::SetPenOverride { pen: pen_override });
                     self.pen_override = pen_override;
                 }
             });

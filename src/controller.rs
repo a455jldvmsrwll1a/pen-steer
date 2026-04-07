@@ -55,7 +55,7 @@ pub fn controller(
     };
 
     let mut ups = state.config.update_frequency;
-    info!("Using {} Hz rate.", ups);
+    info!("Using {ups} Hz rate.");
     let mut timer = Timer::new(ups);
 
     if let Err(err) = state.reset_source() {
@@ -68,11 +68,11 @@ pub fn controller(
     }
 
     while !quit_flag.load(Ordering::Acquire) {
-        if let Ok(command) = cmd_rx.pop() {
-            if let Err(err) = state.process_command(command) {
-                error!("Error processing command: {err}");
-                let _ = event_tx.push(Event::Error(err));
-            }
+        if let Ok(command) = cmd_rx.pop()
+            && let Err(err) = state.process_command(command)
+        {
+            error!("Error processing command: {err}");
+            let _ = event_tx.push(Event::Error(err));
         }
 
         let current_update_frequency = state.config.update_frequency;
@@ -109,7 +109,7 @@ impl State {
         Snapshot {
             pen: self.pen.or(self.pen_override),
             wheel: self.wheel.clone(),
-            feedback: self.device.as_ref().map(|dev| dev.get_feedback()).flatten(),
+            feedback: self.device.as_ref().and_then(|dev| dev.get_feedback()),
         }
     }
 

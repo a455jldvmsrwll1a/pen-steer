@@ -58,7 +58,6 @@ pub enum Source {
     Evdev,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Device {
     None,
