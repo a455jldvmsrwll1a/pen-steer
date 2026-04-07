@@ -53,6 +53,7 @@ pub struct GuiApp {
     should_load: bool,
     show_wheel: bool,
     show_about: bool,
+    transparent_view: bool,
     device_vendor_edit_buf: String,
     device_product_edit_buf: String,
     device_version_edit_buf: String,
@@ -162,6 +163,7 @@ impl GuiApp {
             should_load: false,
             show_wheel: true,
             show_about,
+            transparent_view: false,
             device_vendor_edit_buf: String::new(),
             device_product_edit_buf: String::new(),
             device_version_edit_buf: String::new(),
@@ -290,6 +292,9 @@ impl GuiApp {
                 if ui.button(string).clicked() {
                     self.show_wheel = !self.show_wheel;
                 }
+
+                ui.checkbox(&mut self.transparent_view, "Transparent")
+                    .clicked();
             });
         });
     }
@@ -337,10 +342,7 @@ impl GuiApp {
         }
 
         egui::Panel::bottom("steer_bar")
-            .frame(Frame {
-                fill: Color32::TRANSPARENT,
-                ..Default::default()
-            })
+            .pe_frame(self.transparent_view)
             .exact_size(32.0)
             .show_inside(ui, |ui| {
                 if let Some(new_angle) = draw_steer_bar(self.snapshot.wheel.angle, &self.config, ui)
@@ -355,10 +357,7 @@ impl GuiApp {
 
         if self.snapshot.feedback.is_some() {
             egui::Panel::bottom("ff_bar")
-                .frame(Frame {
-                    fill: Color32::TRANSPARENT,
-                    ..Default::default()
-                })
+                .pe_frame(self.transparent_view)
                 .exact_size(16.0)
                 .show_inside(ui, |ui| {
                     draw_ff_bar(
@@ -370,15 +369,8 @@ impl GuiApp {
         }
 
         egui::CentralPanel::default()
-            .frame(Frame {
-                fill: Color32::TRANSPARENT,
-                ..Default::default()
-            })
+            .pe_frame(self.transparent_view)
             .show_inside(ui, |ui| {
-                let style = ui.style_mut();
-                style.visuals.panel_fill = Color32::TRANSPARENT;
-                style.visuals.window_fill = Color32::TRANSPARENT;
-
                 let pen_override = draw_steering_wheel(
                     &self.config,
                     &self.snapshot.wheel,
@@ -812,22 +804,30 @@ impl GuiApp {
     }
 
     fn draw_steering_wheel_placeholder(&mut self, ui: &mut Ui) {
-        egui::CentralPanel::default().show_inside(ui, |ui| {
-            ui.centered_and_justified(|ui| {
-                if ui
-                    .add(
-                        egui::Button::new(
-                            RichText::new("Steering wheel view disabled. Click to enable.")
-                                .underline(),
-                        )
-                        .frame(false),
-                    )
-                    .clicked()
-                {
-                    self.show_wheel = true;
+        egui::CentralPanel::default()
+            .pe_frame(self.transparent_view)
+            .show_inside(ui, |ui| {
+                if self.transparent_view {
+                    let style = ui.style_mut();
+                    style.visuals.panel_fill = Color32::TRANSPARENT;
+                    style.visuals.window_fill = Color32::TRANSPARENT;
                 }
-            })
-        });
+
+                ui.centered_and_justified(|ui| {
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                RichText::new("Steering wheel view disabled. Click to enable.")
+                                    .underline(),
+                            )
+                            .frame(false),
+                        )
+                        .clicked()
+                    {
+                        self.show_wheel = true;
+                    }
+                })
+            });
     }
 }
 
@@ -1106,5 +1106,29 @@ impl<T> ResponseExt for egui::InnerResponse<T> {
     fn mark(self, changed: &mut bool) -> Self {
         *changed |= self.response.changed();
         self
+    }
+}
+
+trait PanelExt {
+    fn pe_frame(self, transparent: bool) -> Self;
+}
+
+impl PanelExt for egui::Panel {
+    fn pe_frame(self, transparent: bool) -> Self {
+        if transparent {
+            self.frame(Frame::new())
+        } else {
+            self
+        }
+    }
+}
+
+impl PanelExt for egui::CentralPanel {
+    fn pe_frame(self, transparent: bool) -> Self {
+        if transparent {
+            self.frame(Frame::new())
+        } else {
+            self
+        }
     }
 }
