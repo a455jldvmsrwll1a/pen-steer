@@ -11,24 +11,17 @@ mod save;
 mod save_path;
 mod util;
 mod source;
-mod state;
+mod headless;
 mod timer;
 mod wheel;
 
-use std::{
-    env::args,
-    fs::create_dir_all,
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
-};
+use std::fs::create_dir_all;
 
 use anyhow::{Result, bail};
 
 use log::{error, info};
 
-use crate::{save_path::save_dir, state::State};
+use crate::save_path::save_dir;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -40,26 +33,13 @@ fn main() -> Result<()> {
         error!("Could not create configuration directory: {err}");
     }
 
-    let state = Arc::new(Mutex::new(State::create()));
-    let quit_flag = Arc::new(AtomicBool::new(false));
-
-    util::set_handler(quit_flag.clone());
-
     if util::is_headless_requested() {
-        controller::controller(state, quit_flag);
-        return Ok(());
+        return headless::run_headless();
     }
 
-    let state_clone = state.clone();
-    let quit_flag_clone = quit_flag.clone();
-    let thread = std::thread::spawn(move || controller::controller(state_clone, quit_flag_clone));
-
-    if let Err(err) = gui::gui(state, quit_flag.clone()) {
+    if let Err(err) = gui::gui() {
         bail!("GUI error: {err}");
     }
-
-    quit_flag.store(true, Ordering::Release);
-    let _ = thread.join();
 
     Ok(())
 }
