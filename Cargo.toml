@@ -10,6 +10,7 @@ codegen-units = 1
 
 [dependencies]
 anyhow = { version = "1.0.102", features = ["backtrace"] }
+arc-swap = "1.9.1"
 ctrlc = { version = "3.5.2", features = ["termination"] }
 directories = "6.0.0"
 egui_extras = { version = "0.34.1", default-features = false, features = ["svg"] }

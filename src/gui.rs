@@ -19,6 +19,7 @@ use crate::{
     wheel::Wheel,
 };
 use anyhow::anyhow;
+use arc_swap::ArcSwap;
 use eframe::egui::{
     self, Color32, Context, CornerRadius, Frame, Id, Layout, OpenUrl, Pos2, Rect, RichText, Sense,
     Stroke, Ui, Vec2, ViewportBuilder,
@@ -38,6 +39,7 @@ pub struct GuiApp {
     event_rx: rtrb::Consumer<Event>,
     snapshot_rx: triple_buffer::Output<Snapshot>,
     config: Config,
+    config_shared: Arc<ArcSwap<Config>>,
     config_dirty: bool,
     snapshot: Snapshot,
     pen_override: Option<Pen>,
@@ -88,10 +90,7 @@ impl eframe::App for GuiApp {
 
         if self.config_dirty {
             self.config_dirty = false;
-
-            let _ = self.cmd_tx.push(Command::UpdateConfig {
-                new_config: self.config.clone(),
-            });
+            self.config_shared.store(Arc::new(self.config.clone()));
         }
 
         if self.show_wheel {
@@ -127,11 +126,12 @@ impl GuiApp {
         }
         info!("Configuration loaded.");
 
+        let config_shared = Arc::new(ArcSwap::new(Arc::new(config.clone())));
         let (cmd_tx, cmd_rx) = rtrb::RingBuffer::new(4);
         let (event_tx, event_rx) = rtrb::RingBuffer::new(4);
         let (snapshot_tx, snapshot_rx) = triple_buffer(&Snapshot::default());
 
-        let config_cloned = config.clone();
+        let config_cloned = config_shared.clone();
         let quit_flag_cloned = quit_flag.clone();
         std::thread::spawn(move || {
             controller::controller(
@@ -149,6 +149,7 @@ impl GuiApp {
             snapshot_rx,
             snapshot: Snapshot::default(),
             config,
+            config_shared,
             config_dirty: false,
             pen_override: None,
             last_error,
@@ -233,7 +234,8 @@ impl GuiApp {
             self.last_error = Some(anyhow!(compile_parse_errors(parse_errors)));
         }
 
-        let _ = self.cmd_tx.push(Command::Initialise { new_config: config });
+        self.config_shared.store(Arc::new(config));
+        let _ = self.cmd_tx.push(Command::Reset);
 
         self.device_vendor_edit_buf.clear();
         self.device_product_edit_buf.clear();

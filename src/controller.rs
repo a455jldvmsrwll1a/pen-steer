@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use arc_swap::ArcSwap;
 use log::{debug, error, info};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -11,10 +12,8 @@ use crate::timer::Timer;
 use crate::wheel::Wheel;
 
 pub enum Command {
-    /// Set config and reset everything.
-    Initialise { new_config: Config },
-    /// Only set config.
-    UpdateConfig { new_config: Config },
+    /// Reset everything.
+    Reset,
     /// Only set wheel.
     TeleportWheel { new_wheel: Wheel },
     /// Only set wheel.
@@ -37,7 +36,7 @@ pub struct Snapshot {
 }
 
 pub fn controller(
-    initial_config: Config,
+    config: Arc<ArcSwap<Config>>,
     mut cmd_rx: rtrb::Consumer<Command>,
     mut event_tx: rtrb::Producer<Event>,
     mut snapshot_tx: triple_buffer::Input<Snapshot>,
@@ -46,7 +45,7 @@ pub fn controller(
     info!("Controller thread started.");
 
     let mut state = State {
-        config: initial_config,
+        config,
         wheel: Wheel::default(),
         pen: None,
         pen_override: None,
@@ -54,7 +53,7 @@ pub fn controller(
         device: None,
     };
 
-    let mut ups = state.config.update_frequency;
+    let mut ups = state.config.load().update_frequency;
     info!("Using {ups} Hz rate.");
     let mut timer = Timer::new(ups);
 
@@ -75,7 +74,7 @@ pub fn controller(
             let _ = event_tx.push(Event::Error(err));
         }
 
-        let current_update_frequency = state.config.update_frequency;
+        let current_update_frequency = state.config.load().update_frequency;
         if current_update_frequency != ups {
             ups = current_update_frequency;
             timer = Timer::new(ups);
@@ -96,7 +95,7 @@ pub fn controller(
 }
 
 struct State {
-    config: Config,
+    config: Arc<ArcSwap<Config>>,
     wheel: Wheel,
     pen: Option<Pen>,
     pen_override: Option<Pen>,
@@ -115,13 +114,9 @@ impl State {
 
     fn process_command(&mut self, command: Command) -> Result<()> {
         match command {
-            Command::Initialise { new_config } => {
-                self.config = new_config;
+            Command::Reset => {
                 self.reset_source()?;
                 self.reset_device()?;
-            }
-            Command::UpdateConfig { new_config } => {
-                self.config = new_config;
             }
             Command::TeleportWheel { new_wheel } => {
                 self.wheel = new_wheel;
@@ -141,17 +136,19 @@ impl State {
     }
 
     fn update(&mut self) -> Result<()> {
+        let config = self.config.load();
+
         if let Some(Some(raw_pen)) = self.source.as_mut().map(|s| s.get()) {
-            let pen = self.config.mapping.pen(raw_pen);
+            let pen = config.mapping.pen(raw_pen);
             self.pen = Some(pen);
         }
 
         #[allow(clippy::cast_possible_truncation)]
         self.wheel.update(
             self.device.as_mut(),
-            &self.config,
+            &config,
             self.pen_override.or(self.pen),
-            1.0 / self.config.update_frequency as f32,
+            1.0 / config.update_frequency as f32,
         );
 
         if let Some(device) = &mut self.device {
@@ -168,7 +165,7 @@ impl State {
         self.pen = None;
         self.source = None;
 
-        match create_source(&self.config) {
+        match create_source(&self.config.load()) {
             Ok(source) => self.source = Some(source),
             Err(err) => {
                 error!("Failed to create source!");
@@ -185,7 +182,7 @@ impl State {
         self.pen = None;
         self.device = None;
 
-        match create_device(&self.config).context("Could not create device.") {
+        match create_device(&self.config.load()).context("Could not create device.") {
             Ok(device) => self.device = Some(device),
             Err(err) => {
                 error!("Failed to create device!");

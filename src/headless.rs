@@ -1,6 +1,7 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
 use anyhow::{Result, bail};
+use arc_swap::ArcSwap;
 use log::{info, warn};
 use triple_buffer::triple_buffer;
 
@@ -46,7 +47,13 @@ pub fn run_headless() -> Result<()> {
     let (snapshot_tx, snapshot_rx) = triple_buffer(&Snapshot::default());
 
     drop((cmd_tx, event_rx, snapshot_rx));
-    controller::controller(config, cmd_rx, event_tx, snapshot_tx, quit_flag);
+    controller::controller(
+        Arc::new(ArcSwap::new(Arc::new(config))),
+        cmd_rx,
+        event_tx,
+        snapshot_tx,
+        quit_flag,
+    );
 
     info!("Bye.");
 
