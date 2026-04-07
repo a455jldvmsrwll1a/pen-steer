@@ -9,7 +9,7 @@ use input_linux::{AbsoluteAxis, EvdevHandle, EventKind, EventRef};
 use log::{debug, error, info, trace};
 use nix::libc::O_NONBLOCK;
 
-use crate::{pen::RawPen, source::Source};
+use crate::{pen::Pen, source::Source};
 
 pub struct EvdevSource {
     handle: EvdevHandle<File>,
@@ -18,7 +18,7 @@ pub struct EvdevSource {
     y_min: i32,
     y_max: i32,
     aspect_ratio: f32,
-    current: RawPen,
+    current: Pen,
 }
 
 impl EvdevSource {
@@ -65,7 +65,7 @@ impl EvdevSource {
             y_min,
             y_max,
             aspect_ratio,
-            current: RawPen::default(),
+            current: Pen::default(),
         })
     }
 }
@@ -79,7 +79,7 @@ impl Drop for EvdevSource {
 }
 
 impl Source for EvdevSource {
-    fn get(&mut self) -> Option<RawPen> {
+    fn get(&mut self) -> Option<Pen> {
         #[allow(clippy::cast_possible_truncation)]
         fn norm(t: i32, a1: i32, a2: i32) -> f32 {
             ((-1.0)

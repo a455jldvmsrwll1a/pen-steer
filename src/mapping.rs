@@ -1,4 +1,4 @@
-use crate::pen::{Pen, RawPen};
+use crate::pen::Pen;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapOrientation {
@@ -65,13 +65,13 @@ impl Mapping {
         }
     }
 
-    pub fn pen(&self, raw: RawPen) -> Pen {
-        let (x, y) = self.transform(raw.x, raw.y);
+    pub fn transform_pen(&self, pen: Pen) -> Pen {
+        let (x, y) = self.transform(pen.x, pen.y);
         Pen {
             x,
             y,
-            pressure: raw.pressure,
-            buttons: raw.buttons,
+            pressure: pen.pressure,
+            buttons: pen.buttons,
         }
     }
 }
