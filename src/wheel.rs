@@ -11,6 +11,7 @@ pub struct Wheel {
     pub dragging: bool,
     pub prev_pos: Pos2,
     pub prev_angle: f32,
+    pub prev_pen: Pen,
 }
 
 impl Wheel {
@@ -18,12 +19,28 @@ impl Wheel {
         &mut self,
         mut device: Option<&mut Box<dyn Device>>,
         config: &Config,
-        pen: Option<Pen>,
+        maybe_pen: Option<Pen>,
         dt: f32,
     ) {
         let half_range = config.half_range_rad();
 
-        let pen = pen.unwrap_or_default();
+        let pen = match maybe_pen {
+            Some(p) => p,
+            None => {
+                self.prev_pen.pressure = 0;
+                self.prev_pen
+            }
+        };
+
+        if self.dragging && self.prev_pen.timestamp != pen.timestamp {
+            let dt = (pen.timestamp - self.prev_pen.timestamp).as_secs_f32();
+
+            let t1 = -self.prev_pen.y.atan2(self.prev_pen.x);
+            let t2 = -pen.y.atan2(pen.x);
+            let dtheta = t2 - t1;
+            self.velocity = dtheta / dt;
+            self.prev_pen = pen;
+        }
 
         if self.velocity.is_nan() || self.velocity.is_infinite() {
             self.velocity = 0.0;
@@ -97,8 +114,8 @@ impl Wheel {
 
         // check if we were already dragging
         if self.dragging {
-            let prev_theta = self.prev_pos.x.atan2(self.prev_pos.y);
-            let theta = pen.x.atan2(pen.y);
+            let prev_theta = -self.prev_pos.y.atan2(self.prev_pos.x);
+            let theta = -pen.y.atan2(pen.x);
 
             let delta_t = math::angle_delta(prev_theta, theta);
             let adjusted = math::adjust_angle_delta(delta_t, centre_dist, config.base_radius);
@@ -106,8 +123,6 @@ impl Wheel {
             let new_angle = self.angle + adjusted;
             self.prev_angle = self.angle;
             self.angle = math::clamp_symmetric(half_range, new_angle);
-
-            self.velocity = (self.angle - self.prev_angle) / dt;
 
             if let Some(dev) = device {
                 let normalised = self.angle / half_range;
