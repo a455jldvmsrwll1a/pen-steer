@@ -1,7 +1,7 @@
 use std::{
     fmt::Debug,
     fs::{self, DirEntry, File, OpenOptions},
-    os::unix::fs::OpenOptionsExt,
+    os::unix::fs::OpenOptionsExt, time::Instant,
 };
 
 use anyhow::{Context, Result, bail};
@@ -95,8 +95,15 @@ impl Source for EvdevSource {
                 continue;
             };
 
-            let EventRef::Absolute(abs) = event else {
-                continue;
+            let abs = match event {
+                EventRef::Absolute(abs) => abs,
+                EventRef::Synchronize(_sync) => {
+                    self.current.timestamp = Instant::now();
+                    changed = true;
+
+                    continue;
+                }
+                _ => continue,
             };
 
             match abs.axis {
