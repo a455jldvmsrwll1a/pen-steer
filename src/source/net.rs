@@ -1,6 +1,6 @@
 use anyhow::Result;
 use log::info;
-use std::net::UdpSocket;
+use std::{net::UdpSocket, time::Instant};
 
 use crate::{pen::Pen, source::Source};
 
@@ -40,6 +40,7 @@ impl Source for NetSource {
             pen.y = f32::from_le_bytes(buf[4..8].try_into().unwrap());
             pen.pressure = u32::from_le_bytes(buf[8..12].try_into().unwrap());
             pen.buttons = buf[12];
+            pen.timestamp = Instant::now();
         }
     }
 }

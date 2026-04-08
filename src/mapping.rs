@@ -68,10 +68,11 @@ impl Mapping {
     pub fn transform_pen(&self, pen: Pen) -> Pen {
         let (x, y) = self.transform(pen.x, pen.y);
         Pen {
-            x,
-            y,
+            timestamp: pen.timestamp,
             pressure: pen.pressure,
             buttons: pen.buttons,
+            x,
+            y,
         }
     }
 }
