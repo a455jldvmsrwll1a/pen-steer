@@ -27,17 +27,18 @@ impl EvdevSource {
 
         if let Some(dev) = preferred_device_name {
             device_name = dev.trim().to_string();
+
+            debug!("Using preferred source device: {device_name}");
         } else {
-            debug!("No source device preference.");
             let devices = enumerate_available_devices()?;
             if let Some(first) = devices.first() {
                 device_name = first.clone();
             } else {
-                bail!("No valid input devices available! (evdev)");
+                bail!("No valid input devices available!");
             }
-        }
 
-        debug!("Using source device: {device_name}");
+            debug!("Using first available valid device: {device_name}");
+        }
 
         let Some(handle) =
             open_device_with_name(&device_name).context("Failed to open evdev device.")?
@@ -56,7 +57,7 @@ impl EvdevSource {
             "\nArea:\n\tx-axis: {x_min} .. {x_max}\n\ty-axis: {y_min} .. {y_max}\naspect ratio: {aspect_ratio}"
         );
 
-        info!("Initialised!");
+        info!("Initialised {device_name}!");
 
         Ok(Self {
             handle,
@@ -149,7 +150,7 @@ pub fn enumerate_available_devices() -> Result<Vec<String>> {
             }
         };
 
-        trace!("Found valid input: {}", handle.name);
+        debug!("Found valid input: {}", handle.name);
         valid_devices.push(handle.name);
     }
 
@@ -192,11 +193,11 @@ fn open_evdev_tablet_device(entry: &DirEntry) -> Result<EvdevDeviceHandle> {
     let stripped_name = name.trim_start_matches("event");
     stripped_name
         .parse::<u32>()
-        .context("Not a valid event device file.")?;
+        .context("not a valid (/dev/event*) file.")?;
 
     let file_type = entry.file_type()?;
     if file_type.is_dir() || file_type.is_file() {
-        bail!("Not a device file.");
+        bail!("is a dir or regular file, rather than a device file.");
     }
 
     let file = OpenOptions::new()
@@ -209,7 +210,7 @@ fn open_evdev_tablet_device(entry: &DirEntry) -> Result<EvdevDeviceHandle> {
     let events = handle.event_bits()?;
 
     if !events.iter().any(|e| matches!(e, EventKind::Absolute)) {
-        bail!("No absolute event type.");
+        bail!("device does not advertise the EV_ABS event type.");
     }
 
     let abs = handle.absolute_bits()?;
@@ -228,7 +229,7 @@ fn open_evdev_tablet_device(entry: &DirEntry) -> Result<EvdevDeviceHandle> {
     }
 
     if !has_x || !has_y || !has_pressure {
-        bail!("Input device must have X, Y, and pressure axes.");
+        bail!("device must advertise X, Y, and pressure axes.");
     }
 
     let mut dev_name = handle.device_name()?;
