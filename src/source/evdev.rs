@@ -1,11 +1,12 @@
 use std::{
     fmt::Debug,
     fs::{self, DirEntry, File, OpenOptions},
-    os::unix::fs::OpenOptionsExt, time::Instant,
+    os::unix::fs::OpenOptionsExt,
+    time::Instant,
 };
 
 use anyhow::{Context, Result, bail};
-use input_linux::{AbsoluteAxis, EvdevHandle, EventKind, EventRef};
+use input_linux::{AbsoluteAxis, EvdevHandle, EventKind, EventRef, Key};
 use log::{debug, error, info, trace};
 use nix::libc::O_NONBLOCK;
 
@@ -97,6 +98,17 @@ impl Source for EvdevSource {
 
             let abs = match event {
                 EventRef::Absolute(abs) => abs,
+                EventRef::Key(key) if key.key == Key::ButtonLeft => {
+                    if key.value.is_pressed() {
+                        self.current.pressure = u32::MAX;
+                    } else {
+                        self.current.pressure = 0;
+                    }
+
+                    changed = true;
+
+                    continue;
+                }
                 EventRef::Synchronize(_sync) => {
                     self.current.timestamp = Instant::now();
                     changed = true;
@@ -216,6 +228,9 @@ fn open_evdev_tablet_device(entry: &DirEntry) -> Result<EvdevDeviceHandle> {
 
     let events = handle.event_bits()?;
 
+    let has_lmb = events.iter().any(|e| e == EventKind::Key)
+        && handle.key_bits()?.iter().any(|k| k == Key::ButtonLeft);
+
     if !events.iter().any(|e| matches!(e, EventKind::Absolute)) {
         bail!("device does not advertise the EV_ABS event type.");
     }
@@ -235,8 +250,10 @@ fn open_evdev_tablet_device(entry: &DirEntry) -> Result<EvdevDeviceHandle> {
         }
     }
 
-    if !has_x || !has_y || !has_pressure {
-        bail!("device must advertise X, Y, and pressure axes.");
+    if !has_x || !has_y || (!has_pressure && !has_lmb) {
+        bail!(
+            "device must advertise ABS_X and ABS_Y axes, and either the ABS_PRESURE axis or BTN_LEFT key."
+        );
     }
 
     let mut dev_name = handle.device_name()?;
