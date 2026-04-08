@@ -139,7 +139,7 @@ impl State {
         let config = self.config.load();
 
         if let Some(Some(raw_pen)) = self.source.as_mut().map(|s| s.get()) {
-            let pen = config.mapping.pen(raw_pen);
+            let pen = config.mapping.transform_pen(raw_pen);
             self.pen = Some(pen);
         }
 
