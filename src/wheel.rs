@@ -12,6 +12,8 @@ pub struct Wheel {
     pub prev_pos: Pos2,
     pub prev_angle: f32,
     pub prev_pen: Pen,
+    pub accelerator_axis_value: f32,
+    pub brake_axis_value: f32,
 }
 
 impl Wheel {
@@ -31,6 +33,13 @@ impl Wheel {
                 self.prev_pen
             }
         };
+
+        if let Some(dev) = device.as_mut() {
+            // Workaround in some games where accelerator and brake axes are
+            // stuck at full input when the axes are not bound.
+            dev.set_accelerator(self.accelerator_axis_value);
+            dev.set_brake(self.brake_axis_value);
+        }
 
         if self.dragging && self.prev_pen.timestamp != pen.timestamp {
             let dt = (pen.timestamp - self.prev_pen.timestamp).as_secs_f32();

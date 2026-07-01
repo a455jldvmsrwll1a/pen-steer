@@ -559,15 +559,35 @@ impl GuiApp {
 
             ui.separator();
             ui.style_mut().spacing.interact_size.x = 40.0;
-            if ui
+
+            let mut changed = false;
+
+            changed |= ui
                 .add(
                     egui::Slider::new(&mut self.snapshot.wheel.angle, -half_range..=half_range)
                         .drag_value_speed(1.0f64.to_radians())
                         .custom_formatter(|v, _| format!("{:.1}°", v.to_degrees()))
                         .text("Angle"),
                 )
-                .changed()
-            {
+                .changed();
+
+            changed |= ui
+                .add(
+                    egui::Slider::new(&mut self.snapshot.wheel.accelerator_axis_value, 0.0..=1.0)
+                        .drag_value_speed(0.01)
+                        .text("Accelerator Pedal"),
+                )
+                .changed();
+
+            changed |= ui
+                .add(
+                    egui::Slider::new(&mut self.snapshot.wheel.brake_axis_value, 0.0..=1.0)
+                        .drag_value_speed(0.01)
+                        .text("Brake Pedal"),
+                )
+                .changed();
+
+            if changed {
                 let _ = self.cmd_tx.push(Command::TeleportWheel {
                     new_wheel: self.snapshot.wheel.clone(),
                 });
