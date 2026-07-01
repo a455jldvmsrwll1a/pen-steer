@@ -17,6 +17,10 @@ pub trait Device: Send + Sync {
 
     fn set_wheel(&mut self, angle: f32);
 
+    fn set_accelerator(&mut self, normalised: f32);
+
+    fn set_brake(&mut self, normalised: f32);
+
     fn set_horn(&mut self, honking: bool);
 
     fn apply(&mut self) -> Result<()>;
@@ -32,6 +36,10 @@ impl Device for DummyDevice {
     }
 
     fn set_wheel(&mut self, _angle: f32) {}
+
+    fn set_accelerator(&mut self, _normalised: f32) {}
+
+    fn set_brake(&mut self, _normalised: f32) {}
 
     fn set_horn(&mut self, _honking: bool) {}
 

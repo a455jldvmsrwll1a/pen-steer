@@ -57,6 +57,10 @@ pub struct UInputDevice {
     resolution: f32,
     wheel_axis: i32,
     wheel_axis_prev: i32,
+    accelerator_axis: i32,
+    accelerator_axis_prev: i32,
+    brake_axis: i32,
+    brake_axis_prev: i32,
     horn_key: bool,
     horn_key_prev: bool,
     ff: Option<FFState>,
@@ -98,17 +102,43 @@ impl UInputDevice {
         // Steering wheel absolute axis.
         handle.set_evbit(EventKind::Absolute)?;
         handle.set_absbit(AbsoluteAxis::X)?;
-        let abs = AbsoluteInfoSetup {
-            axis: AbsoluteAxis::X,
-            info: AbsoluteInfo {
-                value: 0,
-                minimum: -(config.device_resolution as i32),
-                maximum: config.device_resolution as i32,
-                fuzz: 0,
-                flat: 0,
-                resolution: config.device_resolution as i32,
+        handle.set_absbit(AbsoluteAxis::Gas)?;
+        handle.set_absbit(AbsoluteAxis::Brake)?;
+        let abs = [
+            AbsoluteInfoSetup {
+                axis: AbsoluteAxis::X,
+                info: AbsoluteInfo {
+                    value: 0,
+                    minimum: -(config.device_resolution as i32),
+                    maximum: config.device_resolution as i32,
+                    fuzz: 0,
+                    flat: 0,
+                    resolution: config.device_resolution as i32,
+                },
             },
-        };
+            AbsoluteInfoSetup {
+                axis: AbsoluteAxis::Gas,
+                info: AbsoluteInfo {
+                    value: 0,
+                    minimum: 0,
+                    maximum: config.device_resolution as i32,
+                    fuzz: 0,
+                    flat: 0,
+                    resolution: config.device_resolution as i32,
+                },
+            },
+            AbsoluteInfoSetup {
+                axis: AbsoluteAxis::Brake,
+                info: AbsoluteInfo {
+                    value: 0,
+                    minimum: 0,
+                    maximum: config.device_resolution as i32,
+                    fuzz: 0,
+                    flat: 0,
+                    resolution: config.device_resolution as i32,
+                },
+            },
+        ];
 
         // Advertise force-feedback functionality.
         handle.set_evbit(EventKind::ForceFeedback)?;
@@ -138,7 +168,7 @@ impl UInputDevice {
             config.device_name, config.device_vendor, config.device_product, config.device_version
         );
 
-        handle.create(&id, config.device_name.as_bytes(), 10, &[abs])?;
+        handle.create(&id, config.device_name.as_bytes(), 10, &abs)?;
 
         info!("Initialised!");
 
@@ -147,6 +177,10 @@ impl UInputDevice {
             resolution: config.device_resolution as f32,
             wheel_axis: 0,
             wheel_axis_prev: 0,
+            accelerator_axis: 0,
+            accelerator_axis_prev: 0,
+            brake_axis: 0,
+            brake_axis_prev: 0,
             horn_key: false,
             horn_key_prev: false,
             ff: None,
@@ -228,6 +262,18 @@ impl Device for UInputDevice {
         self.wheel_axis = value as i32;
     }
 
+    #[allow(clippy::cast_possible_truncation)]
+    fn set_accelerator(&mut self, normalised: f32) {
+        let value = (normalised.clamp(0.0, 1.0) * self.resolution).round_ties_even();
+        self.accelerator_axis = value as i32;
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    fn set_brake(&mut self, normalised: f32) {
+        let value = (normalised.clamp(0.0, 1.0) * self.resolution).round_ties_even();
+        self.brake_axis = value as i32;
+    }
+
     fn set_horn(&mut self, honking: bool) {
         self.horn_key = honking;
     }
@@ -235,8 +281,8 @@ impl Device for UInputDevice {
     fn apply(&mut self) -> Result<()> {
         const DELTA_THRESHOLD: i32 = 1;
 
-        // We only ever submit up to three events.
-        let mut events_buf = [NULL_EVENT; 3];
+        // We only ever submit up to five events.
+        let mut events_buf = [NULL_EVENT; 5];
         let mut events_emitted = 0;
 
         let delta_abs = (self.wheel_axis - self.wheel_axis_prev).abs();
@@ -246,6 +292,34 @@ impl Device for UInputDevice {
             events_buf[events_emitted] =
                 InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, self.wheel_axis))
                     .into_raw();
+
+            events_emitted += 1;
+        }
+
+        let delta_abs = (self.accelerator_axis - self.accelerator_axis_prev).abs();
+        if delta_abs > DELTA_THRESHOLD {
+            self.accelerator_axis_prev = self.accelerator_axis;
+
+            events_buf[events_emitted] = InputEvent::from(AbsoluteEvent::new(
+                ZERO,
+                AbsoluteAxis::Gas,
+                self.accelerator_axis,
+            ))
+            .into_raw();
+
+            events_emitted += 1;
+        }
+
+        let delta_abs = (self.brake_axis - self.brake_axis_prev).abs();
+        if delta_abs > DELTA_THRESHOLD {
+            self.brake_axis_prev = self.brake_axis;
+
+            events_buf[events_emitted] = InputEvent::from(AbsoluteEvent::new(
+                ZERO,
+                AbsoluteAxis::Brake,
+                self.brake_axis,
+            ))
+            .into_raw();
 
             events_emitted += 1;
         }
