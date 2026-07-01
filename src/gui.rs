@@ -61,12 +61,10 @@ pub struct GuiApp {
 }
 
 impl eframe::App for GuiApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if self.quit_flag.load(Ordering::Acquire) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
-
-        draw_about(ctx, &mut self.show_about);
 
         self.save();
         self.load();
@@ -77,6 +75,8 @@ impl eframe::App for GuiApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        draw_about(ui, &mut self.show_about);
+
         if let Some(err) = self.last_error.take() {
             show_error(frame, &err);
         }
@@ -1008,17 +1008,17 @@ fn draw_steering_wheel(
     None
 }
 
-fn draw_about(ctx: &Context, show_about: &mut bool) {
+fn draw_about(ui: &mut Ui, show_about: &mut bool) {
     let response = egui::Window::new("barrier_block")
         .open(&mut *show_about)
         .order(egui::Order::Background)
         .title_bar(false)
-        .fixed_rect(ctx.viewport_rect())
+        .fixed_rect(ui.viewport_rect())
         .frame(Frame {
             fill: Color32::from_black_alpha(0x80),
             ..Default::default()
         })
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             ui.allocate_space(ui.available_size());
         });
 
@@ -1032,7 +1032,7 @@ fn draw_about(ctx: &Context, show_about: &mut bool) {
         .open(&mut *show_about)
         .collapsible(false)
         .order(egui::Order::Foreground)
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             ui.heading("Pen Steer");
             ui.small("By JL.");
 
@@ -1044,13 +1044,13 @@ fn draw_about(ctx: &Context, show_about: &mut bool) {
 
             ui.separator();
             if ui.link("Github").clicked() {
-                ctx.open_url(OpenUrl::new_tab(
+                ui.open_url(OpenUrl::new_tab(
                     "https://github.com/a455jldvmsrwll1a/pen-steer",
                 ));
             }
         });
 
-    if ctx.input(|i| i.key_released(egui::Key::Escape)) {
+    if ui.input(|i| i.key_released(egui::Key::Escape)) {
         *show_about = false;
     }
 }
