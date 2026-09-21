@@ -2,14 +2,14 @@ use anyhow::Result;
 use log::info;
 use std::{net::UdpSocket, time::Instant};
 
-use crate::{pen::Pen, source::Source};
+use crate::{input::InputBackend, pen::Pen};
 
 #[derive(Debug)]
-pub struct NetSource {
+pub struct NetworkInputBackend {
     socket: UdpSocket,
 }
 
-impl NetSource {
+impl NetworkInputBackend {
     pub fn new(addr: &str) -> Result<Self> {
         let socket = UdpSocket::bind(addr)?;
         socket.set_nonblocking(true)?;
@@ -20,7 +20,7 @@ impl NetSource {
     }
 }
 
-impl Source for NetSource {
+impl InputBackend for NetworkInputBackend {
     fn get(&mut self) -> Option<Pen> {
         let mut pen = Pen::default();
         let mut buf = [0u8; 13];

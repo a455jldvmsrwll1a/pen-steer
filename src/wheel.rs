@@ -1,6 +1,6 @@
 use eframe::egui::Pos2;
 
-use crate::{config::Config, device::Device, math, pen::Pen};
+use crate::{config::Config, output::OutputBackend, math, pen::Pen};
 
 #[derive(Debug, Default, Clone)]
 pub struct Wheel {
@@ -19,7 +19,7 @@ pub struct Wheel {
 impl Wheel {
     pub fn update(
         &mut self,
-        mut device: Option<&mut Box<dyn Device>>,
+        mut device: Option<&mut Box<dyn OutputBackend>>,
         config: &Config,
         maybe_pen: Option<Pen>,
         dt: f32,
@@ -62,7 +62,7 @@ impl Wheel {
         if !self.dragging {
             let feedback_normalised = device
                 .as_ref()
-                .and_then(|d| d.get_feedback())
+                .and_then(|d| d.get_feedback_force())
                 .unwrap_or(0.0);
             self.feedback_torque = feedback_normalised * config.max_torque;
 

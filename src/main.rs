@@ -2,7 +2,7 @@
 
 mod config;
 mod controller;
-mod device;
+mod output;
 mod gui;
 mod headless;
 mod mapping;
@@ -10,7 +10,7 @@ mod math;
 mod pen;
 mod save;
 mod save_path;
-mod source;
+mod input;
 mod timer;
 mod util;
 mod wheel;

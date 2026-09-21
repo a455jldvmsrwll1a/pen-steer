@@ -5,9 +5,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::config::Config;
-use crate::device::{Device, create_device};
+use crate::output::{OutputBackend, create_device};
 use crate::pen::Pen;
-use crate::source::{Source, create_source};
+use crate::input::{InputBackend, create_source};
 use crate::timer::Timer;
 use crate::wheel::Wheel;
 
@@ -99,8 +99,8 @@ struct State {
     wheel: Wheel,
     pen: Option<Pen>,
     pen_override: Option<Pen>,
-    source: Option<Box<dyn Source>>,
-    device: Option<Box<dyn Device>>,
+    source: Option<Box<dyn InputBackend>>,
+    device: Option<Box<dyn OutputBackend>>,
 }
 
 impl State {
@@ -108,7 +108,7 @@ impl State {
         Snapshot {
             pen: self.pen.or(self.pen_override),
             wheel: self.wheel.clone(),
-            feedback: self.device.as_ref().and_then(|dev| dev.get_feedback()),
+            feedback: self.device.as_ref().and_then(|dev| dev.get_feedback_force()),
         }
     }
 

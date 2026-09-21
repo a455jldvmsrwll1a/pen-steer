@@ -1,10 +1,12 @@
+#![cfg(target_os = "windows")]
+
 use anyhow::{Context, Result};
 use log::{error, info};
 use vigem_client::{Client, TargetId, XButtons, XGamepad, Xbox360Wired};
 
 use crate::device::Device;
 
-pub struct VigemDevice {
+pub struct VigemBackend {
     target: Xbox360Wired<Client>,
     wheel_axis: i16,
     wheel_axis_prev: i16,
@@ -17,7 +19,7 @@ pub struct VigemDevice {
     dirty: bool,
 }
 
-impl VigemDevice {
+impl VigemBackend {
     pub fn new() -> Result<Self> {
         info!("Vigem device initialised!");
 
@@ -44,14 +46,14 @@ impl VigemDevice {
     }
 }
 
-impl Device for VigemDevice {
+impl Device for VigemBackend {
     fn get_feedback(&self) -> Option<f32> {
         None
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn set_wheel(&mut self, angle: f32) {
-        let value = (angle * i16::MAX as f32).round_ties_even();
+    fn set_wheel(&mut self, normalised: f32) {
+        let value = (normalised * i16::MAX as f32).round_ties_even();
         self.wheel_axis = value as i16;
 
         if self
@@ -126,7 +128,7 @@ impl Device for VigemDevice {
     }
 }
 
-impl Drop for VigemDevice {
+impl Drop for VigemBackend {
     fn drop(&mut self) {
         if let Err(err) = self.target.unplug() {
             error!("Could not unplug Vigem controller: {err}");

@@ -1,3 +1,5 @@
+#![cfg(target_os = "linux")]
+
 use std::{
     fmt::Debug,
     fs::{self, DirEntry, File, OpenOptions},
@@ -10,9 +12,9 @@ use input_linux::{AbsoluteAxis, EvdevHandle, EventKind, EventRef, Key};
 use log::{debug, error, info, trace};
 use nix::libc::O_NONBLOCK;
 
-use crate::{pen::Pen, source::Source};
+use crate::{input::InputBackend, pen::Pen};
 
-pub struct EvdevSource {
+pub struct EvdevInputBackend {
     handle: EvdevHandle<File>,
     x_min: i32,
     x_max: i32,
@@ -22,7 +24,7 @@ pub struct EvdevSource {
     current: Pen,
 }
 
-impl EvdevSource {
+impl EvdevInputBackend {
     pub fn new(preferred_device_name: Option<&str>) -> Result<Self> {
         let device_name;
 
@@ -72,7 +74,7 @@ impl EvdevSource {
     }
 }
 
-impl Drop for EvdevSource {
+impl Drop for EvdevInputBackend {
     fn drop(&mut self) {
         if let Err(err) = self.handle.grab(false) {
             error!("Failed to release device: {err}");
@@ -80,7 +82,7 @@ impl Drop for EvdevSource {
     }
 }
 
-impl Source for EvdevSource {
+impl InputBackend for EvdevInputBackend {
     fn get(&mut self) -> Option<Pen> {
         #[allow(clippy::cast_possible_truncation)]
         fn norm(t: i32, a1: i32, a2: i32) -> f32 {
@@ -146,7 +148,7 @@ impl Source for EvdevSource {
     }
 }
 
-impl Debug for EvdevSource {
+impl Debug for EvdevInputBackend {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("UInputDev { /* fields */ }")
     }

@@ -679,7 +679,7 @@ impl GuiApp {
                                     .clicked();
                             }
                         } else {
-                            use crate::source::evdev;
+                            use crate::input::evdev;
                             match evdev::enumerate_available_devices() {
                                 Ok(devs) => self.evdev_available_devices = Some(devs),
                                 Err(err) => error!("Device enumeration error: {err}"),

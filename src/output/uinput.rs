@@ -1,10 +1,12 @@
+#![cfg(target_os = "linux")]
+
 use std::{
     fmt::Debug,
     fs::{File, OpenOptions},
     os::unix::fs::OpenOptionsExt,
 };
 
-use crate::{config::Config, device::Device};
+use crate::{config::Config, output::OutputBackend};
 use anyhow::{Context, Result, bail};
 use input_linux::{
     AbsoluteAxis, AbsoluteEvent, AbsoluteInfo, AbsoluteInfoSetup, EventKind, EventTime,
@@ -20,7 +22,7 @@ use nix::libc::{
     O_NONBLOCK, ff_constant_effect, ff_effect, ff_replay, ff_trigger, input_event, timeval,
 };
 
-pub struct UInputDevice {
+pub struct UInputBackend {
     handle: UInputHandle<File>,
     resolution: f32,
     wheel_axis: i32,
@@ -34,7 +36,7 @@ pub struct UInputDevice {
     ff: Option<FFState>,
 }
 
-impl UInputDevice {
+impl UInputBackend {
     pub fn new(config: &Config) -> Result<Self> {
         if config.device_resolution > u32::from(u16::MAX) {
             bail!("Device resolution too high!");
@@ -216,8 +218,8 @@ impl UInputDevice {
     }
 }
 
-impl Device for UInputDevice {
-    fn get_feedback(&self) -> Option<f32> {
+impl OutputBackend for UInputBackend {
+    fn get_feedback_force(&self) -> Option<f32> {
         self.ff.and_then(|ff| {
             ff.playing
                 .then(|| f32::from(ff.force) / f32::from(i16::MAX))
@@ -225,8 +227,8 @@ impl Device for UInputDevice {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn set_wheel(&mut self, angle: f32) {
-        let value = (angle * self.resolution).round_ties_even();
+    fn set_wheel(&mut self, normalised: f32) {
+        let value = (normalised * self.resolution).round_ties_even();
         self.wheel_axis = value as i32;
     }
 
@@ -367,7 +369,7 @@ impl Device for UInputDevice {
     }
 }
 
-impl Drop for UInputDevice {
+impl Drop for UInputBackend {
     fn drop(&mut self) {
         if let Err(err) = self.handle.dev_destroy() {
             error!("Error occured destroying uinput device: {err}");
@@ -375,7 +377,7 @@ impl Drop for UInputDevice {
     }
 }
 
-impl Debug for UInputDevice {
+impl Debug for UInputBackend {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("UInputDev { /* fields */ }")
     }
