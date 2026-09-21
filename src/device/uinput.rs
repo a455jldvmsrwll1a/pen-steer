@@ -20,38 +20,6 @@ use nix::libc::{
     O_NONBLOCK, ff_constant_effect, ff_effect, ff_replay, ff_trigger, input_event, timeval,
 };
 
-const ZERO: EventTime = EventTime::new(0, 0);
-const NULL_EVENT: input_event = input_event {
-    time: timeval {
-        tv_sec: 0,
-        tv_usec: 0,
-    },
-    type_: 0,
-    code: 0,
-    value: 0,
-};
-const NULL_EFFECT: ff_effect = ff_effect {
-    type_: 0,
-    id: 0,
-    direction: 0,
-    trigger: ff_trigger {
-        button: 0,
-        interval: 0,
-    },
-    replay: ff_replay {
-        length: 0,
-        delay: 0,
-    },
-    u: [0u64; 4],
-};
-
-#[derive(Default, Clone, Copy)]
-struct FFState {
-    request_id: u32,
-    playing: bool,
-    force: i16,
-}
-
 pub struct UInputDevice {
     handle: UInputHandle<File>,
     resolution: f32,
@@ -411,4 +379,36 @@ impl Debug for UInputDevice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("UInputDev { /* fields */ }")
     }
+}
+
+const ZERO: EventTime = EventTime::new(0, 0);
+const NULL_EVENT: input_event = input_event {
+    time: timeval {
+        tv_sec: 0,
+        tv_usec: 0,
+    },
+    type_: 0,
+    code: 0,
+    value: 0,
+};
+const NULL_EFFECT: ff_effect = ff_effect {
+    type_: 0,
+    id: 0,
+    direction: 0,
+    trigger: ff_trigger {
+        button: 0,
+        interval: 0,
+    },
+    replay: ff_replay {
+        length: 0,
+        delay: 0,
+    },
+    u: [0u64; 4],
+};
+
+#[derive(Default, Clone, Copy)]
+struct FFState {
+    request_id: u32,
+    playing: bool,
+    force: i16,
 }
