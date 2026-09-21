@@ -6,8 +6,14 @@ use crate::device::Device;
 
 pub struct VigemDevice {
     target: Xbox360Wired<Client>,
-    last_angle: i16,
-    last_horn_state: bool,
+    wheel_axis: i16,
+    wheel_axis_prev: i16,
+    accelerator_axis: u8,
+    accelerator_axis_prev: u8,
+    brake_axis: u8,
+    brake_axis_prev: u8,
+    horn_key: bool,
+    horn_key_prev: bool,
     dirty: bool,
 }
 
@@ -25,9 +31,15 @@ impl VigemDevice {
 
         Ok(Self {
             target,
-            last_angle: 0,
-            last_horn_state: false,
-            dirty: true,
+            wheel_axis: 0,
+            wheel_axis_prev: 0,
+            accelerator_axis: 0,
+            accelerator_axis_prev: 0,
+            brake_axis: 0,
+            brake_axis_prev: 0,
+            horn_key: false,
+            horn_key_prev: false,
+            dirty: false,
         })
     }
 }
@@ -37,19 +49,48 @@ impl Device for VigemDevice {
         None
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn set_wheel(&mut self, angle: f32) {
-        let clamped = angle.clamp(-1.0, 1.0);
-        let value = (clamped * i16::MAX as f32) as i16;
+        let value = (angle * i16::MAX as f32).round_ties_even();
+        self.wheel_axis = value as i16;
 
-        if self.last_angle != value {
-            self.last_angle = value;
+        if self
+            .wheel_axis
+            .checked_sub(self.wheel_axis_prev)
+            .is_none_or(|delta| delta.abs() > 1)
+        {
+            self.wheel_axis_prev = self.wheel_axis;
+            self.dirty = true;
+        }
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    fn set_accelerator(&mut self, normalised: f32) {
+        let value = (normalised.clamp(0.0, 1.0) * u8::MAX as f32).round_ties_even();
+        self.accelerator_axis = value as u8;
+
+        if self.accelerator_axis != self.accelerator_axis_prev {
+            self.accelerator_axis_prev = self.accelerator_axis;
+            self.dirty = true;
+        }
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    fn set_brake(&mut self, normalised: f32) {
+        let value = (normalised.clamp(0.0, 1.0) * u8::MAX as f32).round_ties_even();
+        self.brake_axis = value as u8;
+
+        if self.brake_axis != self.brake_axis_prev {
+            self.brake_axis_prev = self.brake_axis;
             self.dirty = true;
         }
     }
 
     fn set_horn(&mut self, honking: bool) {
-        if self.last_horn_state != honking {
-            self.last_horn_state = honking;
+        self.horn_key = honking;
+
+        if self.horn_key != self.horn_key_prev {
+            self.horn_key_prev = self.horn_key;
             self.dirty = true;
         }
     }
@@ -59,7 +100,9 @@ impl Device for VigemDevice {
             return Ok(());
         }
 
-        let buttons = if self.last_horn_state {
+        self.dirty = false;
+
+        let buttons = if self.horn_key {
             XButtons::LTHUMB.into()
         } else {
             XButtons::default()
@@ -67,9 +110,9 @@ impl Device for VigemDevice {
 
         self.target.update(&XGamepad {
             buttons,
-            left_trigger: 0,
-            right_trigger: 0,
-            thumb_lx: self.last_angle,
+            left_trigger: self.brake_axis,
+            right_trigger: self.accelerator_axis,
+            thumb_lx: self.wheel_axis,
             thumb_ly: 0,
             thumb_rx: 0,
             thumb_ry: 0,
@@ -78,11 +121,9 @@ impl Device for VigemDevice {
         Ok(())
     }
 
-    fn handle_events(&mut self) {}
-    
-    fn set_accelerator(&mut self, _normalised: f32) {}
-    
-    fn set_brake(&mut self, normalised: f32) {}
+    fn handle_events(&mut self) {
+        // No events to handle.
+    }
 }
 
 impl Drop for VigemDevice {
