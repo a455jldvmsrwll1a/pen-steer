@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use log::{error, info};
 use vigem_client::{Client, TargetId, XButtons, XGamepad, Xbox360Wired};
 
-use crate::device::Device;
+use crate::output::OutputBackend;
 
 pub struct VigemBackend {
     target: Xbox360Wired<Client>,
@@ -46,8 +46,8 @@ impl VigemBackend {
     }
 }
 
-impl Device for VigemBackend {
-    fn get_feedback(&self) -> Option<f32> {
+impl OutputBackend for VigemBackend {
+    fn get_feedback_force(&self) -> Option<f32> {
         None
     }
 
