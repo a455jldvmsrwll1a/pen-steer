@@ -1,6 +1,6 @@
 use eframe::egui::Pos2;
 
-use crate::{config::Config, output::OutputBackend, math, pen::Pen};
+use crate::{config::Config, math, output::OutputBackend, pen::Pen};
 
 #[derive(Debug, Default, Clone)]
 pub struct Wheel {
@@ -26,12 +26,11 @@ impl Wheel {
     ) {
         let half_range = config.half_range_rad();
 
-        let pen = match maybe_pen {
-            Some(p) => p,
-            None => {
-                self.prev_pen.pressure = 0;
-                self.prev_pen
-            }
+        let pen = if let Some(p) = maybe_pen {
+            p
+        } else {
+            self.prev_pen.pressure = 0;
+            self.prev_pen
         };
 
         if let Some(dev) = device.as_mut() {

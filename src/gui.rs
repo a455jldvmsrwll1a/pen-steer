@@ -21,7 +21,7 @@ use crate::{
 use anyhow::anyhow;
 use arc_swap::ArcSwap;
 use eframe::egui::{
-    self, Color32, Context, CornerRadius, Frame, Id, Layout, OpenUrl, Pos2, Rect, RichText, Sense,
+    self, Color32, CornerRadius, Frame, Id, Layout, OpenUrl, Pos2, Rect, RichText, Sense,
     Stroke, Ui, Vec2, ViewportBuilder,
 };
 use log::{debug, error, info, warn};
