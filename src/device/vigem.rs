@@ -79,6 +79,10 @@ impl Device for VigemDevice {
     }
 
     fn handle_events(&mut self) {}
+    
+    fn set_accelerator(&mut self, _normalised: f32) {}
+    
+    fn set_brake(&mut self, normalised: f32) {}
 }
 
 impl Drop for VigemDevice {
