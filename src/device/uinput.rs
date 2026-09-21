@@ -285,8 +285,11 @@ impl Device for UInputDevice {
         let mut events_buf = [NULL_EVENT; 5];
         let mut events_emitted = 0;
 
-        let delta_abs = (self.wheel_axis - self.wheel_axis_prev).abs();
-        if delta_abs > DELTA_THRESHOLD {
+        if self
+            .wheel_axis
+            .checked_sub(self.wheel_axis_prev)
+            .is_none_or(|delta| delta.abs() > DELTA_THRESHOLD)
+        {
             self.wheel_axis_prev = self.wheel_axis;
 
             events_buf[events_emitted] =
@@ -296,8 +299,11 @@ impl Device for UInputDevice {
             events_emitted += 1;
         }
 
-        let delta_abs = (self.accelerator_axis - self.accelerator_axis_prev).abs();
-        if delta_abs > DELTA_THRESHOLD {
+        if self
+            .accelerator_axis
+            .checked_sub(self.accelerator_axis_prev)
+            .is_none_or(|delta| delta.abs() > DELTA_THRESHOLD)
+        {
             self.accelerator_axis_prev = self.accelerator_axis;
 
             events_buf[events_emitted] = InputEvent::from(AbsoluteEvent::new(
@@ -310,8 +316,11 @@ impl Device for UInputDevice {
             events_emitted += 1;
         }
 
-        let delta_abs = (self.brake_axis - self.brake_axis_prev).abs();
-        if delta_abs > DELTA_THRESHOLD {
+        if self
+            .brake_axis
+            .checked_sub(self.brake_axis_prev)
+            .is_none_or(|delta| delta.abs() > DELTA_THRESHOLD)
+        {
             self.brake_axis_prev = self.brake_axis;
 
             events_buf[events_emitted] = InputEvent::from(AbsoluteEvent::new(
