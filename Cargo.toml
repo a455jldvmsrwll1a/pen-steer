@@ -18,6 +18,7 @@ env_logger = "0.11.11"
 log = "0.4.34"
 native-dialog = { version = "0.9.7", features = ["windows_dpi_awareness", "windows_visual_styles"] }
 rtrb = "0.4.0"
+slint = "1.18.1"
 triple_buffer = "9.0.0"
 
 [dependencies.eframe]
@@ -36,3 +37,6 @@ input-linux = "0.7.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 vigem-client = "0.1.4"
+
+[build-dependencies]
+slint-build = "1.18.1"

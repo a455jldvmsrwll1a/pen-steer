@@ -1,0 +1,138 @@
+import {
+    AboutSlint,
+    VerticalBox,
+    Spinner,
+    Button,
+    StandardButton,
+} from "std-widgets.slint";
+import { SeparatorLine } from "separator-line.slint";
+
+export component AppWindow inherits Window {
+    in-out property <int> counter: 42;
+    in property <string> app_version: "<unknown>";
+    in property <string> current_profile: "<unknown profile>";
+
+    title: @tr("Pen Steer {} :: {}", app_version, current_profile);
+    icon: @image-url("images/icon.png");
+    min-width: 256px;
+    min-height: 256px;
+
+    callback request-increase-value();
+    callback show-about-app();
+    callback show-about-slint();
+
+    MenuBar {
+        Menu {
+            title: @tr("File");
+            MenuItem {
+                title: @tr("Save");
+            }
+
+            MenuItem {
+                title: @tr("Save as...");
+            }
+
+            MenuItem {
+                title: @tr("Load...");
+            }
+
+            MenuSeparator { }
+
+            MenuItem {
+                title: @tr("Quit");
+                activated => { root.close(); }
+            }
+        }
+
+        Menu {
+            title: @tr("Help");
+            MenuItem {
+                title: @tr("About pen-steer");
+                activated => { root.show-about-app(); }
+            }
+
+            MenuItem {
+                title: @tr("About Slint");
+                activated => { root.show-about-slint(); }
+            }
+        }
+    }
+
+    VerticalBox {
+        Text {
+            text: "Counter: \{root.counter}";
+        }
+
+        Button {
+            text: "Increase value";
+            clicked => {
+                root.request-increase-value();
+            }
+        }
+    }
+}
+
+export component AboutWindow inherits Dialog {
+    VerticalBox {
+        Text {
+            text: @tr("Pen Steer");
+            font-weight: FontWeight.bold;
+            font-size: 24px;
+        }
+
+        StyledText {
+            text: @markdown("Written by [a455jldvmsrwll1a](https://github.com/a455jldvmsrwll1a).");
+            link-clicked(link) => {
+                Platform.open-url(link);
+            };
+        }
+
+        SeparatorLine { }
+
+        Text {
+            text: @tr("(Ab)Use your graphics tablet as a virtual sim steering wheel. ('cause why not)");
+        }
+
+        Text {
+            text: @tr("Draw circles to turn the steering wheel!");
+        }
+
+        VerticalBox { }
+    }
+
+    Button {
+        text: @tr("Github");
+        clicked => {
+            Platform.open-url("https://github.com/a455jldvmsrwll1a/pen-steer");
+        }
+        dialog-button-role: action;
+    }
+
+    StandardButton {
+        kind: ok;
+        clicked => {
+            root.close();
+        }
+    }
+}
+
+export component SlintWindow inherits Dialog {
+    VerticalBox {
+        Text {
+            text: @tr("pen-steer uses slint for its GUI interface.");
+        }
+
+        SeparatorLine { }
+
+        AboutSlint {
+            preferred-height: 150px;
+        }
+    }
+
+    StandardButton {
+        kind: ok;
+        clicked => {
+            root.close();
+        }
+    }
+}
