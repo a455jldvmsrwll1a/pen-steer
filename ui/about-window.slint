@@ -1,0 +1,44 @@
+import { SeparatorLine } from "separator-line.slint";
+import { VerticalBox, Button, StandardButton } from "std-widgets.slint";
+
+export component AboutWindow inherits Dialog {
+    VerticalBox {
+        Text {
+            text: @tr("Pen Steer");
+            font-weight: FontWeight.bold;
+            font-size: 24px;
+        }
+
+        Text {
+            text: @tr("Written by a455jldvmsrwll1a.");
+            font-size: 12px;
+        }
+
+        SeparatorLine { }
+
+        Text {
+            text: @tr("(Ab)Use your graphics tablet as a virtual sim steering wheel. ('cause why not)");
+        }
+
+        Text {
+            text: @tr("Draw circles to turn the steering wheel!");
+        }
+
+        VerticalBox { }
+    }
+
+    Button {
+        text: @tr("Github");
+        clicked => {
+            Platform.open-url("https://github.com/a455jldvmsrwll1a/pen-steer");
+        }
+        dialog-button-role: action;
+    }
+
+    StandardButton {
+        kind: ok;
+        clicked => {
+            root.close();
+        }
+    }
+}

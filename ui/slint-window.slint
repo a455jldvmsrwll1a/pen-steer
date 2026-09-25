@@ -1,0 +1,23 @@
+import { VerticalBox, AboutSlint, StandardButton } from "std-widgets.slint";
+import { SeparatorLine } from "separator-line.slint";
+
+export component SlintWindow inherits Dialog {
+    VerticalBox {
+        Text {
+            text: @tr("pen-steer uses slint for its GUI interface.");
+        }
+
+        SeparatorLine { }
+
+        AboutSlint {
+            preferred-height: 150px;
+        }
+    }
+
+    StandardButton {
+        kind: ok;
+        clicked => {
+            root.close();
+        }
+    }
+}

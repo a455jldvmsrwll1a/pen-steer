@@ -1,14 +1,20 @@
+export { AboutWindow } from "about-window.slint";
+export { SlintWindow } from "slint-window.slint";
+
 import {
     AboutSlint,
     VerticalBox,
     Spinner,
     Button,
     StandardButton,
+    TabWidget,
+    Palette,
+    StyleMetrics,
 } from "std-widgets.slint";
 import { SeparatorLine } from "separator-line.slint";
+import { SplitButton } from "split-button.slint";
 
 export component AppWindow inherits Window {
-    in-out property <int> counter: 42;
     in property <string> app_version: "<unknown>";
     in property <string> current_profile: "<unknown profile>";
 
@@ -17,9 +23,19 @@ export component AppWindow inherits Window {
     min-width: 256px;
     min-height: 256px;
 
-    callback request-increase-value();
     callback show-about-app();
     callback show-about-slint();
+    callback main_action_clicked <=> action_button.main_clicked;
+
+    public function set_running_state(running: bool) {
+        if running {
+            action_button.base_colour = #d60000;
+            action_button.main_text = @tr("Stop");
+        } else {
+            action_button.base_colour = #00d600;
+            action_button.main_text = @tr("Start");
+        }
+    }
 
     MenuBar {
         Menu {
@@ -59,80 +75,70 @@ export component AppWindow inherits Window {
     }
 
     VerticalBox {
-        Text {
-            text: "Counter: \{root.counter}";
-        }
+        TabWidget { }
 
-        Button {
-            text: "Increase value";
-            clicked => {
-                root.request-increase-value();
+        SeparatorLine { }
+
+        HorizontalLayout {
+            alignment: space-between;
+            spacing: StyleMetrics.layout-spacing;
+
+            HorizontalLayout {
+                Text {
+                    text: @tr("Input: {} Hz, sim: {} Hz, output: {} Hz", 69, 420, 727);
+                    color: Colors.grey;
+                    font-size: 18px;
+                    vertical-alignment: bottom;
+                    overflow: elide;
+                    wrap: no-wrap;
+                }
             }
-        }
-    }
-}
 
-export component AboutWindow inherits Dialog {
-    VerticalBox {
-        Text {
-            text: @tr("Pen Steer");
-            font-weight: FontWeight.bold;
-            font-size: 24px;
-        }
+            HorizontalLayout {
+                spacing: 10px;
 
-        StyledText {
-            text: @markdown("Written by [a455jldvmsrwll1a](https://github.com/a455jldvmsrwll1a).");
-            link-clicked(link) => {
-                Platform.open-url(link);
-            };
-        }
+                Button {
+                    text: @tr("Reset wheel");
+                }
 
-        SeparatorLine { }
+                action_button := SplitButton {
+                    main_text: @tr("Start");
+                    base_colour: #00d600;
 
-        Text {
-            text: @tr("(Ab)Use your graphics tablet as a virtual sim steering wheel. ('cause why not)");
-        }
+                    side_clicked => {
+                        menu_popup.show();
+                    }
+                }
 
-        Text {
-            text: @tr("Draw circles to turn the steering wheel!");
-        }
+                menu_popup := PopupWindow {
+                    x: action_button.x - self.width + action_button.width;
+                    y: action_button.y - self.height - StyleMetrics.layout-spacing;
 
-        VerticalBox { }
-    }
+                    Rectangle {
+                        background: Palette.background;
+                        border-color: Palette.border;
+                        border-radius: 4px;
+                        border-width: 1px;
 
-    Button {
-        text: @tr("Github");
-        clicked => {
-            Platform.open-url("https://github.com/a455jldvmsrwll1a/pen-steer");
-        }
-        dialog-button-role: action;
-    }
+                        VerticalLayout {
+                            padding: StyleMetrics.layout-padding;
+                            spacing: StyleMetrics.layout-spacing;
 
-    StandardButton {
-        kind: ok;
-        clicked => {
-            root.close();
-        }
-    }
-}
+                            Text {
+                                text: @tr("Start/stop systems independently.");
+                            }
 
-export component SlintWindow inherits Dialog {
-    VerticalBox {
-        Text {
-            text: @tr("pen-steer uses slint for its GUI interface.");
-        }
+                            Button {
+                                text: @tr("Start {} input", "evdev");
+                            }
 
-        SeparatorLine { }
-
-        AboutSlint {
-            preferred-height: 150px;
-        }
-    }
-
-    StandardButton {
-        kind: ok;
-        clicked => {
-            root.close();
+                            Button {
+                                text: @tr("Start {} output", "uinput");
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ pub fn init_logging() {
         .parse_default_env()
         .filter_module("eframe", LevelFilter::Warn)
         .filter_module("calloop", LevelFilter::Warn)
+        .filter_module("zbus", LevelFilter::Warn)
         .init();
 }
 

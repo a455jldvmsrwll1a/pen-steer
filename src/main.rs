@@ -2,7 +2,7 @@
 
 mod config;
 mod controller;
-mod gui;
+mod gui_old;
 mod headless;
 mod input;
 mod mapping;
@@ -15,7 +15,10 @@ mod timer;
 mod util;
 mod wheel;
 
-use std::fs::create_dir_all;
+use std::{
+    fs::create_dir_all,
+    sync::{Arc, atomic::AtomicBool},
+};
 
 use anyhow::{Result, bail};
 
@@ -32,14 +35,10 @@ fn main() -> Result<()> {
     util::init_logging();
     info!("pen-steer v{VERSION}");
 
+    let mut is_running = Arc::new(AtomicBool::default());
+
     let ui = AppWindow::new()?;
     ui.set_app_version(VERSION.to_shared_string());
-
-    let ui_handle = ui.as_weak();
-    ui.on_request_increase_value(move || {
-        let ui = ui_handle.unwrap();
-        ui.set_counter(ui.get_counter() + 1);
-    });
 
     ui.on_show_about_app(move || {
         if let Ok(window) = AboutWindow::new() {
@@ -51,6 +50,16 @@ fn main() -> Result<()> {
         if let Ok(window) = SlintWindow::new() {
             let _ = window.run();
         }
+    });
+
+    let is_running_clone = is_running.clone();
+    let ui_weak = ui.as_weak();
+    ui.on_main_action_clicked(move || {
+        is_running_clone.fetch_not(std::sync::atomic::Ordering::SeqCst);
+        
+        ui_weak
+            .unwrap()
+            .invoke_set_running_state(is_running_clone.load(std::sync::atomic::Ordering::SeqCst));
     });
 
     ui.run()?;
@@ -65,7 +74,7 @@ fn main() -> Result<()> {
         return headless::run_headless();
     }
 
-    if let Err(err) = gui::gui() {
+    if let Err(err) = gui_old::gui() {
         bail!("GUI error: {err}");
     }
 
