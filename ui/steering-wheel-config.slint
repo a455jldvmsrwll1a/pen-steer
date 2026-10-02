@@ -1,0 +1,117 @@
+import {
+    VerticalBox,
+    ComboBox,
+    LineEdit,
+    Slider,
+    StyleMetrics,
+} from "std-widgets.slint";
+import { SeparatorLine } from "components/separator-line.slint";
+import { LabelledSoftSlider } from "components/soft-slider.slint";
+
+export component SteeringWheelConfigPanel inherits VerticalBox {
+    padding: 0;
+
+    property <length> slider_label_width: 180px;
+
+    Text {
+        text: @tr("Turn the wheel by dragging the pen in a circular motion. To honk, press the pen down near the centre of the wheel.");
+        overflow: elide;
+        wrap: word-wrap;
+    }
+
+    SeparatorLine { }
+
+    angular_range := LabelledSoftSlider {
+        label: @tr("Lock-to-lock Range");
+        hint: @tr("Range in degrees from extreme left to extreme right of the steering wheel.");
+        label-width <=> slider_label_width;
+        value-display-suffix: "°";
+        value-soft-min: 180.0;
+        value-soft-max: 1800.0;
+        value-step: 30.0;
+        value-hard-min: 1.0;
+        value-hard-max: 999999.0;
+        current-value: 1080.0;
+    }
+
+    horn_radius := LabelledSoftSlider {
+        label: @tr("Horn Radius %");
+        hint: @tr("Percentage of the radius of the steering wheel to use as the activation area for the horn.");
+        label-width <=> slider_label_width;
+        value-display-suffix: "%";
+        value-soft-min: 0.0;
+        value-soft-max: 100.0;
+        value-step: 5.0;
+        value-hard-min: 0.0;
+        value-hard-max: 100.0;
+        current-value: 30.0;
+    }
+
+    base_radius := LabelledSoftSlider {
+        label: @tr("Base Radius %");
+        hint: @tr("Minimum percentage of the wheel radius for angular displacement calculations.\nCircling the pen closer than this will not cause the wheel to spin faster.\n\nThis can prevent issues when drawing off-centred circles, but if the pen is consistently too close,\nit will cause the wheel to turn slower than intended.");
+        label-width <=> slider_label_width;
+        value-display-suffix: "%";
+        value-soft-min: 0.0;
+        value-soft-max: 100.0;
+        value-step: 5.0;
+        value-hard-min: 0.0;
+        value-hard-max: 100.0;
+        current-value: 60.0;
+    }
+
+    Rectangle {
+        height: 16px;
+    }
+
+    inertia := LabelledSoftSlider {
+        label: @tr("Inertia");
+        hint: @tr("A low inertia means the wheel is more responsive to forces, especially from force feedback.\n\nThe acceleration of the wheel depends on its inertia: α = τJ.\n\nIf mass M in kilograms and radius R in metres is known, then it can be approximated as J = MR² (in kgm²).");
+        label-width <=> slider_label_width;
+        value-display-suffix: " kgm²";
+        value-soft-min: 0.1;
+        value-soft-max: 100.0;
+        value-step: 1.0;
+        value-hard-min: 0.001;
+        value-hard-max: 1000000.0;
+        current-value: 20.0;
+    }
+
+    friction_coeff := LabelledSoftSlider {
+        label: @tr("Friction Coefficient");
+        hint: @tr("A higher friction coefficient slows down the wheel more and damps its movement.\nA coefficient of zero makes the wheel glide forever,\nunless influenced by spring force and/or force feedback.\n\nThe coefficient of friction (μ) is a dimensionless quantity.\nThe torque it contributes depends on the wheel's velocity (ω):\n\nτ = - μω");
+        label-width <=> slider_label_width;
+        value-soft-min: 0.0;
+        value-soft-max: 100.0;
+        value-step: 0.1;
+        value-hard-min: -100000.0;
+        value-hard-max: 1000000.0;
+        current-value: 100.0;
+    }
+
+    spring_stiffness := LabelledSoftSlider {
+        label: @tr("Spring Stiffness");
+        hint: @tr("Determines the strength of the spring torque that gradually returns the wheel to its neutral position.\nKeep it at zero if this auto-centring behaviour is undesired.\n\n\nThe torque the spring stiffness (k) contributes depends on the wheel's angle (θ):\n\nτ = - kθ");
+        label-width <=> slider_label_width;
+        value-display-suffix: " Nm/rad";
+        value-soft-min: 0.0;
+        value-soft-max: 100.0;
+        value-step: 0.1;
+        value-hard-min: -100000.0;
+        value-hard-max: 1000000.0;
+        current-value: 0.0;
+    }
+
+    full_ffb := LabelledSoftSlider {
+        label: @tr("Full Force-feedback Torque");
+        hint: @tr("The torque (in Newton-metres) given when receiving the maximum force-feedback value from the output device.\n\ni.e. at 100% ffb value, this torque is applied.");
+        label-width <=> slider_label_width;
+        value-display-suffix: " Nm";
+        value-soft-min: 0.0;
+        value-soft-max: 2000.0;
+        value-step: 100.0;
+        value-hard-min: -100000.0;
+        value-hard-max: 1000000.0;
+        current-value: 900.0;
+    }
+}

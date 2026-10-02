@@ -1,0 +1,111 @@
+import { Slider, LineEdit } from "std-widgets.slint";
+
+export component LabelledSoftSlider inherits HorizontalLayout {
+    in property <string> label;
+    in property <length> label-width: 100px;
+    
+    in property <string> hint;
+
+    in property <string> value-display-suffix;
+    in property <int> value-display-digits: 0;
+    in property <length> value-display-width: 120px;
+
+    in property <float> value-soft-min: 0.0;
+    in property <float> value-soft-max: 1.0;
+    in property <float> value-step: 0.1;
+
+    in property <float> value-hard-min: -1.0 / 0.0;
+    in property <float> value-hard-max: 1.0 / 0.0;
+
+    in-out property <float> current-value: 0.0;
+
+    padding: 0;
+    spacing: 8px;
+
+    init => {
+        let clamped = min(max(current-value, value-hard-min), value-hard-max);
+
+        current-value = clamped;
+        slider.value = clamped;
+        textbox.display-pretty();
+    }
+
+    HorizontalLayout {
+        alignment: end;
+        width <=> label-width;
+
+        Text {
+            text <=> label;
+            vertical-alignment: center;
+
+            if !hint.is-empty: Tooltip {
+                text: @markdown("\{hint}");
+            }
+        }
+    }
+
+    slider := Slider {
+        minimum <=> value-soft-min;
+        maximum <=> value-soft-max;
+        step <=> value-step;
+
+        changed(value) => {
+            let clamped = min(max(value, value-hard-min), value-hard-max);
+            let snapped = round(clamped / root.value-step) * root.value-step;
+
+            self.value = snapped;
+            current-value = snapped;
+
+            textbox.display-pretty();
+        }
+
+        if !hint.is-empty: Tooltip {
+            text: @markdown("\{hint}");
+        }
+    }
+
+    textbox := LineEdit {
+        width <=> value-display-width;
+        horizontal-alignment: end;
+
+        init => {
+            display-pretty();
+        }
+
+        function display-pretty() {
+            self.text = current-value + root.value-display-suffix;
+        }
+
+        function display() {
+            self.text = current-value;
+        }
+
+        accepted(text) => {
+            if text.is-float() {
+                self.clear-focus();
+
+                let value = text.to-float();
+                let clamped = min(max(value, value-hard-min), value-hard-max);
+
+                root.current-value = clamped;
+                slider.value = clamped;
+            } else {
+                self.select-all();
+            }
+        }
+
+        changed has-focus => {
+            if self.has-focus {
+                // Needed to make sure that only the number itself is in the
+                // string once submitted by the user.
+                display();
+            } else {
+                display-pretty();
+            }
+        }
+
+        if !hint.is-empty: Tooltip {
+            text: @markdown("\{hint}");
+        }
+    }
+}

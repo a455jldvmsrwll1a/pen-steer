@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     util::init_logging();
     info!("pen-steer v{VERSION}");
 
-    let mut is_running = Arc::new(AtomicBool::default());
+    let is_running = Arc::new(AtomicBool::default());
 
     let ui = AppWindow::new()?;
     ui.set_app_version(VERSION.to_shared_string());
@@ -56,7 +56,7 @@ fn main() -> Result<()> {
     let ui_weak = ui.as_weak();
     ui.on_main_action_clicked(move || {
         is_running_clone.fetch_not(std::sync::atomic::Ordering::SeqCst);
-        
+
         ui_weak
             .unwrap()
             .invoke_set_running_state(is_running_clone.load(std::sync::atomic::Ordering::SeqCst));

@@ -10,18 +10,24 @@ import {
     TabWidget,
     Palette,
     StyleMetrics,
+    ComboBox,
+    ScrollView,
+    LineEdit,
 } from "std-widgets.slint";
-import { SeparatorLine } from "separator-line.slint";
-import { SplitButton } from "split-button.slint";
+import { SeparatorLine } from "components/separator-line.slint";
+import { SplitButton } from "components/split-button.slint";
+import { TickFrequencySelectWidget } from "components/freq-selector.slint";
+import { WheelTabContents } from "wheel-tab-contents.slint";
 
 export component AppWindow inherits Window {
     in property <string> app_version: "<unknown>";
     in property <string> current_profile: "<unknown profile>";
+    out property <bool> always_show_perf_stats: true;
 
-    title: @tr("Pen Steer {} :: {}", app_version, current_profile);
+    title: @tr("pen-steer {} :: {}", app_version, current_profile);
     icon: @image-url("images/icon.png");
-    min-width: 256px;
-    min-height: 256px;
+    preferred-width: 640px;
+    preferred-height: 720px;
 
     callback show-about-app();
     callback show-about-slint();
@@ -40,6 +46,7 @@ export component AppWindow inherits Window {
     MenuBar {
         Menu {
             title: @tr("File");
+
             MenuItem {
                 title: @tr("Save");
             }
@@ -52,6 +59,18 @@ export component AppWindow inherits Window {
                 title: @tr("Load...");
             }
 
+            Menu {
+                title: @tr("Revert");
+
+                MenuItem {
+                    title: @tr("From previously loaded configuration.");
+                }
+
+                MenuItem {
+                    title: @tr("To defaults.");
+                }
+            }
+
             MenuSeparator { }
 
             MenuItem {
@@ -61,7 +80,50 @@ export component AppWindow inherits Window {
         }
 
         Menu {
+            title: @tr("System");
+
+            MenuItem {
+                title: @tr("Reset wheel state");
+            }
+        }
+
+        Menu {
+            title: @tr("View");
+
+            MenuItem {
+                title: @tr("View wheel in detached window");
+                checkable: true;
+                checked: false;
+            }
+
+            MenuItem {
+                title: @tr("Show wheel angle bar");
+                checkable: true;
+                checked: true;
+            }
+
+            MenuItem {
+                title: @tr("Show force-feedback meter");
+                checkable: true;
+                checked: true;
+            }
+
+            MenuItem {
+                title: @tr("Always show performance stats");
+                checkable: true;
+                checked <=> always_show_perf_stats;
+            }
+        }
+
+        Menu {
             title: @tr("Help");
+
+            MenuItem {
+                title: @tr("Console");
+            }
+
+            MenuSeparator { }
+
             MenuItem {
                 title: @tr("About pen-steer");
                 activated => { root.show-about-app(); }
@@ -75,7 +137,47 @@ export component AppWindow inherits Window {
     }
 
     VerticalBox {
-        TabWidget { }
+        spacing: 0;
+
+        tabs := TabWidget {
+            Tab {
+                title: @tr("Status");
+
+                Text {
+                    text: "Status page is work in progress!!!";
+                }
+            }
+
+            Tab {
+                title: @tr("Wheel");
+
+                WheelTabContents { }
+            }
+
+            Tab {
+                title: @tr("Mapping");
+
+                Text {
+                    text: "Mapping page is work in progress!!!";
+                }
+            }
+
+            Tab {
+                title: @tr("Input");
+
+                Text {
+                    text: "Input page is work in progress!!!";
+                }
+            }
+
+            Tab {
+                title: @tr("Output");
+
+                Text {
+                    text: "Output page is work in progress!!!";
+                }
+            }
+        }
 
         SeparatorLine { }
 
@@ -84,13 +186,26 @@ export component AppWindow inherits Window {
             spacing: StyleMetrics.layout-spacing;
 
             HorizontalLayout {
-                Text {
-                    text: @tr("Input: {} Hz, sim: {} Hz, output: {} Hz", 69, 420, 727);
-                    color: Colors.grey;
-                    font-size: 18px;
-                    vertical-alignment: bottom;
-                    overflow: elide;
-                    wrap: no-wrap;
+                Rectangle {
+                    background: limegreen;
+                    min-width: 80px;
+                    border-radius: 3px;
+                    visible: always_show_perf_stats || tabs.current-index == 0;
+
+                    HorizontalLayout {
+                        padding: 2px;
+                        alignment: center;
+
+                        Text {
+                            text: @tr("{} Hz", 133);
+                            font-size: 18px;
+                            vertical-alignment: bottom;
+                            overflow: elide;
+                            wrap: no-wrap;
+                        }
+                    }
+
+                    metrics_hover_ta := TouchArea { }
                 }
             }
 
@@ -113,6 +228,7 @@ export component AppWindow inherits Window {
                 menu_popup := PopupWindow {
                     x: action_button.x - self.width + action_button.width;
                     y: action_button.y - self.height - StyleMetrics.layout-spacing;
+                    close-policy: close-on-click-outside;
 
                     Rectangle {
                         background: Palette.background;
@@ -138,6 +254,42 @@ export component AppWindow inherits Window {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    metrics_popup := Rectangle {
+        background: Palette.background;
+        border-color: Palette.border;
+        border-radius: 4px;
+        border-width: 1px;
+        visible: metrics_hover_ta.has-hover || metrics_hover_ta1.has-hover;
+        width: metrics_popup_layout.preferred-width;
+        height: metrics_popup_layout.preferred-height;
+        x: StyleMetrics.layout-spacing;
+        y: parent.height - self.height - StyleMetrics.layout-spacing - metrics_hover_ta.height;
+
+        metrics_hover_ta1 := TouchArea { }
+
+        metrics_popup_layout := VerticalLayout {
+            alignment: start;
+            padding: 8px;
+            spacing: StyleMetrics.layout-spacing;
+
+            Text {
+                text: @tr("UI render: {} frames / second", 165);
+            }
+
+            Text {
+                text: @tr("Update: {} ticks/ second", 133);
+            }
+
+            Text {
+                text: @tr("Input: {} samples / second", 132);
+            }
+
+            Text {
+                text: @tr("Output: {} events / second", 4);
             }
         }
     }

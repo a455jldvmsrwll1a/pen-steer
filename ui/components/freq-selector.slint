@@ -1,0 +1,120 @@
+import { VerticalBox, ComboBox, LineEdit } from "std-widgets.slint";
+
+export enum UpdateFrequencyMode {
+    automatic,
+    lockstep,
+    fixed,
+}
+
+export component TickFrequencySelectWidget inherits VerticalBox {
+    in-out property <UpdateFrequencyMode> mode;
+    in-out property <string> fixed_rate;
+
+    padding: 0;
+
+    HorizontalLayout {
+        padding: 0;
+        spacing: 8px;
+
+        Text {
+            text: @tr("Update frequency:");
+            vertical-alignment: center;
+        }
+
+        freq_combobox := ComboBox {
+            model: [
+                @tr("Automatic"),
+                @tr("In lock-step with input"),
+                @tr("60 Hz"),
+                @tr("133 Hz"),
+                @tr("300 Hz"),
+                @tr("1 kHz"),
+                @tr("Custom"),
+            ];
+
+            changed current-index => {
+                let i = self.current-index;
+
+                if i == 0 { mode = automatic; }
+                else if i == 1 { mode = lockstep; }
+                else if i >= 2 && i < 6 {
+                    mode = fixed;
+                    fixed_rate = self.current-value;
+                }
+                else if i == 6 {
+                    mode = fixed;
+                    fixed_rate = freq_edit.text;
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        padding: 0;
+        spacing: 4px;
+        alignment: start;
+
+        freq_desc_1 := Text {
+            vertical-alignment: center;
+            overflow: elide;
+            wrap: word-wrap;
+        }
+
+        freq_edit := LineEdit {
+            width: 100px;
+            read-only: true;
+            placeholder-text: @tr("... Hz");
+            text: @tr("133 Hz");
+
+            accepted(text) => {
+                commit_value();
+            }
+
+            key-pressed(event) => {
+                if event.text == Key.Return || event.text == Key.Tab {
+                    commit_value();
+                    self.clear-focus();
+
+                    return accept;
+                }
+                return reject;
+            }
+
+            function commit_value() {
+                
+                debug("commit: ", self.text);
+            }
+        }
+
+        freq_desc_2 := Text {
+            vertical-alignment: center;
+            overflow: elide;
+            wrap: word-wrap;
+        }
+
+        states [
+            automatic when freq_combobox.current-index == 0: {
+                freq_desc_1.text: @tr("Tick rate is determined dynamically, depending on the input source.");
+                freq_edit.visible: false;
+                freq_edit.width: 0px;
+                freq_edit.read-only: true;
+                freq_desc_2.visible: false;
+            }
+            lockstep when freq_combobox.current-index == 1: {
+                freq_desc_1.text: @tr("Ticks occur after every sample collected from the input. Not recommended when using physics.");
+                freq_edit.visible: false;
+                freq_edit.width: 0px;
+                freq_edit.read-only: true;
+                freq_desc_2.visible: false;
+            }
+            constant when freq_combobox.current-index >= 2: {
+                freq_desc_1.text: @tr("Ticks occur at a fixed rate of ");
+                freq_edit.visible: true;
+                freq_edit.width: 100px;
+                freq_edit.read-only: freq_combobox.current-value != "Custom";
+                freq_desc_2.text: @tr(", independent of the input.");
+                freq_desc_2.visible: true;
+            }
+        ]
+    }
+}

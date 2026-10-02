@@ -1,20 +1,49 @@
-import { SeparatorLine } from "separator-line.slint";
-import { VerticalBox, Button, StandardButton } from "std-widgets.slint";
+import { SeparatorLine } from "components/separator-line.slint";
+import {
+    VerticalBox,
+    Button,
+    StandardButton,
+    StyleMetrics,
+} from "std-widgets.slint";
 
 export component AboutWindow inherits Dialog {
+    title: @tr("About pen-steer");
+
     VerticalBox {
-        Text {
-            text: @tr("Pen Steer");
-            font-weight: FontWeight.bold;
-            font-size: 24px;
-        }
+        alignment: start;
+        
+        HorizontalLayout {
+            spacing: 24px;
 
-        Text {
-            text: @tr("Written by a455jldvmsrwll1a.");
-            font-size: 12px;
-        }
+            Rectangle {
+                horizontal-stretch: 1;
+                header_vl := VerticalLayout {
 
-        SeparatorLine { }
+                    Text {
+                        text: @tr("pen-steer");
+                        font-weight: FontWeight.bold;
+                        font-size: 24px;
+                    }
+
+                    Text {
+                        text: @tr("Written by a455jldvmsrwll1a.");
+                        font-size: 12px;
+                    }
+
+                    SeparatorLine { }
+                }
+            }
+
+            Image {
+                source: @image-url("images/icon.png");
+                width: 96px;
+                height: 96px;
+                horizontal-stretch: 0;
+                accessible-placeholder-text: @tr("pen-steer app icon");
+                // horizontal-alignment: right;
+                vertical-alignment: top;
+            }
+        }
 
         Text {
             text: @tr("(Ab)Use your graphics tablet as a virtual sim steering wheel. ('cause why not)");

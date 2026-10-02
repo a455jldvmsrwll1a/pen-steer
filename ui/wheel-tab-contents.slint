@@ -1,0 +1,83 @@
+import { VerticalBox, ComboBox, LineEdit, ScrollView } from "std-widgets.slint";
+import { SeparatorLine } from "components/separator-line.slint";
+import { TickFrequencySelectWidget } from "components/freq-selector.slint";
+import { SteeringWheelConfigPanel } from "steering-wheel-config.slint";
+
+export component WheelTabContents inherits Rectangle {
+    out property <int> selected-type: 1;
+
+    ScrollView {
+        mouse-drag-pan-enabled: true;
+
+        VerticalLayout {
+            padding: 0;
+            alignment: start;
+            spacing: 8px;
+
+            Rectangle {
+                height: 4px;
+            }
+
+            update_freq_select := TickFrequencySelectWidget { }
+
+            Rectangle {
+                height: 16px;
+            }
+
+            HorizontalLayout {
+                spacing: 8px;
+
+                Text {
+                    text: @tr("Type:");
+                    vertical-alignment: center;
+                }
+
+                ComboBox {
+                    model: [
+                        "None",
+                        "Steering wheel with horn",
+                        "One-tablet driving",
+                    ];
+                    current-index <=> selected-type;
+                }
+            }
+
+            if selected-type == 0: VerticalLayout {
+                Text {
+                    text: @tr("It ignores input and doesn't change any outputs. It in fact does nothing.");
+                    overflow: elide;
+                    wrap: word-wrap;
+                }
+
+                SeparatorLine { }
+
+                Rectangle {
+                    height: 100px;
+                    Text {
+                        text: @tr("No options available.");
+                    }
+                }
+            }
+            if selected-type == 1: SteeringWheelConfigPanel { }
+            if selected-type == 2: VerticalLayout {
+
+                Text {
+                    text: @tr("Drag the pen side to side to turn the wheel. Moving the pen up (i.e. away from you) pushes down on the accelerator. Moving the pen down (i.e. towards you) pushes down on the brakes. Try not to crash.");
+                    overflow: elide;
+                    wrap: word-wrap;
+                }
+
+                SeparatorLine { }
+
+                Rectangle {
+                    height: 16px;
+                }
+
+                Text {
+
+                    text: @tr("One-tablet driving is WIP!!!");
+                }
+            }
+        }
+    }
+}

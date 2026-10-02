@@ -17,6 +17,7 @@ export component SplitButton inherits Rectangle {
     background: Colors.transparent;
     min-width: main_text_widget.preferred-width + 60px;
     min-height: main_text_widget.preferred-height;
+    forward-focus: main_focus_scope;
 
     HorizontalLayout {
         main_touch := TouchArea {
@@ -54,7 +55,7 @@ export component SplitButton inherits Rectangle {
                 }
             }
 
-            FocusScope {
+            main_focus_scope := FocusScope {
                 focus-gained(reason) => {
                     if reason != pointer-click {
                         main_focus_rect.visible = true;
