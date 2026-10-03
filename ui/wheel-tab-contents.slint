@@ -12,7 +12,7 @@ export component WheelTabContents inherits Rectangle {
         VerticalLayout {
             padding: 0;
             alignment: start;
-            spacing: 8px;
+            spacing: 1rem;
 
             Rectangle {
                 height: 4px;
@@ -21,7 +21,7 @@ export component WheelTabContents inherits Rectangle {
             update_freq_select := TickFrequencySelectWidget { }
 
             Rectangle {
-                height: 16px;
+                height: 1rem;
             }
 
             HorizontalLayout {
@@ -70,13 +70,17 @@ export component WheelTabContents inherits Rectangle {
                 SeparatorLine { }
 
                 Rectangle {
-                    height: 16px;
-                }
+                height: 1rem;
+            }
 
                 Text {
 
                     text: @tr("One-tablet driving is WIP!!!");
                 }
+            }
+
+            Rectangle {
+                height: 1rem;
             }
         }
     }

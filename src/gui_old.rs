@@ -8,15 +8,7 @@ use std::{
 };
 
 use crate::{
-    config::{self, Config},
-    controller::{self, Command, Event, Snapshot},
-    mapping::MapOrientation,
-    math,
-    pen::Pen,
-    save::{compile_parse_errors, load_file, save_file},
-    save_path::{save_dir, save_path},
-    util,
-    wheel::Wheel,
+    APP_ID, config::{self, Config}, controller::{self, Command, Event, Snapshot}, mapping::MapOrientation, math, pen::Pen, save::{compile_parse_errors, load_file, save_file}, save_path::{save_dir, save_path}, util, wheel::Wheel,
 };
 use anyhow::anyhow;
 use arc_swap::ArcSwap;
@@ -1062,7 +1054,7 @@ pub fn gui() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder {
             title: Some("Pen Steer".into()),
-            app_id: Some("pen-steer".into()),
+            app_id: Some(APP_ID.into()),
             inner_size: Some(Vec2::new(800.0, 600.0)),
             min_inner_size: Some(Vec2::new(365.0, 0.0)),
             transparent: Some(true),

@@ -4,14 +4,30 @@ import {
     LineEdit,
     Slider,
     StyleMetrics,
+    CheckBox,
 } from "std-widgets.slint";
 import { SeparatorLine } from "components/separator-line.slint";
 import { LabelledSoftSlider } from "components/soft-slider.slint";
+import { HeadingText } from "components/heading-text.slint";
 
 export component SteeringWheelConfigPanel inherits VerticalBox {
     padding: 0;
 
-    property <length> slider_label_width: 180px;
+    property <length> slider_label_width: 0px;
+
+    init => {
+        slider_label_width = slider_label_width.max(angular_range.preferred-label-width);
+        slider_label_width = slider_label_width.max(base_radius.preferred-label-width);
+        slider_label_width = slider_label_width.max(horn_radius.preferred-label-width);
+        slider_label_width = slider_label_width.max(pressure_min.preferred-label-width);
+        slider_label_width = slider_label_width.max(pressure_max.preferred-label-width);
+        slider_label_width = slider_label_width.max(inertia.preferred-label-width);
+        slider_label_width = slider_label_width.max(friction_coeff.preferred-label-width);
+        slider_label_width = slider_label_width.max(spring_stiffness.preferred-label-width);
+        slider_label_width = slider_label_width.max(full_ffb.preferred-label-width);
+
+        slider_label_width += 1.5rem;
+    }
 
     Text {
         text: @tr("Turn the wheel by dragging the pen in a circular motion. To honk, press the pen down near the centre of the wheel.");
@@ -19,7 +35,52 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         wrap: word-wrap;
     }
 
+    Rectangle {
+        height: 1rem;
+    }
+
     SeparatorLine { }
+
+    HeadingText {
+        text: @tr("General Properties");
+    }
+
+    Rectangle {
+        min-height: 256px;
+        vertical-stretch: 1;
+
+        Image {
+            source: @image-url("images/base.svg");
+            width: parent.width;
+            height: parent.height;
+            image-fit: contain;
+
+            horn_img := Image {
+                source: @image-url("images/inner.svg");
+                width: parent.width;
+                height: parent.height * (horn_radius.current-value / 100.0);
+                image-fit: contain;
+            }
+
+            Rectangle {
+                height: parent.height * (base_radius.current-value / 100.0);
+                width: self.height;
+                border-radius: self.height / 2;
+                background: base_radius_control_ta.has-hover ? #b8edffcb : #00000000;
+            }
+
+            Rectangle {
+                height: horn_img.height * 105%;
+                width: self.height;
+                border-radius: self.height / 2;
+                background: horn_radius_control_ta.has-hover ? #00ff00a0 : #00000000;
+            }
+        }
+    }
+
+    Rectangle {
+        height: 1rem;
+    }
 
     angular_range := LabelledSoftSlider {
         label: @tr("Lock-to-lock Range");
@@ -34,34 +95,111 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         current-value: 1080.0;
     }
 
-    horn_radius := LabelledSoftSlider {
-        label: @tr("Horn Radius %");
-        hint: @tr("Percentage of the radius of the steering wheel to use as the activation area for the horn.");
-        label-width <=> slider_label_width;
-        value-display-suffix: "%";
-        value-soft-min: 0.0;
-        value-soft-max: 100.0;
-        value-step: 5.0;
-        value-hard-min: 0.0;
-        value-hard-max: 100.0;
-        current-value: 30.0;
+    base_radius_control_ta := TouchArea {
+        base_radius := LabelledSoftSlider {
+            label: @tr("Base Radius %");
+            hint: @tr("Minimum percentage of the wheel radius for angular displacement calculations.\nCircling the pen closer than this will not cause the wheel to spin faster.\n\nThis can prevent issues when drawing off-centred circles, but if the pen is consistently too close,\nit will cause the wheel to turn slower than intended.");
+            label-width <=> slider_label_width;
+            value-display-suffix: "%";
+            value-soft-min: 0.0;
+            value-soft-max: 100.0;
+            value-step: 5.0;
+            value-hard-min: 0.0;
+            value-hard-max: 100.0;
+            current-value: 60.0;
+        }
     }
 
-    base_radius := LabelledSoftSlider {
-        label: @tr("Base Radius %");
-        hint: @tr("Minimum percentage of the wheel radius for angular displacement calculations.\nCircling the pen closer than this will not cause the wheel to spin faster.\n\nThis can prevent issues when drawing off-centred circles, but if the pen is consistently too close,\nit will cause the wheel to turn slower than intended.");
+    horn_radius_control_ta := TouchArea {
+        horn_radius := LabelledSoftSlider {
+            label: @tr("Horn Radius %");
+            hint: @tr("Percentage of the radius of the steering wheel to use as the activation area for the horn.");
+            label-width <=> slider_label_width;
+            value-display-suffix: "%";
+            value-soft-min: 0.0;
+            value-soft-max: 100.0;
+            value-step: 5.0;
+            value-hard-min: 0.0;
+            value-hard-max: 100.0;
+            current-value: 30.0;
+        }
+    }
+
+    pressure_min := LabelledSoftSlider {
+        label: @tr("Min. pressure %");
+        hint: @tr("Lower bound of the grip strength range.\n\nThis is also the minimum pressure the pen must be held down with for it to be considered as such.");
         label-width <=> slider_label_width;
         value-display-suffix: "%";
         value-soft-min: 0.0;
         value-soft-max: 100.0;
         value-step: 5.0;
         value-hard-min: 0.0;
+        value-hard-max: pressure_max.current-value;
+        current-value: 5.0;
+    }
+
+    pressure_max := LabelledSoftSlider {
+        label: @tr("Max. pressure %");
+        hint: @tr("Upper bound of the grip strength range.\n(a.k.a. gripping the wheel as hard as possible)\n\nThis setting is irrelevant unless physics and slippage are both enabled.");
+        label-width <=> slider_label_width;
+        value-display-suffix: "%";
+        value-soft-min: 0.0;
+        value-soft-max: 100.0;
+        value-step: 5.0;
+        value-hard-min: pressure_min.current-value;
         value-hard-max: 100.0;
-        current-value: 60.0;
+        current-value: 40.0;
     }
 
     Rectangle {
-        height: 16px;
+        height: 1rem;
+    }
+
+    ignore_exterior_input := CheckBox {
+        text: @tr("Ignore pen when outside the circle");
+
+        Tooltip {
+            text: @markdown("Treat the pen as up when not within the circle. (i.e. when distance to centre is > 1)");
+        }
+    }
+
+    sticky_horn := CheckBox {
+        text: @tr("Use horn as toggle");
+
+        Tooltip {
+            text: @markdown("If checked, pressing the horn toggles it. Otherwise it acts like a normal horn pad.");
+        }
+    }
+
+    fast_mode_switch := CheckBox {
+        text: @tr("Fast switching between honking and steering");
+
+        Tooltip {
+            text: @markdown("\{"If enabled, you do not need to lift up the pen (i.e. stop what you are doing)\nbefore switching between honking and steering.\n\nIf you are steering and the pen enters the horn area,\nit will immediately activate and you will stop steering until the pen leaves the horn area.\n\nIf disabled, you must lift up the pen."}");
+        }
+    }
+
+    Rectangle {
+        height: 1rem;
+    }
+
+    SeparatorLine { }
+
+    HeadingText {
+        text: @tr("Physical Properties");
+    }
+
+    Rectangle {
+        height: 1rem;
+    }
+
+    physics_enable := CheckBox {
+        text: @tr("Enable physics");
+        checked: true;
+
+        Tooltip {
+            text: @markdown("\{"Simulate forces on the wheel, affecting its angular position and its angular velocity.\nThis is required for:\n- Auto-centring\n- Force-feedback\n- \"Flicking\" the wheel\n- Partially dragging the wheel\n\nIf disabled, the wheel only rotates when dragged, and never moves otherwise."}");
+        }
     }
 
     inertia := LabelledSoftSlider {
@@ -75,6 +213,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: 0.001;
         value-hard-max: 1000000.0;
         current-value: 20.0;
+        enabled: physics_enable.checked;
     }
 
     friction_coeff := LabelledSoftSlider {
@@ -87,6 +226,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value: 100.0;
+        enabled: physics_enable.checked;
     }
 
     spring_stiffness := LabelledSoftSlider {
@@ -100,10 +240,95 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value: 0.0;
+        enabled: physics_enable.checked;
+    }
+
+    Rectangle {
+        height: 1rem;
+    }
+
+    allow_slippage := CheckBox {
+        text: @tr("Allow slippage");
+        checked: true;
+        enabled: physics_enable.checked;
+
+        Tooltip {
+            text: @markdown("\{"When enabled, the pen turns the wheel by supplying it a torque,\nleaving it to physics to actually turn it.\nThis allows the steering wheel to slip.\n\nOtherwise, the steering wheel is directly turned by the pen."}");
+        }
+    }
+
+    auto_grip_force := CheckBox {
+        text: @tr("Automatically determine maximum grip torque");
+        checked: true;
+        enabled: physics_enable.checked && allow_slippage.checked;
+
+        Tooltip {
+            text: @markdown("Calculate the torque required. //TODO: what?");
+        }
+    }
+
+    vary_grip_arm_length := CheckBox {
+        text: @tr("Allow grip torque to vary by distance from centre");
+        enabled: physics_enable.checked && allow_slippage.checked;
+
+        Tooltip {
+            text: @markdown("Scale the torque proportional to the distance of the grip point.\n\nIf disabled, the grip point is assumed to be at r = 1.");
+        }
+    }
+
+    direct_grip_threshold := LabelledSoftSlider {
+        label: @tr("Direct grip %");
+        hint: @tr("Percentage threshold of the grip strength required for the grip to be considered direct.\n\nThe grip strength is a percentage of the configured pressure range with\n0% strength up to the minimum pressure % and 100% strength at the maximum pressure %.");
+        label-width <=> slider_label_width;
+        value-display-suffix: "%";
+        value-soft-min: 0.0;
+        value-soft-max: 100.0;
+        value-step: 5.0;
+        value-hard-min: 0.0;
+        value-hard-max: 100.0;
+        current-value: 80.0;
+        enabled: physics_enable.checked && allow_slippage.checked;
+    }
+
+    full_grip_force := LabelledSoftSlider {
+        label: @tr("Full grip torque");
+        hint: @tr("Maximum torque applied to the steering wheel when gripping at full strength.\n\nThis figure assumes the grip point is at r = 1.\n\nThis setting is disabled when automatically calculating max grip torque.");
+        label-width <=> slider_label_width;
+        value-display-suffix: " Nm";
+        value-soft-min: 0.0;
+        value-soft-max: 2000.0;
+        value-step: 100.0;
+        value-hard-min: -100000.0;
+        value-hard-max: 1000000.0;
+        current-value: 2000.0;
+        enabled: physics_enable.checked && allow_slippage.checked && !auto_grip_force.checked;
+    }
+
+    Rectangle {
+        height: 1rem;
+    }
+
+    enable_ffb := CheckBox {
+        text: @tr("Enable force-feedback");
+        checked: true;
+        enabled: physics_enable.checked;
+
+        Tooltip {
+            text: @markdown("Respond to force-feedback values when simulating the steering wheel physics.");
+        }
+    }
+
+    full_ffb_negate := CheckBox {
+        text: @tr("Apply opposite torque");
+        enabled: physics_enable.checked && enable_ffb.checked;
+
+        Tooltip {
+            text: @markdown("\{"Apply force-feedback in the opposite direction.\n\nNormally, a positive FFB value produces a counter-clockwise torque.\nWith this option enabled, the same value produces a clockwise torque.\n\nUseful if the incoming value is flipped by the game."}");
+        }
     }
 
     full_ffb := LabelledSoftSlider {
-        label: @tr("Full Force-feedback Torque");
+        label: @tr("Full FFB Torque");
         hint: @tr("The torque (in Newton-metres) given when receiving the maximum force-feedback value from the output device.\n\ni.e. at 100% ffb value, this torque is applied.");
         label-width <=> slider_label_width;
         value-display-suffix: " Nm";
@@ -113,5 +338,6 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value: 900.0;
+        enabled: physics_enable.checked && enable_ffb.checked;
     }
 }

@@ -1,9 +1,11 @@
-import { Slider, LineEdit } from "std-widgets.slint";
+import { Slider, LineEdit, Palette } from "std-widgets.slint";
 
 export component LabelledSoftSlider inherits HorizontalLayout {
+    in property <bool> enabled: true;
+
     in property <string> label;
     in property <length> label-width: 100px;
-    
+
     in property <string> hint;
 
     in property <string> value-display-suffix;
@@ -18,6 +20,8 @@ export component LabelledSoftSlider inherits HorizontalLayout {
     in property <float> value-hard-max: 1.0 / 0.0;
 
     in-out property <float> current-value: 0.0;
+
+    out property <length> preferred-label-width <=> label_widget.preferred-width;
 
     padding: 0;
     spacing: 8px;
@@ -34,12 +38,26 @@ export component LabelledSoftSlider inherits HorizontalLayout {
         alignment: end;
         width <=> label-width;
 
-        Text {
+        label_widget := Text {
             text <=> label;
             vertical-alignment: center;
+            color: root.enabled ? Palette.foreground : Palette.foreground.darker(80%);
+
+            animate color {
+                easing: ease-in;
+                duration: 200ms;
+            }
 
             if !hint.is-empty: Tooltip {
-                text: @markdown("\{hint}");
+                VerticalLayout {
+                    padding: 8px;
+
+                    Text {
+                        text: hint;
+                        wrap: word-wrap;
+                        overflow: elide;
+                    }
+                }
             }
         }
     }
@@ -48,6 +66,7 @@ export component LabelledSoftSlider inherits HorizontalLayout {
         minimum <=> value-soft-min;
         maximum <=> value-soft-max;
         step <=> value-step;
+        enabled <=> root.enabled;
 
         changed(value) => {
             let clamped = min(max(value, value-hard-min), value-hard-max);
@@ -60,13 +79,22 @@ export component LabelledSoftSlider inherits HorizontalLayout {
         }
 
         if !hint.is-empty: Tooltip {
-            text: @markdown("\{hint}");
+            VerticalLayout {
+                padding: 8px;
+
+                Text {
+                    text: hint;
+                    wrap: word-wrap;
+                    overflow: elide;
+                }
+            }
         }
     }
 
     textbox := LineEdit {
         width <=> value-display-width;
         horizontal-alignment: end;
+        enabled <=> root.enabled;
 
         init => {
             display-pretty();
@@ -105,7 +133,15 @@ export component LabelledSoftSlider inherits HorizontalLayout {
         }
 
         if !hint.is-empty: Tooltip {
-            text: @markdown("\{hint}");
+            VerticalLayout {
+                padding: 8px;
+
+                Text {
+                    text: hint;
+                    wrap: word-wrap;
+                    overflow: elide;
+                }
+            }
         }
     }
 }

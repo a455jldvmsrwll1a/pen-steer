@@ -28,6 +28,7 @@ use slint::ToSharedString;
 use crate::save_path::save_dir;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const APP_ID: &str = "ph.jldvmsrwll1a.pen-steer";
 
 slint::include_modules!();
 
@@ -38,6 +39,7 @@ fn main() -> Result<()> {
     let is_running = Arc::new(AtomicBool::default());
 
     let ui = AppWindow::new()?;
+    slint::set_xdg_app_id(APP_ID)?;
     ui.set_app_version(VERSION.to_shared_string());
 
     ui.on_show_about_app(move || {
