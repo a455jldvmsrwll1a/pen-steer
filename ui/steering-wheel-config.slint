@@ -82,8 +82,16 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         height: 1rem;
     }
 
+    Text {
+        text: @tr("Tip: hover over the control items for more information.");
+
+        Tooltip {
+            text: @markdown("yea like that");
+        }
+    }
+
     angular_range := LabelledSoftSlider {
-        label: @tr("Lock-to-lock Range");
+        label: @tr("Lock-to-lock range");
         hint: @tr("Range in degrees from extreme left to extreme right of the steering wheel.");
         label-width <=> slider_label_width;
         value-display-suffix: "°";
@@ -97,7 +105,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     base_radius_control_ta := TouchArea {
         base_radius := LabelledSoftSlider {
-            label: @tr("Base Radius %");
+            label: @tr("Base radius %");
             hint: @tr("Minimum percentage of the wheel radius for angular displacement calculations.\nCircling the pen closer than this will not cause the wheel to spin faster.\n\nThis can prevent issues when drawing off-centred circles, but if the pen is consistently too close,\nit will cause the wheel to turn slower than intended.");
             label-width <=> slider_label_width;
             value-display-suffix: "%";
@@ -112,7 +120,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     horn_radius_control_ta := TouchArea {
         horn_radius := LabelledSoftSlider {
-            label: @tr("Horn Radius %");
+            label: @tr("Horn radius %");
             hint: @tr("Percentage of the radius of the steering wheel to use as the activation area for the horn.");
             label-width <=> slider_label_width;
             value-display-suffix: "%";
@@ -189,6 +197,10 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         text: @tr("Physical Properties");
     }
 
+    Text {
+        text: @tr("Steering wheel auto-centring, slipping, and force-feedback all rely on a physics simulation.");
+    }
+
     Rectangle {
         height: 1rem;
     }
@@ -198,7 +210,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         checked: true;
 
         Tooltip {
-            text: @markdown("\{"Simulate forces on the wheel, affecting its angular position and its angular velocity.\nThis is required for:\n- Auto-centring\n- Force-feedback\n- \"Flicking\" the wheel\n- Partially dragging the wheel\n\nIf disabled, the wheel only rotates when dragged, and never moves otherwise."}");
+            text: @markdown("\{"Simulate forces on the wheel, affecting its angular position and its angular velocity.\n\nIf disabled, the wheel only rotates when dragged, and never moves otherwise."}");
         }
     }
 
@@ -217,7 +229,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
     }
 
     friction_coeff := LabelledSoftSlider {
-        label: @tr("Friction Coefficient");
+        label: @tr("Friction coefficient");
         hint: @tr("A higher friction coefficient slows down the wheel more and damps its movement.\nA coefficient of zero makes the wheel glide forever,\nunless influenced by spring force and/or force feedback.\n\nThe coefficient of friction (μ) is a dimensionless quantity.\nThe torque it contributes depends on the wheel's velocity (ω):\n\nτ = - μω");
         label-width <=> slider_label_width;
         value-soft-min: 0.0;
@@ -230,8 +242,8 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
     }
 
     spring_stiffness := LabelledSoftSlider {
-        label: @tr("Spring Stiffness");
-        hint: @tr("Determines the strength of the spring torque that gradually returns the wheel to its neutral position.\nKeep it at zero if this auto-centring behaviour is undesired.\n\n\nThe torque the spring stiffness (k) contributes depends on the wheel's angle (θ):\n\nτ = - kθ");
+        label: @tr("Spring stiffness");
+        hint: @tr("Determines the strength of the spring that twists the wheel back to its neutral position.\nKeep it at zero if this auto-centring behaviour is undesired.\n\nIf non-zero, you should also set a reasonable friction coefficient,\nwhich will help stop the wheel from overshooting and oscillating.\n\nThe torque the spring stiffness (k) contributes depends on the wheel's angle (θ):\n\nτ = - kθ");
         label-width <=> slider_label_width;
         value-display-suffix: " Nm/rad";
         value-soft-min: 0.0;
@@ -263,7 +275,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         enabled: physics_enable.checked && allow_slippage.checked;
 
         Tooltip {
-            text: @markdown("Calculate the torque required. //TODO: what?");
+            text: @markdown("Calculate the torque required. //TODO: what? WIP. this section is not supper accurate and  its 1 a.m.");
         }
     }
 
@@ -314,7 +326,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         enabled: physics_enable.checked;
 
         Tooltip {
-            text: @markdown("Respond to force-feedback values when simulating the steering wheel physics.");
+            text: @markdown("Respond to FFB values when simulating the steering wheel physics.");
         }
     }
 
@@ -328,8 +340,8 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
     }
 
     full_ffb := LabelledSoftSlider {
-        label: @tr("Full FFB Torque");
-        hint: @tr("The torque (in Newton-metres) given when receiving the maximum force-feedback value from the output device.\n\ni.e. at 100% ffb value, this torque is applied.");
+        label: @tr("Full FFB torque");
+        hint: @tr("The torque (in Newton-metres) produced when receiving the max FFB value.\n\ne.g. at 100% ffb value, this much torque is applied.");
         label-width <=> slider_label_width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
