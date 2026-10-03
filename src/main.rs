@@ -2,7 +2,6 @@
 
 mod config;
 mod controller;
-mod gui_old;
 mod headless;
 mod input;
 mod mapping;
@@ -20,7 +19,7 @@ use std::{
     sync::{Arc, atomic::AtomicBool},
 };
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 
 use log::{error, info};
 use slint::ToSharedString;
@@ -88,9 +87,7 @@ fn main() -> Result<()> {
         return headless::run_headless();
     }
 
-    if let Err(err) = gui_old::gui() {
-        bail!("GUI error: {err}");
-    }
+    info!("Nothing to do. Bye.");
 
     Ok(())
 }

@@ -1,5 +1,11 @@
 use std::f32::consts::PI;
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+pub struct Pos2 {
+    pub x: f32,
+    pub y: f32,
+}
+
 /// Map `t` from range `a1..=a2` to range `b1..=b2`.
 pub fn remap(t: f32, a1: f32, a2: f32, b1: f32, b2: f32) -> f32 {
     b1 + (t - a1) * (b2 - b1) / (a2 - a1)

@@ -1,6 +1,9 @@
-use eframe::egui::Pos2;
-
-use crate::{config::Config, math, output::OutputBackend, pen::Pen};
+use crate::{
+    config::Config,
+    math::{self, Pos2},
+    output::OutputBackend,
+    pen::Pen,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct Wheel {
