@@ -1,3 +1,10 @@
+import { UpdateFrequencyMode } from "components/freq-selector.slint";
+export enum ControlType {
+    dummy,
+    steering-wheel,
+    one-tablet-drive,
+}
+
 export struct DummyConfig {}
 
 export struct SteeringWheelConfig {
@@ -25,33 +32,21 @@ export struct SteeringWheelConfig {
 
 export struct OneTabletDriveConfig {}
 
-export enum ControlType {
-    dummy,
-    steering-wheel,
-    one-tablet-drive,
+export struct ControlConfig {
+    active: ControlType = ControlType.steering-wheel,
+    freq-mode: UpdateFrequencyMode = UpdateFrequencyMode.automatic,
+    fixed-freq: float,
+    dummy: DummyConfig,
+    steering-wheel: SteeringWheelConfig,
+    one-tablet-drive: OneTabletDriveConfig,
 }
 
 export global GlobalUiState {
-    in-out property <ControlType> active-ctl-type: steering-wheel;
-    in-out property <DummyConfig> dummy-ctl-config;
-    in-out property <SteeringWheelConfig> steering-wheel-ctl-config;
-    in-out property <OneTabletDriveConfig> one-tablet-drive-ctl-config;
+    in-out property <ControlConfig> control-config;
 
     callback ctl-config-changed();
 
-    changed active-ctl-type => {
-        ctl-config-changed();
-    }
-
-    changed dummy-ctl-config => {
-        ctl-config-changed();
-    }
-
-    changed steering-wheel-ctl-config => {
-        ctl-config-changed();
-    }
-
-    changed one-tablet-drive-ctl-config => {
+    changed control-config => {
         ctl-config-changed();
     }
 }

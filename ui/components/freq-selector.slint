@@ -8,9 +8,18 @@ export enum UpdateFrequencyMode {
 
 export component TickFrequencySelectWidget inherits VerticalBox {
     in-out property <UpdateFrequencyMode> mode;
-    in-out property <string> fixed_rate;
+    in-out property <float> fixed_rate;
+
+    property <float> MAX_RATE: 10000.0;
 
     padding: 0;
+
+    init => {
+        let clamped = min(max(fixed_rate, 0.0), MAX_RATE);
+
+        fixed_rate = clamped;
+        freq_edit.display-pretty();
+    }
 
     HorizontalLayout {
         padding: 0;
@@ -25,11 +34,11 @@ export component TickFrequencySelectWidget inherits VerticalBox {
             model: [
                 @tr("Automatic"),
                 @tr("In lock-step with input"),
+                @tr("Custom"),
                 @tr("60 Hz"),
                 @tr("133 Hz"),
                 @tr("300 Hz"),
                 @tr("1 kHz"),
-                @tr("Custom"),
             ];
 
             changed current-index => {
@@ -37,14 +46,16 @@ export component TickFrequencySelectWidget inherits VerticalBox {
 
                 if i == 0 { mode = automatic; }
                 else if i == 1 { mode = lockstep; }
-                else if i >= 2 && i < 6 {
-                    mode = fixed;
-                    fixed_rate = self.current-value;
-                }
-                else if i == 6 {
-                    mode = fixed;
-                    fixed_rate = freq_edit.text;
-                }
+                else { mode = fixed; }
+
+                if i == 2 { /* do nothing */ }
+                else if i == 3 { fixed_rate = 60; }
+                else if i == 4 { fixed_rate = 133; }
+                else if i == 5 { fixed_rate = 300; }
+                else if i == 6 { fixed_rate = 1000; }
+                else { fixed_rate = 60; }
+
+                freq_edit.display-pretty();
             }
         }
     }
@@ -66,23 +77,39 @@ export component TickFrequencySelectWidget inherits VerticalBox {
             placeholder-text: @tr("... Hz");
             text: @tr("133 Hz");
 
-            accepted(text) => {
-                commit_value();
+            init => {
+                display-pretty();
             }
 
-            key-pressed(event) => {
-                if event.text == Key.Return || event.text == Key.Tab {
-                    commit_value();
+            function display-pretty() {
+                self.text = @tr("{} Hz", root.fixed_rate);
+            }
+
+            function display() {
+                self.text = root.fixed_rate;
+            }
+
+            accepted(text) => {
+                if text.is-float() {
                     self.clear-focus();
 
-                    return accept;
+                    let value = text.to-float();
+                    let clamped = min(max(value, 0.0), MAX_RATE);
+
+                    root.fixed_rate = clamped;
+                } else {
+                    self.select-all();
                 }
-                return reject;
             }
 
-            function commit_value() {
-                
-                debug("commit: ", self.text);
+            changed has-focus => {
+                if self.has-focus {
+                    // Needed to make sure that only the number itself is in the
+                    // string once submitted by the user.
+                    display();
+                } else {
+                    display-pretty();
+                }
             }
         }
 

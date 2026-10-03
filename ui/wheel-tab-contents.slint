@@ -5,7 +5,7 @@ import { SteeringWheelConfigPanel } from "steering-wheel-config.slint";
 import { ControlType, GlobalUiState } from "state.slint";
 
 export component WheelTabContents inherits Rectangle {
-    in-out property <ControlType> selected-type <=> GlobalUiState.active-ctl-type;
+    in-out property <ControlType> selected-type <=> GlobalUiState.control-config.active;
 
     init => {
         type_cb.set-type(selected-type);
@@ -25,7 +25,10 @@ export component WheelTabContents inherits Rectangle {
                 height: 4px;
             }
 
-            update_freq_select := TickFrequencySelectWidget { }
+            update_freq_select := TickFrequencySelectWidget {
+                mode <=> GlobalUiState.control-config.freq-mode;
+                fixed_rate <=> GlobalUiState.control-config.fixed-freq;
+            }
 
             Rectangle {
                 height: 1rem;

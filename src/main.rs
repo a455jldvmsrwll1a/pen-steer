@@ -50,20 +50,8 @@ fn main() -> Result<()> {
 
         let global = ui.global::<GlobalUiState>();
 
-        match global.get_active_ctl_type() {
-            ControlType::Dummy => {
-                info!("Dummy config updated!");
-            }
-            ControlType::SteeringWheel => {
-                info!("SteeringWheel config updated!");
-
-                let ui_config = global.get_steering_wheel_ctl_config();
-                eprintln!("config = \n{ui_config:?}");
-            }
-            ControlType::OneTabletDrive => {
-                info!("OneTabletDrive config updated!");
-            }
-        }
+        info!("control config updated!");
+        eprintln!("{:#?}", global.get_control_config());
     });
 
     ui.on_show_about_app(move || {

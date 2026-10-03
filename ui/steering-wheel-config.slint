@@ -14,7 +14,7 @@ import { SteeringWheelConfig, GlobalUiState } from "state.slint";
 export component SteeringWheelConfigPanel inherits VerticalBox {
     padding: 0;
 
-    property <SteeringWheelConfig> config <=> GlobalUiState.steering-wheel-ctl-config;
+    property <SteeringWheelConfig> config <=> GlobalUiState.control-config.steering-wheel;
     property <length> slider_label_width: 0px;
 
     init => {
