@@ -18,6 +18,9 @@ import { SeparatorLine } from "components/separator-line.slint";
 import { SplitButton } from "components/split-button.slint";
 import { TickFrequencySelectWidget } from "components/freq-selector.slint";
 import { WheelTabContents } from "wheel-tab-contents.slint";
+import { GlobalUiState } from "state.slint";
+
+export { GlobalUiState }
 
 export component AppWindow inherits Window {
     in property <string> app_version: "<unknown>";

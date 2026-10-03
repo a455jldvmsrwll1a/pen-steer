@@ -42,6 +42,30 @@ fn main() -> Result<()> {
     slint::set_xdg_app_id(APP_ID)?;
     ui.set_app_version(VERSION.to_shared_string());
 
+    let ui_weak = ui.as_weak();
+    ui.global::<GlobalUiState>().on_ctl_config_changed(move || {
+        let Some(ui) = ui_weak.upgrade() else {
+            return;
+        };
+
+        let global = ui.global::<GlobalUiState>();
+
+        match global.get_active_ctl_type() {
+            ControlType::Dummy => {
+                info!("Dummy config updated!");
+            }
+            ControlType::SteeringWheel => {
+                info!("SteeringWheel config updated!");
+
+                let ui_config = global.get_steering_wheel_ctl_config();
+                eprintln!("config = \n{ui_config:?}");
+            }
+            ControlType::OneTabletDrive => {
+                info!("OneTabletDrive config updated!");
+            }
+        }
+    });
+
     ui.on_show_about_app(move || {
         if let Ok(window) = AboutWindow::new() {
             let _ = window.run();

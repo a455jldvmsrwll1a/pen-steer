@@ -9,10 +9,12 @@ import {
 import { SeparatorLine } from "components/separator-line.slint";
 import { LabelledSoftSlider } from "components/soft-slider.slint";
 import { HeadingText } from "components/heading-text.slint";
+import { SteeringWheelConfig, GlobalUiState } from "state.slint";
 
 export component SteeringWheelConfigPanel inherits VerticalBox {
     padding: 0;
 
+    property <SteeringWheelConfig> config <=> GlobalUiState.steering-wheel-ctl-config;
     property <length> slider_label_width: 0px;
 
     init => {
@@ -24,6 +26,8 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         slider_label_width = slider_label_width.max(inertia.preferred-label-width);
         slider_label_width = slider_label_width.max(friction_coeff.preferred-label-width);
         slider_label_width = slider_label_width.max(spring_stiffness.preferred-label-width);
+        slider_label_width = slider_label_width.max(direct_grip_threshold.preferred-label-width);
+        slider_label_width = slider_label_width.max(full_grip_force.preferred-label-width);
         slider_label_width = slider_label_width.max(full_ffb.preferred-label-width);
 
         slider_label_width += 1.5rem;
@@ -100,7 +104,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 30.0;
         value-hard-min: 1.0;
         value-hard-max: 999999.0;
-        current-value: 1080.0;
+        current-value <=> config.angle-range;
     }
 
     base_radius_control_ta := TouchArea {
@@ -114,7 +118,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
             value-step: 5.0;
             value-hard-min: 0.0;
             value-hard-max: 100.0;
-            current-value: 60.0;
+            current-value <=> config.natural-rotation-radius-min;
         }
     }
 
@@ -129,7 +133,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
             value-step: 5.0;
             value-hard-min: 0.0;
             value-hard-max: 100.0;
-            current-value: 30.0;
+            current-value <=> config.horn-radius;
         }
     }
 
@@ -143,7 +147,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 5.0;
         value-hard-min: 0.0;
         value-hard-max: pressure_max.current-value;
-        current-value: 5.0;
+        current-value <=> config.pressure-min;
     }
 
     pressure_max := LabelledSoftSlider {
@@ -156,7 +160,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 5.0;
         value-hard-min: pressure_min.current-value;
         value-hard-max: 100.0;
-        current-value: 40.0;
+        current-value <=> config.pressure-max;
     }
 
     Rectangle {
@@ -165,6 +169,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     ignore_exterior_input := CheckBox {
         text: @tr("Ignore pen when outside the circle");
+        checked <=> config.ignore-exterior-input;
 
         Tooltip {
             text: @markdown("Treat the pen as up when not within the circle. (i.e. when distance to centre is > 1)");
@@ -173,6 +178,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     sticky_horn := CheckBox {
         text: @tr("Use horn as toggle");
+        checked <=> config.sticky-horn;
 
         Tooltip {
             text: @markdown("If checked, pressing the horn toggles it. Otherwise it acts like a normal horn pad.");
@@ -181,6 +187,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     fast_mode_switch := CheckBox {
         text: @tr("Fast switching between honking and steering");
+        checked <=> config.fast-mode-switch;
 
         Tooltip {
             text: @markdown("\{"If enabled, you do not need to lift up the pen (i.e. stop what you are doing)\nbefore switching between honking and steering.\n\nIf you are steering and the pen enters the horn area,\nit will immediately activate and you will stop steering until the pen leaves the horn area.\n\nIf disabled, you must lift up the pen."}");
@@ -207,7 +214,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     physics_enable := CheckBox {
         text: @tr("Enable physics");
-        checked: true;
+        checked <=> config.physics-enable;
 
         Tooltip {
             text: @markdown("\{"Simulate forces on the wheel, affecting its angular position and its angular velocity.\n\nIf disabled, the wheel only rotates when dragged, and never moves otherwise."}");
@@ -224,7 +231,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 1.0;
         value-hard-min: 0.001;
         value-hard-max: 1000000.0;
-        current-value: 20.0;
+        current-value <=> config.inertia;
         enabled: physics_enable.checked;
     }
 
@@ -237,7 +244,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 0.1;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
-        current-value: 100.0;
+        current-value <=> config.friction-coeff;
         enabled: physics_enable.checked;
     }
 
@@ -251,7 +258,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 0.1;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
-        current-value: 0.0;
+        current-value <=> config.spring-stiffness;
         enabled: physics_enable.checked;
     }
 
@@ -261,7 +268,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     allow_slippage := CheckBox {
         text: @tr("Allow slippage");
-        checked: true;
+        checked <=> config.allow-slippage;
         enabled: physics_enable.checked;
 
         Tooltip {
@@ -271,7 +278,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     auto_grip_force := CheckBox {
         text: @tr("Automatically determine maximum grip torque");
-        checked: true;
+        checked <=> config.auto-grip-force;
         enabled: physics_enable.checked && allow_slippage.checked;
 
         Tooltip {
@@ -281,6 +288,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     vary_grip_arm_length := CheckBox {
         text: @tr("Allow grip torque to vary by distance from centre");
+        checked <=> config.vary-grip-arm-length;
         enabled: physics_enable.checked && allow_slippage.checked;
 
         Tooltip {
@@ -298,7 +306,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 5.0;
         value-hard-min: 0.0;
         value-hard-max: 100.0;
-        current-value: 80.0;
+        current-value <=> config.direct-grip-threshold;
         enabled: physics_enable.checked && allow_slippage.checked;
     }
 
@@ -312,7 +320,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 100.0;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
-        current-value: 2000.0;
+        current-value <=> config.full-grip-force;
         enabled: physics_enable.checked && allow_slippage.checked && !auto_grip_force.checked;
     }
 
@@ -322,7 +330,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     enable_ffb := CheckBox {
         text: @tr("Enable force-feedback");
-        checked: true;
+        checked <=> config.enable-ffb;
         enabled: physics_enable.checked;
 
         Tooltip {
@@ -332,6 +340,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     full_ffb_negate := CheckBox {
         text: @tr("Apply opposite torque");
+        checked <=> config.full-ffb-negate;
         enabled: physics_enable.checked && enable_ffb.checked;
 
         Tooltip {
@@ -349,7 +358,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-step: 100.0;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
-        current-value: 900.0;
+        current-value <=> config.full-ffb-force;
         enabled: physics_enable.checked && enable_ffb.checked;
     }
 }

@@ -1,0 +1,57 @@
+export struct DummyConfig {}
+
+export struct SteeringWheelConfig {
+    angle_range: float = 1080.0,
+    natural_rotation_radius_min: float = 60.0,
+    horn_radius: float = 30.0,
+    pressure_min: float = 5.0,
+    pressure_max: float = 40.0,
+    ignore_exterior_input: bool = false,
+    sticky_horn: bool = false,
+    fast_mode_switch: bool = false,
+    physics_enable: bool = true,
+    inertia: float = 20.0,
+    friction_coeff: float = 100.0,
+    spring_stiffness: float = 0.0,
+    allow_slippage: bool = true,
+    auto_grip_force: bool = true,
+    vary_grip_arm_length: bool = false,
+    direct_grip_threshold: float = 80.0,
+    full_grip_force: float = 2000.0,
+    enable_ffb: bool = true,
+    full_ffb_negate: bool = false,
+    full_ffb_force: float = 900.0,
+}
+
+export struct OneTabletDriveConfig {}
+
+export enum ControlType {
+    dummy,
+    steering-wheel,
+    one-tablet-drive,
+}
+
+export global GlobalUiState {
+    in-out property <ControlType> active-ctl-type: steering-wheel;
+    in-out property <DummyConfig> dummy-ctl-config;
+    in-out property <SteeringWheelConfig> steering-wheel-ctl-config;
+    in-out property <OneTabletDriveConfig> one-tablet-drive-ctl-config;
+
+    callback ctl-config-changed();
+
+    changed active-ctl-type => {
+        ctl-config-changed();
+    }
+
+    changed dummy-ctl-config => {
+        ctl-config-changed();
+    }
+
+    changed steering-wheel-ctl-config => {
+        ctl-config-changed();
+    }
+
+    changed one-tablet-drive-ctl-config => {
+        ctl-config-changed();
+    }
+}
