@@ -204,7 +204,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
 
     inertia := LabelledSoftSlider {
         label: @tr("Inertia");
-        hint: @tr("A low inertia means the wheel is more responsive to forces, especially from force feedback.\n\nThe acceleration of the wheel depends on its inertia: α = τJ.\n\nIf mass M in kilograms and radius R in metres is known, then it can be approximated as J = MR² (in kgm²).");
+        hint: @tr("A low inertia means the wheel is more responsive to forces, especially from force feedback.\n\nThe acceleration of the wheel is inversly proportional to its inertia: α = τ/J.\n\nIf mass M in kilograms and radius R in metres is known, then it can be approximated as\nJ = MR² (in kgm²).");
         label-width <=> slider_label_width;
         value-display-suffix: " kgm²";
         value-soft-min: 0.1;
