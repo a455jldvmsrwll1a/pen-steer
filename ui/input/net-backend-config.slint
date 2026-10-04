@@ -1,0 +1,213 @@
+import {
+    VerticalBox,
+    ComboBox,
+    LineEdit,
+    Slider,
+    StyleMetrics,
+    CheckBox,
+    StandardTableView,
+} from "std-widgets.slint";
+import { SeparatorLine } from "../components/separator-line.slint";
+import { LabelledSoftSlider } from "../components/soft-slider.slint";
+import { HeadingText } from "../components/heading-text.slint";
+import {
+    NetInputBackendConfig,
+    GlobalUiState,
+    NetInputBackendState,
+} from "../state.slint";
+import "../images/RobotoMono-SemiBold.ttf";
+
+export component NetInputBackend inherits VerticalBox {
+    padding: 0;
+
+    property <NetInputBackendConfig> config <=> GlobalUiState.input-config.net-config;
+    in property <NetInputBackendState> state;
+
+    Text {
+        text: @tr("Reads reports from an external application via UDP socket.\n\nIt expects an application-specific binary format. Please read the bottom of the page for more information.");
+        overflow: elide;
+        wrap: word-wrap;
+    }
+
+    Rectangle {
+        height: 1rem;
+    }
+
+    SeparatorLine { }
+
+    HeadingText {
+        text: @tr("Source");
+    }
+
+    HorizontalLayout {
+        spacing: 8px;
+
+        Text {
+            text: @tr("Listen address:");
+            vertical-alignment: center;
+        }
+
+        LineEdit {
+            placeholder-text: @tr("e.g. 127.0.0.1:16027");
+        }
+    }
+
+    Rectangle {
+        height: 1rem;
+    }
+
+    HeadingText {
+        text: @tr("Debug Inspector");
+    }
+
+    Text {
+        text: @tr("Last received:");
+    }
+
+    HorizontalLayout {
+        alignment: center;
+
+        Text {
+            text: "A4 55 00 02\n3F 17 72 EE   3F CC CC CD\n3D 83 C5 D0   3E C8 B4 3A";
+            font-family: "Roboto Mono";
+            font-size: 24px;
+            wrap: word-wrap;
+        }
+    }
+
+    Text {
+        text: @tr("Decoded:");
+    }
+
+    HorizontalLayout {
+        alignment: center;
+
+        VerticalLayout {
+            Text {
+                text: @tr("Buttons: _ _ _ _  _ _ # _");
+                font-family: "Roboto Mono";
+                font-size: 16px;
+            }
+
+            Text {
+                text: @tr("Pressure: 59%, 0.59159744");
+                font-family: "Roboto Mono";
+                font-size: 16px;
+            }
+
+            Text {
+                text: @tr("Area aspect ratio: 1.6");
+                font-family: "Roboto Mono";
+                font-size: 16px;
+            }
+
+            Text {
+                text: @tr("X: 0.06434214");
+                font-family: "Roboto Mono";
+                font-size: 16px;
+            }
+
+            Text {
+                text: @tr("Y: 0.39200002");
+                font-family: "Roboto Mono";
+                font-size: 16px;
+            }
+        }
+    }
+
+    Rectangle {
+        height: 1rem;
+    }
+
+    HeadingText {
+        text: @tr("Packet Format Specification");
+    }
+
+    Text {
+        text: @tr("Each packet is of a fixed size. All values are serialised in network byte order.");
+        overflow: elide;
+        wrap: word-wrap;
+    }
+
+    HorizontalLayout {
+        alignment: center;
+
+        StandardTableView {
+            max-width: 800px;
+            min-height: 350px;
+
+            columns: [
+                {
+                    title: @tr("Description"),
+                    horizontal-stretch: 0.6,
+                    sort-order: unsorted,
+                },
+                {
+                    title: @tr("Type"),
+                    horizontal-stretch: 0.3,
+                    sort-order: unsorted,
+                },
+                {
+                    title: @tr("Value"),
+                    horizontal-stretch: 0.4,
+                    sort-order: unsorted,
+                },
+                {
+                    title: @tr("Size"),
+                    horizontal-stretch: 0.3,
+                    sort-order: unsorted,
+                },
+            ];
+            rows: [
+                [
+                    { text: @tr("Magic ID") },
+                    { text: "uint16" },
+                    { text: "0xA455" },
+                    { text: "2 B" },
+                ],
+                [
+                    { text: @tr("Unused") },
+                    { },
+                    { },
+                    { text: "1 B" },
+                ],
+                [
+                    { text: @tr("Buttons") },
+                    { text: "uint8" },
+                    { text: @tr("bitfield") },
+                    { text: "1 B" },
+                ],
+                [
+                    { text: @tr("Stylus pressure") },
+                    { text: "float32" },
+                    { text: "[0.0, 1.0]" },
+                    { text: "4 B" },
+                ],
+                [
+                    { text: @tr("Area aspect ratio") },
+                    { text: "float32" },
+                    { text: "(0.0, +inf)" },
+                    { text: "4 B" },
+                ],
+                [
+                    { text: @tr("Normalised X") },
+                    { text: "float32" },
+                    { text: "[-1.0, 1.0]" },
+                    { text: "4 B" },
+                ],
+                [
+                    { text: @tr("Normalised Y") },
+                    { text: "float32" },
+                    { text: "[-1.0, 1.0]" },
+                    { text: "4 B" },
+                ],
+                [
+                    { text: @tr("Total size") },
+                    { },
+                    { },
+                    { text: "= 20 B" },
+                ]
+            ];
+        }
+    }
+}

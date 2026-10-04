@@ -1,0 +1,115 @@
+import { VerticalBox, ComboBox, LineEdit, ScrollView } from "std-widgets.slint";
+import { SeparatorLine } from "../components/separator-line.slint";
+import { TickFrequencySelectWidget } from "../components/freq-selector.slint";
+import { InputBackend, GlobalUiState } from "../state.slint";
+import { NetInputBackend } from "net-backend-config.slint";
+
+export component InputTabContents inherits Rectangle {
+    in-out property <InputBackend> selected-backend: GlobalUiState.control-config.input-backend;
+
+    init => {
+        backend_cb.set-backend(selected-backend);
+    }
+
+    changed selected-backend => {
+        backend_cb.set-backend(selected-backend);
+    }
+
+    ScrollView {
+        VerticalLayout {
+            padding: 0;
+            alignment: start;
+            spacing: 1rem;
+
+            Rectangle {
+                height: 1rem;
+            }
+
+            HorizontalLayout {
+                spacing: 8px;
+
+                Text {
+                    text: @tr("Input source:");
+                    vertical-alignment: center;
+                }
+
+                backend_cb := ComboBox {
+                    model: [
+                        "Null source",
+                        "Report over UDP socket",
+                        "Linux evdev interface",
+                        "Windows WinTab",
+                    ];
+
+                    changed current-index => {
+                        if self.current-index == 0 { selected-backend = null; }
+                        else if self.current-index == 1 { selected-backend = net; }
+                        else if self.current-index == 2 { selected-backend = linux-evdev; }
+                        else if self.current-index == 3 { selected-backend = windows-wintab; }
+                    }
+
+                    function set-backend(backend: InputBackend) {
+                        if backend == null { backend_cb.current-index = 0; }
+                        else if backend == net { backend_cb.current-index = 1; }
+                        else if backend == linux-evdev { backend_cb.current-index = 2; }
+                        else if backend == windows-wintab { backend_cb.current-index = 3; }
+                    }
+                }
+            }
+
+            if selected-backend == null: VerticalLayout {
+                Text {
+                    text: @tr("The null source does nothing.");
+                    overflow: elide;
+                    wrap: word-wrap;
+                }
+
+                SeparatorLine { }
+
+                Rectangle {
+                    height: 100px;
+                    Text {
+                        text: @tr("No options available.");
+                    }
+                }
+            }
+            if selected-backend == net: NetInputBackend { }
+            if selected-backend == linux-evdev: VerticalLayout {
+                Text {
+                    text: @tr("Uses the Linux evdev interface to exclusively grab and capture input device input.");
+                    overflow: elide;
+                    wrap: word-wrap;
+                }
+
+                SeparatorLine { }
+
+                Rectangle {
+                    height: 100px;
+                    Text {
+                        text: @tr("Not yet implemented.");
+                    }
+                }
+            }
+            if selected-backend == windows-wintab: VerticalLayout {
+                Text {
+                    text: @tr("Uses the old Wintab API to exclusively grab and capture tablet input.\n\nYou must have installed a graphics tablet driver that implements the Wintab API!\n\nYou should have a Wintab32.dll file somewhere on your system.");
+                    overflow: elide;
+                    wrap: word-wrap;
+                }
+
+                SeparatorLine { }
+
+                Rectangle {
+                    height: 100px;
+                    Text {
+                        text: @tr("Not yet implemented.");
+                    }
+                }
+            }
+
+            Rectangle {
+                height: 1rem;
+            }
+        }
+    }
+}
