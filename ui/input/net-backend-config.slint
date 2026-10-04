@@ -49,6 +49,7 @@ export component NetInputBackend inherits VerticalBox {
 
         LineEdit {
             placeholder-text: @tr("e.g. 127.0.0.1:16027");
+            text <=> config.listen-address;
         }
     }
 
