@@ -1,12 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod config;
-mod controller;
-mod math;
-mod pen;
-mod save_path;
-mod timer;
-mod util;
+mod app;
 
 use std::{
     fs::create_dir_all,
@@ -18,7 +12,7 @@ use anyhow::Result;
 use log::{error, info};
 use slint::ToSharedString;
 
-use crate::save_path::save_dir;
+use crate::app::save_path::save_dir;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_ID: &str = "ph.jldvmsrwll1a.pen-steer";
@@ -26,7 +20,7 @@ const APP_ID: &str = "ph.jldvmsrwll1a.pen-steer";
 slint::include_modules!();
 
 fn main() -> Result<()> {
-    util::init_logging();
+    app::util::init_logging();
     info!("pen-steer v{VERSION}");
 
     if let Err(err) = create_dir_all(save_dir()) {

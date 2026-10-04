@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, time::Instant};
 
-use crate::math::Vec2;
+use crate::core::math::Vec2;
 
 #[derive(Debug, Clone, Copy)]
 pub struct PreTransform;

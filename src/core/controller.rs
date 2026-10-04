@@ -4,9 +4,9 @@ use log::info;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::config::Profile;
-use crate::pen::{Pen, PostTransform};
-use crate::timer::Timer;
+use crate::core::config::Profile;
+use crate::core::pen::{Pen, PostTransform};
+use crate::core::timer::Timer;
 
 pub enum Command {
     ResetControlState,
