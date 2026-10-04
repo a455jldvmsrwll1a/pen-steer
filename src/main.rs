@@ -1,18 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod config;
-mod controller;
-mod headless;
-mod input;
-mod mapping;
 mod math;
-mod output;
-mod pen;
-mod save;
 mod save_path;
 mod timer;
 mod util;
-mod wheel;
 
 use std::{
     fs::create_dir_all,
@@ -34,6 +25,10 @@ slint::include_modules!();
 fn main() -> Result<()> {
     util::init_logging();
     info!("pen-steer v{VERSION}");
+
+    if let Err(err) = create_dir_all(save_dir()) {
+        error!("Could not create configuration directory: {err}");
+    }
 
     let is_running = Arc::new(AtomicBool::default());
 
@@ -76,16 +71,6 @@ fn main() -> Result<()> {
     });
 
     ui.run()?;
-
-    return Ok(());
-
-    if let Err(err) = create_dir_all(save_dir()) {
-        error!("Could not create configuration directory: {err}");
-    }
-
-    if util::is_headless_requested() {
-        return headless::run_headless();
-    }
 
     info!("Nothing to do. Bye.");
 
