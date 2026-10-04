@@ -1,6 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod config;
+mod controller;
 mod math;
+mod pen;
 mod save_path;
 mod timer;
 mod util;
