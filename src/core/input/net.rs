@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2026 a455jldvmsrwll1a
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 use anyhow::{Context, Result, bail};
 use flume::Sender;
 use glam::Vec2;
