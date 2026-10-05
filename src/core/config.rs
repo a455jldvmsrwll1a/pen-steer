@@ -1,9 +1,13 @@
+use glam::Vec2;
+
 #[derive(Debug, Default, Clone)]
 pub struct Profile {
     tick_mode: TickMode,
     active_control: ControlType,
     active_output: OutputBackend,
     active_input: InputBackend,
+
+    mapping: Mapping,
 
     dummy_control: DummyControl,
     steering_wheel_control: SteeringWheelControl,
@@ -17,6 +21,17 @@ pub struct Profile {
     linux_usb_peripheral_output: LinuxUsbPeripheralOutput,
     windows_vigembus_output: WindowsVigemBusOutput,
     usb_over_ip_server_output: UsbOverIpServerOutput,
+}
+
+//
+// MAPPING
+//
+
+#[derive(Debug, Clone)]
+pub struct Mapping {
+    pub translation: Vec2,
+    pub rotation: f32,
+    pub scale: Vec2,
 }
 
 //
@@ -125,6 +140,16 @@ pub struct WindowsVigemBusOutput {}
 
 #[derive(Debug, Default, Clone)]
 pub struct UsbOverIpServerOutput {}
+
+impl Default for Mapping {
+    fn default() -> Self {
+        Self {
+            translation: Vec2::ZERO,
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        }
+    }
+}
 
 impl Default for SteeringWheelControl {
     fn default() -> Self {

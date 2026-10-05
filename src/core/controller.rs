@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::core::config::Profile;
-use crate::core::pen::{Pen, PostTransform};
 use crate::core::timer::Timer;
+use crate::core::transform::Pen;
 
 pub enum Command {
     ResetControlState,
@@ -22,7 +22,7 @@ pub enum Event {
 
 #[derive(Default, Clone)]
 pub struct Snapshot {
-    pub pen: Option<Pen<PostTransform>>,
+    pub pen: Option<Pen>,
     pub ffb_value: Option<f32>,
 }
 
