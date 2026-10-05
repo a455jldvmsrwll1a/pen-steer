@@ -11,7 +11,7 @@ slint::include_modules!();
 
 fn main() -> Result<()> {
     app::util::init_logging();
-    info!("pen-steer v{PACKAGE_VERSION}");
+    info!("pen-steer v{}", pen_steer::PACKAGE_VERSION);
 
     app::start_app()?;
 
