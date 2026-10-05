@@ -2,74 +2,20 @@
 
 mod app;
 
-use std::{
-    fs::create_dir_all,
-    sync::{Arc, atomic::AtomicBool},
-};
-
 use anyhow::Result;
+use log::info;
 
-use log::{error, info};
-use slint::ToSharedString;
-
-use crate::app::save_path::save_dir;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_ID: &str = "ph.jldvmsrwll1a.pen-steer";
 
 slint::include_modules!();
 
 fn main() -> Result<()> {
     app::util::init_logging();
-    info!("pen-steer v{VERSION}");
+    info!("pen-steer v{PACKAGE_VERSION}");
 
-    if let Err(err) = create_dir_all(save_dir()) {
-        error!("Could not create configuration directory: {err}");
-    }
+    app::start_app()?;
 
-    let is_running = Arc::new(AtomicBool::default());
-
-    let ui = AppWindow::new()?;
-    slint::set_xdg_app_id(APP_ID)?;
-    ui.set_app_version(VERSION.to_shared_string());
-
-    let ui_weak = ui.as_weak();
-    ui.global::<GlobalUiState>().on_ctl_config_changed(move || {
-        let Some(ui) = ui_weak.upgrade() else {
-            return;
-        };
-
-        let global = ui.global::<GlobalUiState>();
-
-        info!("control config updated!");
-        eprintln!("{:#?}", global.get_control_config());
-    });
-
-    ui.on_show_about_app(move || {
-        if let Ok(window) = AboutWindow::new() {
-            let _ = window.run();
-        }
-    });
-
-    ui.on_show_about_slint(move || {
-        if let Ok(window) = SlintWindow::new() {
-            let _ = window.run();
-        }
-    });
-
-    let is_running_clone = is_running.clone();
-    let ui_weak = ui.as_weak();
-    ui.on_main_action_clicked(move || {
-        is_running_clone.fetch_not(std::sync::atomic::Ordering::SeqCst);
-
-        ui_weak
-            .unwrap()
-            .invoke_set_running_state(is_running_clone.load(std::sync::atomic::Ordering::SeqCst));
-    });
-
-    ui.run()?;
-
-    info!("Nothing to do. Bye.");
+    info!("Bye.");
 
     Ok(())
 }
