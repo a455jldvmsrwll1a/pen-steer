@@ -4,15 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use std::{
-    env::args,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
-};
-
-use log::{LevelFilter, error};
+use std::env::args;
+use flume::Sender;
+use log::{LevelFilter, error, info};
 
 pub fn init_logging() {
     env_logger::Builder::default()
@@ -24,9 +18,13 @@ pub fn init_logging() {
         .init();
 }
 
-pub fn set_handler(quit_flag: Arc<AtomicBool>) {
+pub fn set_handler(quit_tx: Sender<()>) {
     if let Err(err) = ctrlc::set_handler(move || {
-        quit_flag.store(true, Ordering::Release);
+        info!("Got stop request.");
+
+        if let Err(err) = quit_tx.send(()) {
+            error!("Could not send quit message: {err}");
+        }
     }) {
         error!("Could not set signal handler: {err}");
     }

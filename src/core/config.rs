@@ -8,25 +8,25 @@ use glam::Vec2;
 
 #[derive(Debug, Default, Clone)]
 pub struct Profile {
-    tick_mode: TickMode,
-    active_control: ControlType,
-    active_output: OutputBackend,
-    active_input: InputBackend,
+    pub tick_mode: TickMode,
+    pub active_control: ControlType,
+    pub active_output: OutputBackend,
+    pub active_input: InputBackend,
 
-    mapping: Mapping,
+    pub mapping: Mapping,
 
-    dummy_control: DummyControl,
-    steering_wheel_control: SteeringWheelControl,
-    one_tablet_drive_control: OneTabletDriveControl,
+    pub dummy_control: DummyControl,
+    pub steering_wheel_control: SteeringWheelControl,
+    pub one_tablet_drive_control: OneTabletDriveControl,
 
-    net_input: NetInput,
-    linux_evdev_input: LinuxEvdevInput,
-    windows_wintab_input: WindowsWintabInput,
+    pub net_input: NetInput,
+    pub linux_evdev_input: LinuxEvdevInput,
+    pub windows_wintab_input: WindowsWintabInput,
 
-    linux_uinput_output: LinuxUinputOutput,
-    linux_usb_peripheral_output: LinuxUsbPeripheralOutput,
-    windows_vigembus_output: WindowsVigemBusOutput,
-    usb_over_ip_server_output: UsbOverIpServerOutput,
+    pub linux_uinput_output: LinuxUinputOutput,
+    pub linux_usb_peripheral_output: LinuxUsbPeripheralOutput,
+    pub windows_vigembus_output: WindowsVigemBusOutput,
+    pub usb_over_ip_server_output: UsbOverIpServerOutput,
 }
 
 //
@@ -64,34 +64,34 @@ pub enum ControlType {
 
 #[derive(Debug, Default, Clone)]
 pub struct DummyControl {
-    steer_value: f32,
-    accelerator_value: f32,
-    brake_value: f32,
-    horn: bool,
+    pub steer_value: f32,
+    pub accelerator_value: f32,
+    pub brake_value: f32,
+    pub horn: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct SteeringWheelControl {
-    angle_range: f32,
-    natural_rotation_radius_min: f32,
-    horn_radius: f32,
-    pressure_min: f32,
-    pressure_max: f32,
-    ignore_exterior_input: bool,
-    sticky_horn: bool,
-    fast_mode_switch: bool,
-    physics_enable: bool,
-    inertia: f32,
-    friction_coeff: f32,
-    spring_stiffness: f32,
-    allow_slippage: bool,
-    auto_grip_force: bool,
-    vary_grip_arm_length: bool,
-    direct_grip_threshold: f32,
-    full_grip_force: f32,
-    enable_ffb: bool,
-    full_ffb_negate: bool,
-    full_ffb_force: f32,
+    pub angle_range: f32,
+    pub natural_rotation_radius_min: f32,
+    pub horn_radius: f32,
+    pub pressure_min: f32,
+    pub pressure_max: f32,
+    pub ignore_exterior_input: bool,
+    pub sticky_horn: bool,
+    pub fast_mode_switch: bool,
+    pub physics_enable: bool,
+    pub inertia: f32,
+    pub friction_coeff: f32,
+    pub spring_stiffness: f32,
+    pub allow_slippage: bool,
+    pub auto_grip_force: bool,
+    pub vary_grip_arm_length: bool,
+    pub direct_grip_threshold: f32,
+    pub full_grip_force: f32,
+    pub enable_ffb: bool,
+    pub full_ffb_negate: bool,
+    pub full_ffb_force: f32,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -110,9 +110,9 @@ pub enum InputBackend {
     WindowsWintab,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct NetInput {
-    listen_addr: String,
+    pub listen_addr: String,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -180,6 +180,14 @@ impl Default for SteeringWheelControl {
             enable_ffb: true,
             full_ffb_negate: false,
             full_ffb_force: 900.0,
+        }
+    }
+}
+
+impl Default for NetInput {
+    fn default() -> Self {
+        Self {
+            listen_addr: "127.0.0.1:16027".into(),
         }
     }
 }

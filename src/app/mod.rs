@@ -10,45 +10,41 @@ pub mod util;
 use std::sync::{Arc, atomic::AtomicBool};
 
 use anyhow::Result;
+use arc_swap::ArcSwapAny;
 use log::{error, info};
 use pen_steer::{
     PACKAGE_VERSION,
-    core::{config::Mapping, transform::Transformer},
+    core::{
+        config::Profile,
+        controller::{self, Snapshot},
+    },
 };
 use slint::{ComponentHandle, ToSharedString};
 
 use crate::{APP_ID, AboutWindow, AppWindow, GlobalUiState, SlintWindow};
 
 pub fn start_app() -> Result<()> {
-    let stop_flag = Arc::new(AtomicBool::new(false));
-    util::set_handler(stop_flag.clone());
+    let profile = Arc::new(ArcSwapAny::new(Arc::new(Profile {
+        active_input: pen_steer::core::config::InputBackend::Net,
+        ..Default::default()
+    })));
 
-    let (sample_tx, sample_rx) = flume::unbounded();
-    let stop_flag_clone = stop_flag.clone();
-    let handle = std::thread::spawn(move || {
-        pen_steer::core::input::net::net_thread_loop("127.0.0.1:16027", sample_tx, stop_flag_clone)
+    let (quit_tx, quit_rx) = flume::unbounded();
+    util::set_handler(quit_tx);
+
+    let (cmd_tx, cmd_rx) = flume::unbounded();
+    let (event_tx, event_rx) = rtrb::RingBuffer::new(128);
+    let (snapshot_tx, snapshot_rx) = triple_buffer::triple_buffer(&Snapshot::default());
+
+    let controller_thread = std::thread::spawn(|| {
+        controller::controller(profile, cmd_rx, quit_rx, event_tx, snapshot_tx);
     });
-    let mut transformer = Transformer::new(&Mapping::default());
 
-    while let Ok(sample) = sample_rx.recv() {
-        transformer.update(sample);
-        let pen = transformer.get_pen();
+    let _ = cmd_tx.send(controller::Command::StartInput);
 
-        eprintln!(
-            "btn: {:#08b}, press: {:5.1}%, aspect: {:.3}, x: {:4.2}, y: {:4.2}, X: {:5.2}, Y: {:5.2}, X': {:5.2}, Y': {:5.2}",
-            sample.buttons,
-            sample.pressure * 100.0,
-            sample.aspect_ratio,
-            sample.coordinate.x,
-            sample.coordinate.y,
-            pen.position.x,
-            pen.position.y,
-            pen.velocity.x,
-            pen.velocity.y,
-        );
-    }
+    let _ = controller_thread.join();
 
-    info!("thread stopped:{:?}", handle.join());
+    info!("Bye.");
 
     return Ok(());
 

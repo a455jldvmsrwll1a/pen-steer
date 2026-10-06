@@ -8,20 +8,19 @@
 
 mod app;
 
-use anyhow::Result;
-use log::info;
+use log::{error, info};
 
 const APP_ID: &str = "ph.jldvmsrwll1a.pen-steer";
 
 slint::include_modules!();
 
-fn main() -> Result<()> {
+fn main() {
     app::util::init_logging();
-    info!("pen-steer v{}", pen_steer::PACKAGE_VERSION);
+    info!("Hello world! pen-steer v{}", pen_steer::PACKAGE_VERSION);
 
-    app::start_app()?;
+    if let Err(err) = app::start_app() {
+        error!("An error occured: {err}");
+    }
 
     info!("Bye.");
-
-    Ok(())
 }
