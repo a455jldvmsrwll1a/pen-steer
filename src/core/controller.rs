@@ -142,22 +142,9 @@ pub fn controller(
         // selector.wait();
 
         let mut current_pen = None;
-        if let Some(sample) = &sample {
+        if let Some(_sample) = &sample {
             let pen = state.transformer.get_pen();
             current_pen = Some(pen);
-
-            eprintln!(
-                "btn: {:#08b}, press: {:5.1}%, aspect: {:.3}, x: {:4.2}, y: {:4.2}, X: {:5.2}, Y: {:5.2}, X': {:5.2}, Y': {:5.2}",
-                sample.buttons,
-                sample.pressure * 100.0,
-                sample.aspect_ratio,
-                sample.coordinate.x,
-                sample.coordinate.y,
-                pen.position.x,
-                pen.position.y,
-                pen.velocity.x,
-                pen.velocity.y,
-            );
         }
 
         if let Some(command) = command.take() {
@@ -173,6 +160,13 @@ pub fn controller(
             current_pen,
             state.output.as_deref_mut(),
         );
+
+        if let Err(err) = state.output.as_deref_mut().apply() {
+            error!("Error during output apply(): {err}");
+            let _ = event_tx.push(Event::Error(err));
+
+            state.output = None;
+        }
 
         state.timer.wait();
     }

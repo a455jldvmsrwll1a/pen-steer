@@ -167,8 +167,8 @@ impl Default for SteeringWheelControl {
     fn default() -> Self {
         Self {
             angle_range: 1080.0,
-            natural_rotation_radius_min: 60.0,
-            horn_radius: 30.0,
+            natural_rotation_radius_min: 50.0,
+            horn_radius: 40.0,
             pressure_min: 5.0,
             pressure_max: 40.0,
             ignore_exterior_input: false,
