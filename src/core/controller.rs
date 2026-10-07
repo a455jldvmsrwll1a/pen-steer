@@ -13,7 +13,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::core::config::Profile;
-use crate::core::input::{InputBackendEvent, InputBackendHandle};
+use crate::core::control::{self, Control};
+use crate::core::input::{InputBackendEvent, InputBackendHandle, InputSample};
 use crate::core::timer::Timer;
 use crate::core::transform::{Pen, Transformer};
 
@@ -47,6 +48,13 @@ pub fn controller(
 
     let mut state = State::new(config);
     let quit = Rc::new(AtomicBool::new(false));
+
+    /*
+
+    TODO: blocking mode loop is pretty much done ig
+    TODO: NEXT: do the polling (timer) version, and then somehow mash them together
+
+     */
 
     while !quit.load(Ordering::Acquire) {
         let mut command = None;
@@ -124,19 +132,23 @@ pub fn controller(
 struct State {
     config: Arc<ArcSwap<Profile>>,
     timer: Timer,
+    control: Box<dyn Control>,
     input: Option<InputBackendHandle>,
     transformer: Transformer,
 }
 
 impl State {
-    pub fn new(config: Arc<ArcSwap<Profile>>) -> Self {
+    fn new(config: Arc<ArcSwap<Profile>>) -> Self {
         Self {
             transformer: Transformer::new(&config.load_full().mapping),
-            config,
-            timer: Timer::new(60),
+            control: control::create_control(&config.load()),
             input: None,
+            timer: Timer::new(60),
+            config,
         }
     }
+
+
 
     fn process_command(&mut self, command: Command) -> Result<()> {
         match command {
@@ -176,3 +188,13 @@ impl State {
         self.timer.wait();
     }
 }
+
+struct TickEvents {
+    command: Option<Command>,
+    sample: Option<InputSample>,
+    should_stop_input: bool,
+}
+
+// impl TickEvents {
+//     fn wait_for_events()
+// }

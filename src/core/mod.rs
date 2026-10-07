@@ -5,8 +5,10 @@
  */
 
 pub mod config;
+pub mod control;
 pub mod controller;
 pub mod input;
 pub mod math;
+pub mod output;
 pub mod timer;
 pub mod transform;

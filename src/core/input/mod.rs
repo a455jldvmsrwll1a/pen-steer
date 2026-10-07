@@ -16,7 +16,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
     thread::JoinHandle,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use crate::core::config::Profile;
