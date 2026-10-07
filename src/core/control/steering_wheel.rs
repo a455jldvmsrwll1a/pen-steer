@@ -6,11 +6,15 @@
 
 use crate::core::{config::Profile, control::Control, output::OutputBackend, transform::Pen};
 
-pub struct SteeringWheel {}
+pub struct SteeringWheel {
+    acc: f32,
+}
 
 impl SteeringWheel {
     pub fn new(profile: &Profile) -> Self {
-        Self {}
+        Self {
+            acc: 0.0,
+        }
     }
 }
 
@@ -20,7 +24,10 @@ impl Control for SteeringWheel {
         profile: &Profile,
         dt: f32,
         pen: Option<Pen>,
-        output: Option<&mut dyn OutputBackend>,
+        output: Option<&mut (dyn OutputBackend + '_)>,
     ) {
+        self.acc += dt;
+
+        eprintln!("{:.1} : ", self.acc);
     }
 }

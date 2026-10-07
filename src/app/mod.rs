@@ -26,6 +26,7 @@ use crate::{APP_ID, AboutWindow, AppWindow, GlobalUiState, SlintWindow};
 pub fn start_app() -> Result<()> {
     let profile = Arc::new(ArcSwapAny::new(Arc::new(Profile {
         active_input: pen_steer::core::config::InputBackend::Net,
+        active_output: pen_steer::core::config::OutputBackend::LinuxUinput,
         ..Default::default()
     })));
 
@@ -41,6 +42,7 @@ pub fn start_app() -> Result<()> {
     });
 
     let _ = cmd_tx.send(controller::Command::StartInput);
+    let _ = cmd_tx.send(controller::Command::StartOutput);
 
     let _ = controller_thread.join();
 

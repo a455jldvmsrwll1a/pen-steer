@@ -6,15 +6,17 @@
 
 use anyhow::{Result, bail};
 use arc_swap::ArcSwap;
-use flume::Receiver;
+use flume::{Receiver, TryRecvError};
 use log::{error, info, warn};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::core::config::Profile;
+use crate::core::control::steering_wheel::SteeringWheel;
 use crate::core::control::{self, Control};
 use crate::core::input::{InputBackendEvent, InputBackendHandle, InputSample};
+use crate::core::output::{self, OutputBackend};
 use crate::core::timer::Timer;
 use crate::core::transform::{Pen, Transformer};
 
@@ -58,33 +60,29 @@ pub fn controller(
 
     while !quit.load(Ordering::Acquire) {
         let mut command = None;
-        let mut should_stop_input = false;
         let mut sample = None;
 
-        let mut selector = flume::Selector::new();
-
-        selector = selector.recv(&quit_rx, |_| {
-            quit.store(true, Ordering::Release);
-        });
-
-        selector = selector.recv(&cmd_rx, |maybe_cmd| {
-            let Ok(cmd) = maybe_cmd else {
+        match quit_rx.try_recv() {
+            Ok(..) | Err(TryRecvError::Disconnected) => {
                 quit.store(true, Ordering::Release);
 
                 return;
-            };
+            }
+            Err(TryRecvError::Empty) => {}
+        }
 
-            command = Some(cmd);
-        });
+        match cmd_rx.try_recv() {
+            Ok(cmd) => command = Some(cmd),
+            Err(TryRecvError::Disconnected) => {
+                quit.store(true, Ordering::Release);
+
+                return;
+            }
+            Err(TryRecvError::Empty) => {}
+        }
 
         if let Some(input) = &mut state.input {
-            selector = selector.recv(input.rx(), |maybe_event| {
-                let Ok(event) = maybe_event else {
-                    should_stop_input = true;
-
-                    return;
-                };
-
+            for event in input.rx().try_iter() {
                 match event {
                     InputBackendEvent::Started => {}
                     InputBackendEvent::Error(error) => {
@@ -92,17 +90,61 @@ pub fn controller(
                         let _ = event_tx.push(Event::Error(error));
                     }
                     InputBackendEvent::Sample(input_sample) => {
+                        state.transformer.update(input_sample);
+
                         sample = Some(input_sample);
                     }
                 }
-            });
+            }
+
+            if input.rx().is_disconnected() {
+                state.input = None;
+            }
         }
 
-        selector.wait();
+        // let mut selector = flume::Selector::new();
 
+        // selector = selector.recv(&quit_rx, |_| {
+        //     quit.store(true, Ordering::Release);
+        // });
+
+        // selector = selector.recv(&cmd_rx, |maybe_cmd| {
+        //     let Ok(cmd) = maybe_cmd else {
+        //         quit.store(true, Ordering::Release);
+
+        //         return;
+        //     };
+
+        //     command = Some(cmd);
+        // });
+
+        // if let Some(input) = &mut state.input {
+        //     selector = selector.recv(input.rx(), |maybe_event| {
+        //         let Ok(event) = maybe_event else {
+        //             should_stop_input = true;
+
+        //             return;
+        //         };
+
+        //         match event {
+        //             InputBackendEvent::Started => {}
+        //             InputBackendEvent::Error(error) => {
+        //                 error!("Input backend error occured: {error}");
+        //                 let _ = event_tx.push(Event::Error(error));
+        //             }
+        //             InputBackendEvent::Sample(input_sample) => {
+        //                 sample = Some(input_sample);
+        //             }
+        //         }
+        //     });
+        // }
+
+        // selector.wait();
+
+        let mut current_pen = None;
         if let Some(sample) = &sample {
-            state.transformer.update(*sample);
             let pen = state.transformer.get_pen();
+            current_pen = Some(pen);
 
             eprintln!(
                 "btn: {:#08b}, press: {:5.1}%, aspect: {:.3}, x: {:4.2}, y: {:4.2}, X: {:5.2}, Y: {:5.2}, X': {:5.2}, Y': {:5.2}",
@@ -124,6 +166,15 @@ pub fn controller(
                 let _ = event_tx.push(Event::Error(err));
             }
         }
+
+        state.control.update(
+            &state.config.load(),
+            3.0 / 400.0,
+            current_pen,
+            state.output.as_deref_mut(),
+        );
+
+        state.timer.wait();
     }
 
     info!("Controller stopping!");
@@ -134,6 +185,7 @@ struct State {
     timer: Timer,
     control: Box<dyn Control>,
     input: Option<InputBackendHandle>,
+    output: Option<Box<dyn OutputBackend>>,
     transformer: Transformer,
 }
 
@@ -143,17 +195,18 @@ impl State {
             transformer: Transformer::new(&config.load_full().mapping),
             control: control::create_control(&config.load()),
             input: None,
-            timer: Timer::new(60),
+            output: None,
+            timer: Timer::new(400.0 / 3.0),
             config,
         }
     }
 
-
-
     fn process_command(&mut self, command: Command) -> Result<()> {
         match command {
             Command::ResetControlState => {
-                warn!("TODO: Command::ResetControlState");
+                info!("Resetting control state...");
+
+                self.control = control::create_control(&self.config.load());
             }
             Command::StartInput => {
                 info!("Starting input...");
@@ -174,10 +227,17 @@ impl State {
                 self.input = None;
             }
             Command::StartOutput => {
-                warn!("TODO: Command::StartOutput");
+                info!("Starting output...");
+
+                self.output = match output::create_output(&self.config.load()) {
+                    Ok(out) => Some(out),
+                    Err(err) => bail!(err),
+                };
             }
             Command::StopOutput => {
-                warn!("TODO: Command::StopOutput");
+                info!("Stopping output...");
+
+                self.output = None;
             }
         }
 

@@ -16,7 +16,7 @@ pub trait Control {
         profile: &Profile,
         dt: f32,
         pen: Option<Pen>,
-        output: Option<&mut dyn OutputBackend>,
+        output: Option<&mut (dyn OutputBackend + '_)>,
     );
 }
 
@@ -32,5 +32,12 @@ pub fn create_control(profile: &Profile) -> Box<dyn Control> {
 pub struct DummyControl;
 
 impl Control for DummyControl {
-    fn update(&mut self, _: &Profile, _: f32, _: Option<Pen>, _: Option<&mut dyn OutputBackend>) {}
+    fn update(
+        &mut self,
+        _: &Profile,
+        _: f32,
+        _: Option<Pen>,
+        _: Option<&mut (dyn OutputBackend + '_)>,
+    ) {
+    }
 }

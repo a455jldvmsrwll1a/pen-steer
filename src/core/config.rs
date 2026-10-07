@@ -135,8 +135,14 @@ pub enum OutputBackend {
     UsbOverIpServer,
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct LinuxUinputOutput {}
+#[derive(Debug, Clone)]
+pub struct LinuxUinputOutput {
+    pub resolution: u32,
+    pub name: String,
+    pub vendor: u16,
+    pub product: u16,
+    pub version: u16,
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct LinuxUsbPeripheralOutput {}
@@ -188,6 +194,18 @@ impl Default for NetInput {
     fn default() -> Self {
         Self {
             listen_addr: "127.0.0.1:16027".into(),
+        }
+    }
+}
+
+impl Default for LinuxUinputOutput {
+    fn default() -> Self {
+        Self {
+            resolution: 32768,
+            name: "G29 Driving Force Racing Wheel [PS3]".into(),
+            vendor: 0x46D,
+            product: 0xC24F,
+            version: 0x3,
         }
     }
 }

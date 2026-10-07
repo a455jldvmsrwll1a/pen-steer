@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use anyhow::Result;
+mod uinput;
 
-use crate::core::config::Profile;
+use anyhow::{Result, bail};
+
+use crate::core::{config::Profile, output::uinput::UInputBackend};
 
 pub trait OutputBackend {
     /// Get the current feedback force from the output device.
@@ -57,53 +59,53 @@ pub trait OutputBackend {
 pub fn create_output(profile: &Profile) -> Result<Box<dyn OutputBackend>> {
     Ok(match profile.active_output {
         super::config::OutputBackend::Null => Box::new(DummyOutputBackend),
-        super::config::OutputBackend::LinuxUinput => todo!(),
-        super::config::OutputBackend::LinuxUsbPeripheral => todo!(),
-        super::config::OutputBackend::WindowsVigemBus => todo!(),
-        super::config::OutputBackend::UsbOverIpServer => todo!(),
+        super::config::OutputBackend::LinuxUinput => Box::new(UInputBackend::new(profile)?),
+        super::config::OutputBackend::LinuxUsbPeripheral => bail!("Not yet implemented."),
+        super::config::OutputBackend::WindowsVigemBus => bail!("Not yet implemented."),
+        super::config::OutputBackend::UsbOverIpServer => bail!("Not yet implemented."),
     })
 }
 
 // Convenience wrapper. Operations are no-op when output is absent.
-impl<B: ?Sized + OutputBackend> OutputBackend for Option<&mut B> {
-    fn get_feedback_force(&self) -> Option<f32> {
-        self.as_ref().map(|out| out.get_feedback_force()).flatten()
-    }
+// impl<B: ?Sized + OutputBackend> OutputBackend for Option<&mut B> {
+//     fn get_feedback_force(&self) -> Option<f32> {
+//         self.as_ref().map(|out| out.get_feedback_force()).flatten()
+//     }
 
-    fn set_wheel(&mut self, normalised: f32) {
-        if let Some(out) = self {
-            out.set_wheel(normalised);
-        }
-    }
+//     fn set_wheel(&mut self, normalised: f32) {
+//         if let Some(out) = self {
+//             out.set_wheel(normalised);
+//         }
+//     }
 
-    fn set_accelerator(&mut self, normalised: f32) {
-        if let Some(out) = self {
-            out.set_accelerator(normalised);
-        }
-    }
+//     fn set_accelerator(&mut self, normalised: f32) {
+//         if let Some(out) = self {
+//             out.set_accelerator(normalised);
+//         }
+//     }
 
-    fn set_brake(&mut self, normalised: f32) {
-        if let Some(out) = self {
-            out.set_brake(normalised);
-        }
-    }
+//     fn set_brake(&mut self, normalised: f32) {
+//         if let Some(out) = self {
+//             out.set_brake(normalised);
+//         }
+//     }
 
-    fn set_horn(&mut self, honking: bool) {
-        if let Some(out) = self {
-            out.set_horn(honking);
-        }
-    }
+//     fn set_horn(&mut self, honking: bool) {
+//         if let Some(out) = self {
+//             out.set_horn(honking);
+//         }
+//     }
 
-    fn apply(&mut self) -> Result<()> {
-        self.as_mut().map(|out| out.apply()).unwrap_or(Ok(()))
-    }
+//     fn apply(&mut self) -> Result<()> {
+//         self.as_mut().map(|out| out.apply()).unwrap_or(Ok(()))
+//     }
 
-    fn handle_events(&mut self) {
-        if let Some(out) = self {
-            out.handle_events();
-        }
-    }
-}
+//     fn handle_events(&mut self) {
+//         if let Some(out) = self {
+//             out.handle_events();
+//         }
+//     }
+// }
 
 pub struct DummyOutputBackend;
 
