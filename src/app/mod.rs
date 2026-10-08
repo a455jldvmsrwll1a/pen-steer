@@ -31,7 +31,7 @@ pub fn start_app() -> Result<()> {
     })));
 
     let (quit_tx, quit_rx) = flume::unbounded();
-    util::set_handler(quit_tx);
+    util::set_handler(quit_tx.clone());
 
     let (cmd_tx, cmd_rx) = flume::unbounded();
     let (event_tx, event_rx) = rtrb::RingBuffer::new(128);
@@ -40,15 +40,6 @@ pub fn start_app() -> Result<()> {
     let controller_thread = std::thread::spawn(|| {
         controller::controller(profile, cmd_rx, quit_rx, event_tx, snapshot_tx);
     });
-
-    let _ = cmd_tx.send(controller::Command::StartInput);
-    let _ = cmd_tx.send(controller::Command::StartOutput);
-
-    let _ = controller_thread.join();
-
-    info!("Bye.");
-
-    return Ok(());
 
     if let Err(err) = std::fs::create_dir_all(save_path::save_dir()) {
         error!("Could not create configuration directory: {err}");
@@ -95,6 +86,12 @@ pub fn start_app() -> Result<()> {
     });
 
     ui.run()?;
+
+    let _ = quit_tx.send(());
+
+    if let Err(err) = controller_thread.join() {
+        error!("Error while waiting for controller thread to stop: {err:?}");
+    }
 
     Ok(())
 }

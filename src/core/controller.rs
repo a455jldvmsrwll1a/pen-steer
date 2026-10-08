@@ -58,7 +58,7 @@ pub fn controller(
 
      */
 
-    while !quit.load(Ordering::Acquire) {
+    'main: while !quit.load(Ordering::Acquire) {
         let mut command = None;
         let mut sample = None;
 
@@ -66,7 +66,7 @@ pub fn controller(
             Ok(..) | Err(TryRecvError::Disconnected) => {
                 quit.store(true, Ordering::Release);
 
-                return;
+                break 'main;
             }
             Err(TryRecvError::Empty) => {}
         }
@@ -76,7 +76,7 @@ pub fn controller(
             Err(TryRecvError::Disconnected) => {
                 quit.store(true, Ordering::Release);
 
-                return;
+                break 'main;
             }
             Err(TryRecvError::Empty) => {}
         }

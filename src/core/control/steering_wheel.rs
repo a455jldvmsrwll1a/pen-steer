@@ -79,13 +79,6 @@ impl Control for SteeringWheel {
                     let base_radius = config.natural_rotation_radius_min / 100.0;
                     let adjusted_delta = math::adjust_angle_delta(dtheta, r, base_radius);
                     self.angle += adjusted_delta;
-
-                    eprintln!(
-                        "dtheta = {:3.0} deg, adjusted = {:3.0} deg, r = {:3.0}%",
-                        dtheta.to_degrees(),
-                        adjusted_delta.to_degrees(),
-                        r * 100.0
-                    );
                 }
             }
         }
@@ -103,12 +96,5 @@ impl Control for SteeringWheel {
         output.set_horn(self.honking);
         output.set_accelerator(0.0);
         output.set_brake(0.0);
-
-        eprintln!(
-            "@ {:7.1} deg ({:4.0}%) [{}]",
-            self.angle.to_degrees(),
-            angle_normalised * 100.0,
-            if self.honking { "HORN" } else { "    " }
-        );
     }
 }
