@@ -23,9 +23,9 @@ import {
 import { SeparatorLine } from "components/separator-line.slint";
 import { SplitButton } from "components/split-button.slint";
 import { TickFrequencySelectWidget } from "components/freq-selector.slint";
-import { WheelTabContents } from "wheel-tab-contents.slint";
 import { GlobalUiState } from "state.slint";
-import { InputTabContents } from "input/tab-contents.slint";
+import { InputTabContents } from "config/input/tab-contents.slint";
+import { WheelTabContents } from "config/control/wheel-tab-contents.slint";
 
 export { GlobalUiState }
 export component AppWindow inherits Window {
@@ -128,12 +128,6 @@ export component AppWindow inherits Window {
             title: @tr("Help");
 
             MenuItem {
-                title: @tr("Console");
-            }
-
-            MenuSeparator { }
-
-            MenuItem {
                 title: @tr("About pen-steer");
                 activated => { root.show-about-app(); }
             }
@@ -158,30 +152,60 @@ export component AppWindow inherits Window {
             }
 
             Tab {
-                title: @tr("Wheel");
-
-                WheelTabContents { }
-            }
-
-            Tab {
-                title: @tr("Mapping");
+                title: @tr("View");
 
                 Text {
-                    text: "Mapping page is work in progress!!!";
+                    text: "View page is work in progress!!!";
                 }
             }
 
             Tab {
-                title: @tr("Input");
+                title: @tr("Configuration");
 
-                InputTabContents { }
+                TabWidget {
+                    Tab {
+                        title: @tr("Control");
+
+                        WheelTabContents { }
+                    }
+
+                    Tab {
+                        title: @tr("Mapping");
+
+                        Text {
+                            text: "Mapping page is work in progress!!!";
+                        }
+                    }
+
+                    Tab {
+                        title: @tr("Input");
+
+                        InputTabContents { }
+                    }
+
+                    Tab {
+                        title: @tr("Output");
+
+                        Text {
+                            text: "Output page is work in progress!!!";
+                        }
+                    }
+
+                    Tab {
+                        title: @tr("Audio");
+
+                        Text {
+                            text: "Audio page is work in progress!!!";
+                        }
+                    }
+                }
             }
 
             Tab {
-                title: @tr("Output");
+                title: @tr("Console");
 
                 Text {
-                    text: "Output page is work in progress!!!";
+                    text: "Console page is work in progress!!!";
                 }
             }
         }
