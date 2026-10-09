@@ -26,12 +26,18 @@ import { TickFrequencySelectWidget } from "components/freq-selector.slint";
 import { GlobalUiState } from "state.slint";
 import { InputTabContents } from "config/input/tab-contents.slint";
 import { WheelTabContents } from "config/control/wheel-tab-contents.slint";
+import { HeadingText } from "components/heading-text.slint";
+import { ViewTabContents, ViewTabStatus } from "view-tab-contents.slint";
 
 export { GlobalUiState }
+export { ViewTabStatus }
 export component AppWindow inherits Window {
     in property <string> app_version: "<unknown>";
     in property <string> current_profile: "<unknown profile>";
-    out property <bool> always_show_perf_stats: true;
+
+    in-out property <bool> show_steer_meter: true;
+    in-out property <bool> show_ffb_meter: true;
+    in-out property <bool> always_show_perf_stats: true;
 
     title: @tr("pen-steer {} :: {}", app_version, current_profile);
     icon: @image-url("../assets/icon.png");
@@ -108,13 +114,13 @@ export component AppWindow inherits Window {
             MenuItem {
                 title: @tr("Show wheel angle bar");
                 checkable: true;
-                checked: true;
+                checked <=> root.show_steer_meter;
             }
 
             MenuItem {
                 title: @tr("Show force-feedback meter");
                 checkable: true;
-                checked: true;
+                checked <=> root.show_ffb_meter;
             }
 
             MenuItem {
@@ -143,19 +149,42 @@ export component AppWindow inherits Window {
         spacing: 0;
 
         tabs := TabWidget {
+            changed current-index => {
+                view_tab_contents.should_refresh = self.current-index == 1;
+
+                if view_tab_contents.should_refresh {
+                    ViewTabStatus.fetch_status();
+                }
+            }
+
             Tab {
                 title: @tr("Status");
 
-                Text {
-                    text: "Status page is work in progress!!!";
+                VerticalLayout {
+                    alignment: center;
+
+                    HeadingText {
+                        horizontal-alignment: center;
+                        text: @tr("Hello world! pen-steer {}", app_version);
+                    }
+
+                    Rectangle {
+                        height: 5rem;
+                    }
+
+                    Text {
+                        horizontal-alignment: center;
+                        text: "Status page is work in progress!!!";
+                    }
                 }
             }
 
             Tab {
                 title: @tr("View");
 
-                Text {
-                    text: "View page is work in progress!!!";
+                view_tab_contents := ViewTabContents {
+                    show_steer_meter: root.show_steer_meter;
+                    show_ffb_meter: root.show_ffb_meter;
                 }
             }
 

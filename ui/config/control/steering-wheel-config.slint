@@ -60,13 +60,13 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         vertical-stretch: 1;
 
         Image {
-            source: @image-url("../assets/base.svg");
+            source: @image-url("../../../assets/base.svg");
             width: parent.width;
             height: parent.height;
             image-fit: contain;
 
             horn_img := Image {
-                source: @image-url("../assets/inner.svg");
+                source: @image-url("../../../assets/inner.svg");
                 width: parent.width;
                 height: parent.height * (horn_radius.current-value / 100.0);
                 image-fit: contain;

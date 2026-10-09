@@ -6,7 +6,10 @@
 
 mod uinput;
 
+use std::{cell::Cell, ops::DerefMut};
+
 use anyhow::{Result, bail};
+use log::debug;
 
 use crate::core::{config::Profile, output::uinput::UInputBackend};
 
@@ -104,6 +107,64 @@ impl<B: ?Sized + OutputBackend> OutputBackend for Option<&mut B> {
         if let Some(out) = self {
             out.handle_events();
         }
+    }
+}
+
+/// yeah this is hella ass imho
+pub struct OutputWrapperThing {
+    pub inner: Box<dyn OutputBackend>,
+    pub last_ffb: Cell<Option<f32>>,
+    pub last_wheel: f32,
+    pub last_horn: bool,
+}
+
+impl OutputWrapperThing {
+    pub fn new(inner: Box<dyn OutputBackend>) -> Self {
+        Self {
+            inner,
+            last_ffb: Cell::new(None),
+            last_wheel: 0.0,
+            last_horn: false,
+        }
+    }
+}
+
+impl OutputBackend for OutputWrapperThing {
+    fn get_feedback_force(&self) -> Option<f32> {
+        let ffb = self.inner.get_feedback_force();
+        self.last_ffb.set(ffb);
+        
+        ffb
+    }
+
+    fn set_wheel(&mut self, normalised: f32) {
+        self.last_wheel = normalised;
+        self.inner.set_wheel(normalised);
+    }
+
+    fn set_accelerator(&mut self, normalised: f32) {
+        self.inner.set_accelerator(normalised);
+    }
+
+    fn set_brake(&mut self, normalised: f32) {
+        self.inner.set_brake(normalised);
+    }
+
+    fn set_horn(&mut self, honking: bool) {
+        if self.last_horn != honking {
+            debug!("set_horn({honking})");
+        }
+
+        self.last_horn = honking;
+        self.inner.set_horn(honking);
+    }
+
+    fn apply(&mut self) -> Result<()> {
+        self.inner.apply()
+    }
+
+    fn handle_events(&mut self) {
+        self.inner.handle_events();
     }
 }
 

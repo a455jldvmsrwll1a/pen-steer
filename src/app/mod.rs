@@ -7,7 +7,11 @@
 pub mod save_path;
 pub mod util;
 
-use std::sync::{Arc, atomic::AtomicBool};
+use std::{
+    f64::consts::PI,
+    sync::{Arc, atomic::AtomicBool},
+    time::Instant,
+};
 
 use anyhow::Result;
 use arc_swap::ArcSwapAny;
@@ -21,7 +25,7 @@ use pen_steer::{
 };
 use slint::{ComponentHandle, ToSharedString};
 
-use crate::{APP_ID, AboutWindow, AppWindow, GlobalUiState, SlintWindow};
+use crate::{APP_ID, AboutWindow, AppWindow, GlobalUiState, SlintWindow, ViewTabStatus};
 
 pub fn start_app() -> Result<()> {
     let profile = Arc::new(ArcSwapAny::new(Arc::new(Profile {
@@ -35,11 +39,14 @@ pub fn start_app() -> Result<()> {
 
     let (cmd_tx, cmd_rx) = flume::unbounded();
     let (event_tx, event_rx) = rtrb::RingBuffer::new(128);
-    let (snapshot_tx, snapshot_rx) = triple_buffer::triple_buffer(&Snapshot::default());
+    let (snapshot_tx, mut snapshot_rx) = triple_buffer::triple_buffer(&Snapshot::default());
 
     let controller_thread = std::thread::spawn(|| {
         controller::controller(profile, cmd_rx, quit_rx, event_tx, snapshot_tx);
     });
+
+    cmd_tx.send(controller::Command::StartInput)?;
+    cmd_tx.send(controller::Command::StartOutput)?;
 
     if let Err(err) = std::fs::create_dir_all(save_path::save_dir()) {
         error!("Could not create configuration directory: {err}");
@@ -50,6 +57,34 @@ pub fn start_app() -> Result<()> {
     let ui = AppWindow::new()?;
     slint::set_xdg_app_id(APP_ID)?;
     ui.set_app_version(PACKAGE_VERSION.to_shared_string());
+
+    let ui_weak = ui.as_weak();
+    ui.global::<ViewTabStatus>().on_fetch_status(move || {
+        let Some(ui) = ui_weak.upgrade() else {
+            return;
+        };
+
+        let state = snapshot_rx.read();
+
+        let global = ui.global::<ViewTabStatus>();
+        global.set_ffb_available(state.ffb_value.is_some());
+        global.set_ffb_value(state.ffb_value.unwrap_or(0.0));
+        global.set_steer_value(state.wheel_value);
+        global.set_horn_pressed(state.horn_pressed);
+        
+        match state.pen {
+            Some(pen) => {
+                global.set_pen_available(true);
+                global.set_grip_strength(state.grip_strength);
+                global.set_pen_x(pen.position.x);
+                global.set_pen_y(pen.position.y);
+            },
+            None => {
+                global.set_pen_available(false);
+            },
+        }
+        
+    });
 
     let ui_weak = ui.as_weak();
     ui.global::<GlobalUiState>().on_ctl_config_changed(move || {

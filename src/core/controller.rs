@@ -16,7 +16,8 @@ use crate::core::config::Profile;
 use crate::core::control::steering_wheel::SteeringWheel;
 use crate::core::control::{self, Control};
 use crate::core::input::{InputBackendEvent, InputBackendHandle, InputSample};
-use crate::core::output::{self, OutputBackend};
+use crate::core::math;
+use crate::core::output::{self, OutputBackend, OutputWrapperThing};
 use crate::core::timer::Timer;
 use crate::core::transform::{Pen, Transformer};
 
@@ -36,7 +37,10 @@ pub enum Event {
 #[derive(Default, Clone)]
 pub struct Snapshot {
     pub pen: Option<Pen>,
+    pub grip_strength: f32,
     pub ffb_value: Option<f32>,
+    pub wheel_value: f32,
+    pub horn_pressed: bool,
 }
 
 pub fn controller(
@@ -50,13 +54,6 @@ pub fn controller(
 
     let mut state = State::new(config);
     let quit = Rc::new(AtomicBool::new(false));
-
-    /*
-
-    TODO: blocking mode loop is pretty much done ig
-    TODO: NEXT: do the polling (timer) version, and then somehow mash them together
-
-     */
 
     'main: while !quit.load(Ordering::Acquire) {
         let mut command = None;
@@ -158,15 +155,40 @@ pub fn controller(
             &state.config.load(),
             3.0 / 400.0,
             current_pen,
-            state.output.as_deref_mut(),
+            state
+                .output
+                .as_mut()
+                .map(|out| out as &mut dyn OutputBackend),
         );
 
-        if let Err(err) = state.output.as_deref_mut().apply() {
+        if let Err(err) = state
+            .output
+            .as_mut()
+            .map(|out| out as &mut dyn OutputBackend)
+            .apply()
+        {
             error!("Error during output apply(): {err}");
             let _ = event_tx.push(Event::Error(err));
 
             state.output = None;
         }
+
+        let profile = &state.config.load().steering_wheel_control;
+        let mut snapshot = snapshot_tx.input_buffer_publisher();
+        snapshot.pen = current_pen;
+        snapshot.grip_strength = current_pen.map_or(0.0, |pen| {
+            math::remap(
+                pen.pressure,
+                profile.pressure_min / 100.0,
+                profile.pressure_max / 100.0,
+                0.0,
+                1.0,
+            )
+            .clamp(0.0, 1.0)
+        });
+        snapshot.wheel_value = state.output.as_ref().map_or(0.0, |out| out.last_wheel);
+        snapshot.horn_pressed = state.output.as_ref().map_or(false, |out| out.last_horn);
+        drop(snapshot);
 
         state.timer.wait();
     }
@@ -179,7 +201,7 @@ struct State {
     timer: Timer,
     control: Box<dyn Control>,
     input: Option<InputBackendHandle>,
-    output: Option<Box<dyn OutputBackend>>,
+    output: Option<OutputWrapperThing>,
     transformer: Transformer,
 }
 
@@ -224,7 +246,7 @@ impl State {
                 info!("Starting output...");
 
                 self.output = match output::create_output(&self.config.load()) {
-                    Ok(out) => Some(out),
+                    Ok(out) => Some(OutputWrapperThing::new(out)),
                     Err(err) => bail!(err),
                 };
             }
@@ -242,13 +264,3 @@ impl State {
         self.timer.wait();
     }
 }
-
-struct TickEvents {
-    command: Option<Command>,
-    sample: Option<InputSample>,
-    should_stop_input: bool,
-}
-
-// impl TickEvents {
-//     fn wait_for_events()
-// }

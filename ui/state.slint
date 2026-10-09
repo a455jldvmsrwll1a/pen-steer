@@ -30,9 +30,9 @@ export enum OutputBackend {
 export struct DummyConfig {}
 
 export struct SteeringWheelConfig {
-    angle_range: float,
+    angle_range: float = 1080.0,
     natural_rotation_radius_min: float,
-    horn_radius: float,
+    horn_radius: float = 40.0,
     pressure_min: float,
     pressure_max: float,
     ignore_exterior_input: bool,

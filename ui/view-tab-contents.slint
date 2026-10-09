@@ -1,0 +1,147 @@
+/*
+ * SPDX-FileCopyrightText: 2026 a455jldvmsrwll1a
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import { GlobalUiState } from "state.slint";
+import { Palette, ProgressIndicator } from "std-widgets.slint";
+
+export global ViewTabStatus {
+    in property <float> steer_value;
+    in property <float> ffb_value;
+    in property <bool> ffb_available;
+    in property <bool> pen_available;
+    in property <float> pen_x;
+    in property <float> pen_y;
+    in property <float> grip_strength;
+    in property <bool> horn_pressed;
+
+    callback fetch_status();
+}
+
+export component ViewTabContents inherits Rectangle {
+    in property <bool> show_steer_meter: true;
+    in property <bool> show_ffb_meter: true;
+
+    in-out property <bool> should_refresh;
+
+    property <float> steer_value: ViewTabStatus.steer_value;
+    property <float> ffb_value: ViewTabStatus.ffb_value;
+    property <float> pen_x: ViewTabStatus.pen_x;
+    property <float> pen_y: ViewTabStatus.pen_y;
+    property <float> pen_pressure: ViewTabStatus.grip_strength;
+
+    property <float> half_angle: GlobalUiState.control-config.steering-wheel.angle-range * 0.5;
+    property <float> horn_radius: GlobalUiState.control-config.steering-wheel.horn-radius;
+
+    // Not really what I wanted which is to request a redraw and invoke the
+    // callback every frame, but this will do for now.
+    refresh_timer := Timer {
+        interval: 1s / 60;
+        running: should_refresh;
+
+        triggered => {
+            ViewTabStatus.fetch_status();
+        }
+    }
+
+    animate steer_value {
+        duration: refresh_timer.interval;
+        easing: linear;
+    }
+
+    VerticalLayout {
+        Rectangle {
+            min-height: 256px;
+            vertical-stretch: 1;
+
+            Rectangle {
+                width: parent.width * 0.9;
+                height: parent.height * 0.9;
+
+                Image {
+                    source: @image-url("../assets/base.svg");
+                    width: parent.width;
+                    height: parent.height;
+                    image-fit: contain;
+
+                    transform-rotation: steer_value * half_angle * 1deg;
+
+                    horn_img := Image {
+                        source: @image-url("../assets/inner.svg");
+                        width: parent.width;
+                        height: min(parent.height, parent.width) * (horn_radius / 100.0) * (ViewTabStatus.horn_pressed ? 0.85 : 1.0);
+                        image-fit: contain;
+
+                        Rectangle {
+                            width: min(parent.width, parent.height);
+                            height: self.width;
+                            border-radius: self.height;
+                            background: ViewTabStatus.horn_pressed ? purple.transparentize(0.5) : transparent;
+                        }
+                    }
+                }
+
+                if ViewTabStatus.pen_available: Rectangle {
+                    background: pen_pressure > 0.0 ? lime : transparent;
+                    border-width: parent.height * 0.0125;
+                    border-color: limegreen;
+                    border-radius: self.width / 2.0;
+                    width: self.height;
+                    height: min(parent.width, parent.height) * (0.1 - 0.05 * pen_pressure);
+                    x: (parent.width * 0.5) - (self.width / 2) + (parent.height * 0.5 * pen_x);
+                    y: (parent.height * 0.5) - (self.height / 2) - (parent.height * 0.5 * pen_y);
+                }
+            }
+        }
+
+        if show_ffb_meter: Rectangle {
+            height: 23px;
+            background: Palette.background.darker(50%);
+
+            if ViewTabStatus.ffb_available: Rectangle {
+                background: orange.darker(25%);
+                height: parent.height;
+                x: (parent.width / 2) * (1.0 + ffb_value.min(0.0));
+                width: (parent.width / 2) * -ffb_value.min(0.0);
+            }
+
+            if ViewTabStatus.ffb_available: Rectangle {
+                background: cyan.darker(25%);
+                height: parent.height;
+                x: parent.x + parent.width / 2;
+                width: (parent.width / 2) * ffb_value.max(0.0);
+            }
+
+            if !ViewTabStatus.ffb_available: Text {
+                text: @tr("FFB is not active!");
+                color: Palette.foreground.darker(50%);
+            }
+        }
+
+        if show_steer_meter && show_ffb_meter: Rectangle {
+            height: 2px;
+            background: Palette.border;
+        }
+
+        if show_steer_meter: Rectangle {
+            height: 35px;
+            background: Palette.background.darker(50%);
+
+            Rectangle {
+                background: red;
+                height: parent.height;
+                x: (parent.width / 2) * (1.0 + steer_value.min(0.0));
+                width: (parent.width / 2) * -steer_value.min(0.0);
+            }
+
+            Rectangle {
+                background: blue;
+                height: parent.height;
+                x: parent.x + parent.width / 2;
+                width: (parent.width / 2) * steer_value.max(0.0);
+            }
+        }
+    }
+}
