@@ -27,9 +27,24 @@ use nix::libc::{
     O_NONBLOCK, ff_constant_effect, ff_effect, ff_replay, ff_trigger, input_event, timeval,
 };
 
-use crate::core::{config::Profile, output::OutputBackend};
+use crate::core::{
+    config::{LinuxUinputOutput, Profile},
+    output::{OutputBackendStuffs, OutputEvent},
+};
 
-pub struct UInputBackend {
+pub fn uinput_thread_loop(config: &LinuxUinputOutput, mut obs: OutputBackendStuffs) -> Result<()> {
+    let mut events = mio::Events::with_capacity(128);
+
+    obs.send_event(OutputEvent::Started)?;
+
+    while !obs.should_stop() {
+        obs.waker_poll.poll(&mut events, None)?;
+    }
+
+    Ok(())
+}
+
+struct State {
     handle: UInputHandle<File>,
     resolution: f32,
     wheel_axis: i32,
@@ -43,8 +58,8 @@ pub struct UInputBackend {
     ff: Option<FFState>,
 }
 
-impl UInputBackend {
-    pub fn new(profile: &Profile) -> Result<Self> {
+impl State {
+    fn new(profile: &Profile) -> Result<Self> {
         let config = &profile.linux_uinput_output;
 
         if config.resolution > u32::from(u16::MAX) {
@@ -227,7 +242,7 @@ impl UInputBackend {
     }
 }
 
-impl OutputBackend for UInputBackend {
+impl State {
     fn get_feedback_force(&self) -> Option<f32> {
         self.ff.and_then(|ff| {
             ff.playing
@@ -378,7 +393,7 @@ impl OutputBackend for UInputBackend {
     }
 }
 
-impl Drop for UInputBackend {
+impl Drop for State {
     fn drop(&mut self) {
         if let Err(err) = self.handle.dev_destroy() {
             error!("Error occured destroying uinput device: {err}");
@@ -386,7 +401,7 @@ impl Drop for UInputBackend {
     }
 }
 
-impl Debug for UInputBackend {
+impl Debug for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("UInputDev { /* fields */ }")
     }

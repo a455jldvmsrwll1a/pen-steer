@@ -7,17 +7,16 @@
 use anyhow::{Result, bail};
 use arc_swap::ArcSwap;
 use flume::{Receiver, TryRecvError};
-use log::{error, info, warn};
+use log::{error, info};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::core::config::Profile;
-use crate::core::control::steering_wheel::SteeringWheel;
 use crate::core::control::{self, Control};
-use crate::core::input::{InputBackendEvent, InputBackendHandle, InputSample};
+use crate::core::input::{InputBackendEvent, InputBackendHandle};
 use crate::core::math;
-use crate::core::output::{self, OutputBackend, OutputWrapperThing};
+use crate::core::output::OutputBackendHandle;
 use crate::core::timer::Timer;
 use crate::core::transform::{Pen, Transformer};
 
@@ -201,7 +200,7 @@ struct State {
     timer: Timer,
     control: Box<dyn Control>,
     input: Option<InputBackendHandle>,
-    output: Option<OutputWrapperThing>,
+    output: Option<OutputBackendHandle>,
     transformer: Transformer,
 }
 
@@ -236,17 +235,13 @@ impl State {
             Command::StopInput => {
                 info!("Stopping input...");
 
-                if self.input.is_none() {
-                    return Ok(());
-                }
-
                 self.input = None;
             }
             Command::StartOutput => {
                 info!("Starting output...");
 
-                self.output = match output::create_output(&self.config.load()) {
-                    Ok(out) => Some(OutputWrapperThing::new(out)),
+                self.output = match OutputBackendHandle::create(&self.config.load()) {
+                    Ok(obh) => Some(obh),
                     Err(err) => bail!(err),
                 };
             }

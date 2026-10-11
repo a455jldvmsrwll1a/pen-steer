@@ -7,23 +7,17 @@
 pub mod steering_wheel;
 
 use crate::core::{
-    config::Profile, control::steering_wheel::SteeringWheel, output::OutputBackend, transform::Pen,
+    config::Profile, control::steering_wheel::SteeringWheel, output::OutputSample, transform::Pen,
 };
 
 pub trait Control {
-    fn update(
-        &mut self,
-        profile: &Profile,
-        dt: f32,
-        pen: Option<Pen>,
-        output: Option<&mut (dyn OutputBackend + '_)>,
-    );
+    fn update(&mut self, profile: &Profile, dt: f32, pen: Option<Pen>, output: &mut OutputSample);
 }
 
 pub fn create_control(profile: &Profile) -> Box<dyn Control> {
     match profile.active_control {
         super::config::ControlType::Dummy => Box::new(DummyControl::default()),
-        super::config::ControlType::SteeringWheel => Box::new(SteeringWheel::new(profile)),
+        super::config::ControlType::SteeringWheel => Box::new(SteeringWheel::default()),
         super::config::ControlType::OneTabletDrive => todo!("one-tablet-drive under construction"),
     }
 }
@@ -32,12 +26,5 @@ pub fn create_control(profile: &Profile) -> Box<dyn Control> {
 pub struct DummyControl;
 
 impl Control for DummyControl {
-    fn update(
-        &mut self,
-        _: &Profile,
-        _: f32,
-        _: Option<Pen>,
-        _: Option<&mut (dyn OutputBackend + '_)>,
-    ) {
-    }
+    fn update(&mut self, _: &Profile, _: f32, _: Option<Pen>, _: &mut OutputSample) {}
 }

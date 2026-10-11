@@ -4,188 +4,205 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread::JoinHandle,
+    time::Instant,
+};
+
+use anyhow::{Result, anyhow, bail};
+use flume::{Receiver, Sender};
+use log::{debug, error, info};
+use mio::{Events, Poll, Token, Waker};
+
+use crate::core::config::Profile;
+
 mod uinput;
 
-use std::{cell::Cell, ops::DerefMut};
-
-use anyhow::{Result, bail};
-use log::debug;
-
-use crate::core::{config::Profile, output::uinput::UInputBackend};
-
-pub trait OutputBackend {
-    /// Get the current feedback force from the output device.
-    ///
-    /// # Returns
-    ///
-    /// The feedback force (in no particular unit), or `None` if unavailable:
-    ///
-    /// - The output backend or device does not support force-feedback.
-    ///
-    /// - Force-feedback is currently not being used by any process.
-    ///
-    fn get_feedback_force(&self) -> Option<f32>;
-
-    /// Set the wheel axis value.
-    ///
-    /// Full range is [-1.0, 1.0], in no particular unit.
-    ///
-    fn set_wheel(&mut self, normalised: f32);
-
-    /// Set the accelerator axis value.
-    ///
-    /// Full range is [0.0, 1.0], in no particular unit.
-    ///
-    fn set_accelerator(&mut self, normalised: f32);
-
-    /// Set the brake axis value.
-    ///
-    /// Full range is [0.0, 1.0], in no particular unit.
-    ///
-    fn set_brake(&mut self, normalised: f32);
-
-    /// Set the horn's state.
-    ///
-    /// `true` if the horn is pressed, and `false` if not.
-    ///
-    fn set_horn(&mut self, honking: bool);
-
-    /// Apply any changes that were made to the actual output mechanism (e.g. uinput or vigem).
-    ///
-    fn apply(&mut self) -> Result<()>;
-
-    /// Handle any events that the backend needs to respond to (such as receiving force-feedback events).
-    ///
-    fn handle_events(&mut self);
+#[derive(Debug)]
+pub enum OutputEvent {
+    Started,
+    Error(anyhow::Error),
 }
 
-pub fn create_output(profile: &Profile) -> Result<Box<dyn OutputBackend>> {
-    Ok(match profile.active_output {
-        super::config::OutputBackend::Null => Box::new(DummyOutputBackend),
-        super::config::OutputBackend::LinuxUinput => Box::new(UInputBackend::new(profile)?),
-        super::config::OutputBackend::LinuxUsbPeripheral => bail!("Not yet implemented."),
-        super::config::OutputBackend::WindowsVigemBus => bail!("Not yet implemented."),
-        super::config::OutputBackend::UsbOverIpServer => bail!("Not yet implemented."),
-    })
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct OutputSample {
+    /// `[ -1.0, 1.0 ]`
+    pub wheel: f32,
+    /// `[ 0.0, 1.0 ]`
+    pub accelerator: f32,
+    /// `[ 0.0, 1.0 ]`
+    pub brake: f32,
+    pub horn: bool,
 }
 
-// Convenience wrapper. Operations are no-op when output is absent.
-impl<B: ?Sized + OutputBackend> OutputBackend for Option<&mut B> {
-    fn get_feedback_force(&self) -> Option<f32> {
-        self.as_ref().map(|out| out.get_feedback_force()).flatten()
-    }
+#[derive(Debug, Clone, PartialEq)]
+pub enum FFbState {
+    Unavailable,
+    Idle {
+        timestamp: Instant,
+    },
+    Active {
+        timestamp: Instant,
+        /// `[ -1.0, 1.0 ]`
+        constant_force: f32,
+    },
+}
 
-    fn set_wheel(&mut self, normalised: f32) {
-        if let Some(out) = self {
-            out.set_wheel(normalised);
-        }
-    }
+#[derive(Debug)]
+pub struct OutputBackendHandle {
+    thread: Option<JoinHandle<()>>,
+    stop_flag: Arc<AtomicBool>,
+    waker: Waker,
+    output_tx: triple_buffer::Input<OutputSample>,
+    feedback_rx: triple_buffer::Output<FFbState>,
+    event_rx: Option<Receiver<OutputEvent>>,
+    notification_rx: Option<Receiver<()>>,
+}
 
-    fn set_accelerator(&mut self, normalised: f32) {
-        if let Some(out) = self {
-            out.set_accelerator(normalised);
-        }
-    }
+impl Drop for OutputBackendHandle {
+    fn drop(&mut self) {
+        debug!("Dropping OutputBackendHandle.");
 
-    fn set_brake(&mut self, normalised: f32) {
-        if let Some(out) = self {
-            out.set_brake(normalised);
-        }
-    }
+        self.event_rx.take();
+        self.stop_flag.store(true, Ordering::Release);
+        let _ = self.waker.wake();
 
-    fn set_horn(&mut self, honking: bool) {
-        if let Some(out) = self {
-            out.set_horn(honking);
-        }
-    }
-
-    fn apply(&mut self) -> Result<()> {
-        self.as_mut().map(|out| out.apply()).unwrap_or(Ok(()))
-    }
-
-    fn handle_events(&mut self) {
-        if let Some(out) = self {
-            out.handle_events();
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
         }
     }
 }
 
-/// yeah this is hella ass imho
-pub struct OutputWrapperThing {
-    pub inner: Box<dyn OutputBackend>,
-    pub last_ffb: Cell<Option<f32>>,
-    pub last_wheel: f32,
-    pub last_horn: bool,
-}
+impl OutputBackendHandle {
+    const WAKE_TOKEN: Token = Token(4_12);
 
-impl OutputWrapperThing {
-    pub fn new(inner: Box<dyn OutputBackend>) -> Self {
-        Self {
-            inner,
-            last_ffb: Cell::new(None),
-            last_wheel: 0.0,
-            last_horn: false,
+    pub fn create(profile: &Profile) -> Result<Self> {
+        let conf = profile.clone();
+
+        let waker_poll = Poll::new()?;
+        let waker = Waker::new(waker_poll.registry(), Self::WAKE_TOKEN)?;
+
+        let stop_flag = Arc::new(AtomicBool::new(false));
+        let (event_tx, event_rx) = flume::bounded(8192);
+        let (notification_tx, notification_rx) = flume::bounded(1);
+        let (feedback_tx, feedback_rx) = triple_buffer::triple_buffer(&FFbState::Unavailable);
+        let (output_tx, output_rx) = triple_buffer::triple_buffer(&OutputSample::default());
+
+        let obs = OutputBackendStuffs {
+            event_tx,
+            notification_tx,
+            feedback_tx,
+            output_rx,
+            stop_flag,
+            waker_poll,
+        };
+
+        let thread = std::thread::spawn(move || {
+            let event_tx_2 = event_tx.clone();
+
+            info!("Starting {:?} output...", conf.active_output);
+
+            let result = match conf.active_output {
+                super::config::OutputBackend::Null => null_thread_loop(obs),
+                super::config::OutputBackend::LinuxUinput => {
+                    uinput::uinput_thread_loop(&profile.linux_uinput_output, obs)
+                }
+                super::config::OutputBackend::LinuxUsbPeripheral => {
+                    Err(anyhow!("LinuxUsbPeripheral not yet implemented."))
+                }
+                super::config::OutputBackend::WindowsVigemBus => {
+                    Err(anyhow!("WindowsVigemBus not yet implemented."))
+                }
+                super::config::OutputBackend::UsbOverIpServer => {
+                    Err(anyhow!("UsbOverIpServer not yet implemented."))
+                }
+            };
+
+            if let Err(err) = result {
+                error!(
+                    "Output {:?} thread terminated with error: {err}",
+                    conf.active_output
+                );
+                let _ = event_tx_2.send(OutputEvent::Error(err));
+            } else {
+                info!("Output {:?} terminated normally.", conf.active_output);
+            }
+        });
+
+        let first_event = event_rx.recv().expect("could not wait for success signal");
+        if !matches!(first_event, OutputEvent::Started) {
+            stop_flag.store(true, Ordering::Release);
+            let _ = waker.wake();
+
+            bail!("Did not receive success signal from output thread.");
         }
+
+        Ok(Self {
+            thread: Some(thread),
+            stop_flag,
+            waker,
+            event_rx: Some(event_rx),
+            output_tx,
+            feedback_rx,
+            notification_rx: Some(notification_rx),
+        })
+    }
+
+    pub fn get_stop_flag(&self) -> Arc<AtomicBool> {
+        self.stop_flag.clone()
+    }
+
+    pub fn rx(&self) -> &Receiver<OutputEvent> {
+        self.event_rx
+            .as_ref()
+            .expect("should always be Some() up until destruction")
     }
 }
 
-impl OutputBackend for OutputWrapperThing {
-    fn get_feedback_force(&self) -> Option<f32> {
-        let ffb = self.inner.get_feedback_force();
-        self.last_ffb.set(ffb);
-        
-        ffb
-    }
-
-    fn set_wheel(&mut self, normalised: f32) {
-        self.last_wheel = normalised;
-        self.inner.set_wheel(normalised);
-    }
-
-    fn set_accelerator(&mut self, normalised: f32) {
-        self.inner.set_accelerator(normalised);
-    }
-
-    fn set_brake(&mut self, normalised: f32) {
-        self.inner.set_brake(normalised);
-    }
-
-    fn set_horn(&mut self, honking: bool) {
-        if self.last_horn != honking {
-            debug!("set_horn({honking})");
-        }
-
-        self.last_horn = honking;
-        self.inner.set_horn(honking);
-    }
-
-    fn apply(&mut self) -> Result<()> {
-        self.inner.apply()
-    }
-
-    fn handle_events(&mut self) {
-        self.inner.handle_events();
-    }
+struct OutputBackendStuffs {
+    event_tx: Sender<OutputEvent>,
+    notification_tx: Sender<()>,
+    feedback_tx: triple_buffer::Input<FFbState>,
+    output_rx: triple_buffer::Output<OutputSample>,
+    stop_flag: Arc<AtomicBool>,
+    waker_poll: mio::Poll,
 }
 
-pub struct DummyOutputBackend;
+impl OutputBackendStuffs {
+    fn send_event(&self, event: OutputEvent) -> Result<()> {
+        self.event_tx.send(event)?;
 
-impl OutputBackend for DummyOutputBackend {
-    fn get_feedback_force(&self) -> Option<f32> {
-        None
-    }
-
-    fn set_wheel(&mut self, _angle: f32) {}
-
-    fn set_accelerator(&mut self, _normalised: f32) {}
-
-    fn set_brake(&mut self, _normalised: f32) {}
-
-    fn set_horn(&mut self, _honking: bool) {}
-
-    fn apply(&mut self) -> Result<()> {
         Ok(())
     }
 
-    fn handle_events(&mut self) {}
+    fn update_feedback(&self, ffb: FFbState) -> Result<()> {
+        if ffb == *self.feedback_tx.input_buffer() {
+            return Ok(());
+        }
+
+        self.feedback_tx.write(ffb);
+        self.notification_tx.try_send(())?;
+
+        Ok(())
+    }
+
+    fn should_stop(&self) -> bool {
+        self.stop_flag.load(Ordering::Acquire)
+    }
+}
+
+fn null_thread_loop(mut obs: OutputBackendStuffs) -> Result<()> {
+    let mut events = Events::with_capacity(0);
+
+    obs.send_event(OutputEvent::Started)?;
+
+    while !obs.should_stop() {
+        obs.waker_poll.poll(&mut events, None)?;
+    }
+
+    Ok(())
 }

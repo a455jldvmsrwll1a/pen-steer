@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use crate::core::{config::Profile, control::Control, math, output::OutputBackend, transform::Pen};
+use crate::core::{config::Profile, control::Control, math, output::OutputSample, transform::Pen};
 
 pub struct SteeringWheel {
     angle: f32,
@@ -13,8 +13,8 @@ pub struct SteeringWheel {
     prev_pen: Option<Pen>,
 }
 
-impl SteeringWheel {
-    pub fn new(profile: &Profile) -> Self {
+impl Default for SteeringWheel {
+    fn default() -> Self {
         Self {
             angle: 0.0,
             honking: false,
@@ -25,13 +25,7 @@ impl SteeringWheel {
 }
 
 impl Control for SteeringWheel {
-    fn update(
-        &mut self,
-        profile: &Profile,
-        dt: f32,
-        pen: Option<Pen>,
-        mut output: Option<&mut (dyn OutputBackend + '_)>,
-    ) {
+    fn update(&mut self, profile: &Profile, dt: f32, pen: Option<Pen>, output: &mut OutputSample) {
         let config = &profile.steering_wheel_control;
 
         let pen_now = pen.filter(|p| p.pressure > config.pressure_min / 100.0);
@@ -91,10 +85,9 @@ impl Control for SteeringWheel {
         self.angle = math::clamp_symmetric(half_range, self.angle);
 
         // Positive angle is counterclockwise, so we need to take the negative of it.
-        let angle_normalised = -self.angle / half_range;
-        output.set_wheel(angle_normalised);
-        output.set_horn(self.honking);
-        output.set_accelerator(0.0);
-        output.set_brake(0.0);
+        output.wheel = -self.angle / half_range;
+        output.horn = self.honking;
+        output.accelerator = 0.0;
+        output.brake = 0.0;
     }
 }
