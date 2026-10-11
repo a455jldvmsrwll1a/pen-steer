@@ -6,6 +6,7 @@
 
 pub mod save_path;
 pub mod util;
+pub mod slint_sync;
 
 use std::{
     f64::consts::PI,
