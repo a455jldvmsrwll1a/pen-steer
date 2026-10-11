@@ -74,7 +74,7 @@ impl InputBackendHandle {
         let waker = Waker::new(poll.registry(), Self::WAKE_TOKEN)?;
 
         let stop_flag = Arc::new(AtomicBool::new(false));
-        let (tx, rx) = flume::unbounded();
+        let (tx, rx) = flume::bounded(8192);
 
         let stop_flag_clone = stop_flag.clone();
         let thread = std::thread::spawn(move || {
