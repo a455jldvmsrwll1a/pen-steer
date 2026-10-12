@@ -117,10 +117,6 @@ impl InputBackendHandle {
         })
     }
 
-    pub fn get_stop_flag(&self) -> Arc<AtomicBool> {
-        self.stop_flag.clone()
-    }
-
     pub fn rx(&self) -> &Receiver<InputBackendEvent> {
         self.sample_rx
             .as_ref()

@@ -16,7 +16,7 @@ use crate::core::config::Profile;
 use crate::core::control::{self, Control};
 use crate::core::input::{InputBackendEvent, InputBackendHandle};
 use crate::core::math;
-use crate::core::output::OutputBackendHandle;
+use crate::core::output::{OutputBackendHandle, OutputSample};
 use crate::core::timer::Timer;
 use crate::core::transform::{Pen, Transformer};
 
@@ -38,8 +38,7 @@ pub struct Snapshot {
     pub pen: Option<Pen>,
     pub grip_strength: f32,
     pub ffb_value: Option<f32>,
-    pub wheel_value: f32,
-    pub horn_pressed: bool,
+    pub output_state: OutputSample,
 }
 
 pub fn controller(
@@ -154,26 +153,17 @@ pub fn controller(
             &state.config.load(),
             3.0 / 400.0,
             current_pen,
-            state
-                .output
-                .as_mut()
-                .map(|out| out as &mut dyn OutputBackend),
+            &mut state.output_state,
         );
 
-        if let Err(err) = state
-            .output
-            .as_mut()
-            .map(|out| out as &mut dyn OutputBackend)
-            .apply()
-        {
-            error!("Error during output apply(): {err}");
-            let _ = event_tx.push(Event::Error(err));
-
-            state.output = None;
+        if let Some(output) = &mut state.output && state.output_state != state.prev_output_state {
+            state.prev_output_state = state.output_state.clone();
+            output.update_output(state.output_state.clone());
         }
 
         let profile = &state.config.load().steering_wheel_control;
         let mut snapshot = snapshot_tx.input_buffer_publisher();
+        snapshot.output_state = state.output_state.clone();
         snapshot.pen = current_pen;
         snapshot.grip_strength = current_pen.map_or(0.0, |pen| {
             math::remap(
@@ -185,8 +175,6 @@ pub fn controller(
             )
             .clamp(0.0, 1.0)
         });
-        snapshot.wheel_value = state.output.as_ref().map_or(0.0, |out| out.last_wheel);
-        snapshot.horn_pressed = state.output.as_ref().map_or(false, |out| out.last_horn);
         drop(snapshot);
 
         state.timer.wait_for_next_tick();
@@ -201,6 +189,8 @@ struct State {
     control: Box<dyn Control>,
     input: Option<InputBackendHandle>,
     output: Option<OutputBackendHandle>,
+    output_state: OutputSample,
+    prev_output_state: OutputSample,
     transformer: Transformer,
 }
 
@@ -212,6 +202,8 @@ impl State {
             input: None,
             output: None,
             timer: Timer::with_frequency(400.0 / 3.0),
+            output_state: OutputSample::default(),
+            prev_output_state: OutputSample::default(),
             config,
         }
     }

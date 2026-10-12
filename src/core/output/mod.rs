@@ -63,22 +63,31 @@ pub struct OutputBackendHandle {
     notification_rx: Option<Receiver<()>>,
 }
 
-impl Drop for OutputBackendHandle {
-    fn drop(&mut self) {
-        debug!("Dropping OutputBackendHandle.");
-
-        self.event_rx.take();
-        self.stop_flag.store(true, Ordering::Release);
-        let _ = self.waker.wake();
-
-        if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
-        }
-    }
-}
-
 impl OutputBackendHandle {
     const WAKE_TOKEN: Token = Token(4_12);
+
+    pub fn event_rx(&self) -> &Receiver<OutputEvent> {
+        self.event_rx
+            .as_ref()
+            .expect("should always be Some() up until destruction")
+    }
+
+    pub fn notification_rx(&self) -> &Receiver<()> {
+        self.notification_rx
+            .as_ref()
+            .expect("should always be Some() up until destruction")
+    }
+
+    pub fn read_feedback_state(&mut self) -> &FFbState {
+        self.feedback_rx.read()
+    }
+
+    pub fn update_output(&mut self, state: OutputSample) -> Result<()> {
+        self.output_tx.write(state);
+        self.waker.wake()?;
+
+        Ok(())
+    }
 
     pub fn create(profile: &Profile) -> Result<Self> {
         let conf = profile.clone();
@@ -93,23 +102,22 @@ impl OutputBackendHandle {
         let (output_tx, output_rx) = triple_buffer::triple_buffer(&OutputSample::default());
 
         let obs = OutputBackendStuffs {
-            event_tx,
+            event_tx: event_tx.clone(),
             notification_tx,
             feedback_tx,
             output_rx,
-            stop_flag,
+            stop_flag: stop_flag.clone(),
             waker_poll,
         };
 
+        let event_tx_2 = event_tx.clone();
         let thread = std::thread::spawn(move || {
-            let event_tx_2 = event_tx.clone();
-
             info!("Starting {:?} output...", conf.active_output);
 
             let result = match conf.active_output {
                 super::config::OutputBackend::Null => null_thread_loop(obs),
                 super::config::OutputBackend::LinuxUinput => {
-                    uinput::uinput_thread_loop(&profile.linux_uinput_output, obs)
+                    uinput::uinput_thread_loop(&conf.linux_uinput_output, obs)
                 }
                 super::config::OutputBackend::LinuxUsbPeripheral => {
                     Err(anyhow!("LinuxUsbPeripheral not yet implemented."))
@@ -151,15 +159,19 @@ impl OutputBackendHandle {
             notification_rx: Some(notification_rx),
         })
     }
+}
 
-    pub fn get_stop_flag(&self) -> Arc<AtomicBool> {
-        self.stop_flag.clone()
-    }
+impl Drop for OutputBackendHandle {
+    fn drop(&mut self) {
+        debug!("Dropping OutputBackendHandle.");
 
-    pub fn rx(&self) -> &Receiver<OutputEvent> {
-        self.event_rx
-            .as_ref()
-            .expect("should always be Some() up until destruction")
+        self.event_rx.take();
+        self.stop_flag.store(true, Ordering::Release);
+        let _ = self.waker.wake();
+
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
     }
 }
 
@@ -179,8 +191,9 @@ impl OutputBackendStuffs {
         Ok(())
     }
 
-    fn update_feedback(&self, ffb: FFbState) -> Result<()> {
-        if ffb == *self.feedback_tx.input_buffer() {
+    fn update_feedback(&mut self, ffb: FFbState) -> Result<()> {
+        let outgoing_state = self.feedback_tx.input_buffer();
+        if ffb == *outgoing_state {
             return Ok(());
         }
 

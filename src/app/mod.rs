@@ -5,14 +5,10 @@
  */
 
 pub mod save_path;
-pub mod util;
 pub mod slint_sync;
+pub mod util;
 
-use std::{
-    f64::consts::PI,
-    sync::{Arc, atomic::AtomicBool},
-    time::Instant,
-};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use anyhow::Result;
 use arc_swap::ArcSwapAny;
@@ -70,21 +66,20 @@ pub fn start_app() -> Result<()> {
         let global = ui.global::<ViewTabStatus>();
         global.set_ffb_available(state.ffb_value.is_some());
         global.set_ffb_value(state.ffb_value.unwrap_or(0.0));
-        global.set_steer_value(state.wheel_value);
-        global.set_horn_pressed(state.horn_pressed);
-        
+        global.set_steer_value(state.output_state.wheel);
+        global.set_horn_pressed(state.output_state.horn);
+
         match state.pen {
             Some(pen) => {
                 global.set_pen_available(true);
                 global.set_grip_strength(state.grip_strength);
                 global.set_pen_x(pen.position.x);
                 global.set_pen_y(pen.position.y);
-            },
+            }
             None => {
                 global.set_pen_available(false);
-            },
+            }
         }
-        
     });
 
     let ui_weak = ui.as_weak();
