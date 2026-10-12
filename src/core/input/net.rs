@@ -42,20 +42,15 @@ pub fn net_thread_loop(
 
     sample_tx.send(InputBackendEvent::Started)?;
 
-    'read: loop {
-        if stop_flag.load(Ordering::Acquire) {
-            info!("Net input stopping!");
-
-            return Ok(());
-        }
-
+    'read: while !stop_flag.load(Ordering::Acquire) {
         poll.poll(&mut events, None)?;
 
         for event in &events {
             match event.token() {
                 InputBackendHandle::WAKE_TOKEN => {
-                    // Restart the loop so we can immediately check the flag afterward.
-                    continue 'read;
+                    if stop_flag.load(Ordering::Acquire) {
+                        break 'read;
+                    }
                 }
                 SOCK_TOKEN => {
                     read_packet(&mut socket, &sample_tx).context("failed to read packet")?;
@@ -64,6 +59,10 @@ pub fn net_thread_loop(
             }
         }
     }
+
+    info!("Net input stopping!");
+
+    Ok(())
 }
 
 fn read_packet(sock: &mut UdpSocket, tx: &Sender<InputBackendEvent>) -> Result<()> {
