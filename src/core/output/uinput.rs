@@ -10,6 +10,7 @@ use std::{
     fmt::Debug,
     fs::{File, OpenOptions},
     os::unix::fs::OpenOptionsExt,
+    time::Instant,
 };
 
 use anyhow::{Context, Result, bail};
@@ -28,17 +29,47 @@ use nix::libc::{
 };
 
 use crate::core::{
-    config::{LinuxUinputOutput, Profile},
+    config::LinuxUinputOutput,
     output::{OutputBackendStuffs, OutputEvent},
 };
 
+use super::FFbState;
+
 pub fn uinput_thread_loop(config: &LinuxUinputOutput, mut obs: OutputBackendStuffs) -> Result<()> {
     let mut events = mio::Events::with_capacity(128);
+    let mut state = State::create(config)?;
 
     obs.send_event(OutputEvent::Started)?;
 
+    let mut last_feedback_force = None;
+
     while !obs.should_stop() {
         obs.waker_poll.poll(&mut events, None)?;
+
+        state.handle_events();
+        let feedback_force = state.get_feedback_force();
+        if feedback_force != last_feedback_force {
+            let timestamp = Instant::now();
+
+            obs.update_feedback(match feedback_force {
+                Some(constant_force) => FFbState::Active {
+                    timestamp,
+                    constant_force,
+                },
+                None => FFbState::Idle { timestamp },
+            })
+            .context("failed to update force-feedback state")?;
+
+            last_feedback_force = feedback_force;
+        }
+
+        let output_state = obs.output_rx.read();
+        state.set_wheel(output_state.wheel);
+        state.set_accelerator(output_state.accelerator);
+        state.set_brake(output_state.brake);
+        state.set_horn(output_state.horn);
+
+        state.apply().context("failed to apply output state")?;
     }
 
     Ok(())
@@ -59,9 +90,7 @@ struct State {
 }
 
 impl State {
-    fn new(profile: &Profile) -> Result<Self> {
-        let config = &profile.linux_uinput_output;
-
+    fn create(config: &LinuxUinputOutput) -> Result<Self> {
         if config.resolution > u32::from(u16::MAX) {
             bail!("Device resolution too high!");
         }
@@ -240,9 +269,7 @@ impl State {
 
         Ok(())
     }
-}
 
-impl State {
     fn get_feedback_force(&self) -> Option<f32> {
         self.ff.and_then(|ff| {
             ff.playing
