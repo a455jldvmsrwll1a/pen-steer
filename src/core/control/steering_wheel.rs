@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use crate::core::{config::Profile, control::Control, math, output::OutputSample, transform::Pen};
+use crate::core::{
+    config::Profile,
+    control::Control,
+    math,
+    output::{FFbState, OutputSample},
+    transform::Pen,
+};
 
 pub struct SteeringWheel {
     angle: f32,
@@ -25,7 +31,14 @@ impl Default for SteeringWheel {
 }
 
 impl Control for SteeringWheel {
-    fn update(&mut self, profile: &Profile, dt: f32, pen: Option<Pen>, output: &mut OutputSample) {
+    fn update(
+        &mut self,
+        profile: &Profile,
+        dt: f32,
+        pen: Option<Pen>,
+        force_feedback: &FFbState,
+        output: &mut OutputSample,
+    ) {
         let config = &profile.steering_wheel_control;
 
         let pen_now = pen.filter(|p| p.pressure > config.pressure_min / 100.0);

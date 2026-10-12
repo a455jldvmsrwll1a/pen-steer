@@ -16,7 +16,7 @@ use crate::core::config::Profile;
 use crate::core::control::{self, Control};
 use crate::core::input::{InputBackendEvent, InputBackendHandle};
 use crate::core::math;
-use crate::core::output::{OutputBackendHandle, OutputSample};
+use crate::core::output::{FFbState, OutputBackendHandle, OutputSample};
 use crate::core::timer::Timer;
 use crate::core::transform::{Pen, Transformer};
 
@@ -52,6 +52,7 @@ pub fn controller(
 
     let mut state = State::new(config);
     let quit = Rc::new(AtomicBool::new(false));
+    let mut current_ffb_state = FFbState::Unavailable;
 
     'main: while !quit.load(Ordering::Acquire) {
         let mut command = None;
@@ -95,6 +96,10 @@ pub fn controller(
             if input.rx().is_disconnected() {
                 state.input = None;
             }
+        }
+
+        if let Some(output) = &mut state.output {
+            current_ffb_state = output.read_feedback_state().clone();
         }
 
         // let mut selector = flume::Selector::new();
@@ -153,12 +158,20 @@ pub fn controller(
             &state.config.load(),
             3.0 / 400.0,
             current_pen,
+            &current_ffb_state,
             &mut state.output_state,
         );
 
-        if let Some(output) = &mut state.output && state.output_state != state.prev_output_state {
+        if let Some(output) = &mut state.output
+            && state.output_state != state.prev_output_state
+        {
             state.prev_output_state = state.output_state.clone();
-            output.update_output(state.output_state.clone());
+            if let Err(err) = output.update_output(state.output_state.clone()) {
+                error!("Error updating output state: {err}");
+                let _ = event_tx.push(Event::Error(err));
+
+                state.output = None;
+            }
         }
 
         let profile = &state.config.load().steering_wheel_control;
@@ -177,7 +190,7 @@ pub fn controller(
         });
         drop(snapshot);
 
-        state.timer.wait_for_next_tick();
+        state.wait_for_next_tick();
     }
 
     info!("Controller stopping!");

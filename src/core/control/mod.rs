@@ -7,11 +7,21 @@
 pub mod steering_wheel;
 
 use crate::core::{
-    config::Profile, control::steering_wheel::SteeringWheel, output::OutputSample, transform::Pen,
+    config::Profile,
+    control::steering_wheel::SteeringWheel,
+    output::{FFbState, OutputSample},
+    transform::Pen,
 };
 
 pub trait Control {
-    fn update(&mut self, profile: &Profile, dt: f32, pen: Option<Pen>, output: &mut OutputSample);
+    fn update(
+        &mut self,
+        profile: &Profile,
+        dt: f32,
+        pen: Option<Pen>,
+        force_feedback: &FFbState,
+        output: &mut OutputSample,
+    );
 }
 
 pub fn create_control(profile: &Profile) -> Box<dyn Control> {
@@ -26,5 +36,5 @@ pub fn create_control(profile: &Profile) -> Box<dyn Control> {
 pub struct DummyControl;
 
 impl Control for DummyControl {
-    fn update(&mut self, _: &Profile, _: f32, _: Option<Pen>, _: &mut OutputSample) {}
+    fn update(&mut self, _: &Profile, _: f32, _: Option<Pen>, _: &FFbState, _: &mut OutputSample) {}
 }
