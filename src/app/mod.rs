@@ -76,17 +76,10 @@ pub fn start_app() -> Result<()> {
         global.set_steer_value(state.output_state.wheel);
         global.set_horn_pressed(state.output_state.horn);
 
-        match state.pen {
-            Some(pen) => {
-                global.set_pen_available(true);
-                global.set_grip_strength(state.grip_strength);
-                global.set_pen_x(pen.position.x);
-                global.set_pen_y(pen.position.y);
-            }
-            None => {
-                global.set_pen_available(false);
-            }
-        }
+        global.set_pen_available(true);
+        global.set_grip_strength(state.grip_strength);
+        global.set_pen_x(state.pen.position.x);
+        global.set_pen_y(state.pen.position.y);
     });
 
     let ui_weak = ui.as_weak();

@@ -16,7 +16,7 @@ pub struct SteeringWheel {
     angle: f32,
     honking: bool,
     dragging: bool,
-    prev_pen: Option<Pen>,
+    prev_pen: Pen,
 }
 
 impl Default for SteeringWheel {
@@ -25,7 +25,7 @@ impl Default for SteeringWheel {
             angle: 0.0,
             honking: false,
             dragging: false,
-            prev_pen: None,
+            prev_pen: Pen::default(),
         }
     }
 }
@@ -35,16 +35,22 @@ impl Control for SteeringWheel {
         &mut self,
         profile: &Profile,
         dt: f32,
-        pen: Option<Pen>,
+        pen: Pen,
         force_feedback: &FFbState,
         output: &mut OutputSample,
     ) {
         let config = &profile.steering_wheel_control;
 
-        let pen_now = pen.filter(|p| p.pressure > config.pressure_min / 100.0);
-        let pen_then = self
-            .prev_pen
-            .filter(|p| p.pressure > config.pressure_min / 100.0);
+        let pen_now = if pen.pressure > config.pressure_min / 100.0 {
+            Some(pen)
+        } else {
+            None
+        };
+        let pen_then = if self.prev_pen.pressure > config.pressure_min / 100.0 {
+            Some(self.prev_pen)
+        } else {
+            None
+        };
 
         self.prev_pen = pen;
 

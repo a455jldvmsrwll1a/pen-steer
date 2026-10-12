@@ -35,7 +35,7 @@ pub enum Event {
 
 #[derive(Default, Clone)]
 pub struct Snapshot {
-    pub pen: Option<Pen>,
+    pub pen: Pen,
     pub grip_strength: f32,
     pub ffb_state: FFbState,
     pub output_state: OutputSample,
@@ -141,11 +141,7 @@ pub fn controller(
 
         // selector.wait();
 
-        let mut current_pen = None;
-        if let Some(_sample) = &sample {
-            let pen = state.transformer.get_pen();
-            current_pen = Some(pen);
-        }
+        let current_pen = state.transformer.get_pen();
 
         if let Some(command) = command.take() {
             if let Err(err) = state.process_command(command) {
@@ -157,7 +153,7 @@ pub fn controller(
         state.control.update(
             &state.config.load(),
             1.0 / 400.0,
-            Some(current_pen),
+            current_pen,
             &current_ffb_state,
             &mut state.output_state,
         );
@@ -179,16 +175,15 @@ pub fn controller(
         snapshot.ffb_state = current_ffb_state.clone();
         snapshot.output_state = state.output_state.clone();
         snapshot.pen = current_pen;
-        snapshot.grip_strength = current_pen.map_or(0.0, |pen| {
-            math::remap(
-                pen.pressure,
-                profile.pressure_min / 100.0,
-                profile.pressure_max / 100.0,
-                0.0,
-                1.0,
-            )
-            .clamp(0.0, 1.0)
-        });
+        snapshot.grip_strength = math::remap(
+            current_pen.pressure,
+            profile.pressure_min / 100.0,
+            profile.pressure_max / 100.0,
+            0.0,
+            1.0,
+        )
+        .clamp(0.0, 1.0);
+
         drop(snapshot);
 
         state.wait_for_next_tick();

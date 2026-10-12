@@ -18,7 +18,7 @@ pub trait Control {
         &mut self,
         profile: &Profile,
         dt: f32,
-        pen: Option<Pen>,
+        pen: Pen,
         force_feedback: &FFbState,
         output: &mut OutputSample,
     );
@@ -36,5 +36,5 @@ pub fn create_control(profile: &Profile) -> Box<dyn Control> {
 pub struct DummyControl;
 
 impl Control for DummyControl {
-    fn update(&mut self, _: &Profile, _: f32, _: Option<Pen>, _: &FFbState, _: &mut OutputSample) {}
+    fn update(&mut self, _: &Profile, _: f32, _: Pen, _: &FFbState, _: &mut OutputSample) {}
 }
