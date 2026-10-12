@@ -27,7 +27,8 @@ export component ViewTabContents inherits Rectangle {
     in-out property <bool> should_refresh;
 
     property <float> steer_value: ViewTabStatus.steer_value;
-    property <float> ffb_value: ViewTabStatus.ffb_value;
+    // positive FFB value indicates counterclockwise torque, and vice-versa
+    property <float> ffb_value: ViewTabStatus.ffb_value * -1.0;
     property <float> pen_x: ViewTabStatus.pen_x;
     property <float> pen_y: ViewTabStatus.pen_y;
     property <float> pen_pressure: ViewTabStatus.grip_strength;
