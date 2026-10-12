@@ -39,8 +39,9 @@ pub struct OutputSample {
     pub horn: bool,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum FFbState {
+    #[default]
     Unavailable,
     Idle {
         timestamp: Instant,

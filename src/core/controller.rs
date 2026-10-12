@@ -37,7 +37,7 @@ pub enum Event {
 pub struct Snapshot {
     pub pen: Option<Pen>,
     pub grip_strength: f32,
-    pub ffb_value: Option<f32>,
+    pub ffb_state: FFbState,
     pub output_state: OutputSample,
 }
 
@@ -176,6 +176,7 @@ pub fn controller(
 
         let profile = &state.config.load().steering_wheel_control;
         let mut snapshot = snapshot_tx.input_buffer_publisher();
+        snapshot.ffb_state = current_ffb_state.clone();
         snapshot.output_state = state.output_state.clone();
         snapshot.pen = current_pen;
         snapshot.grip_strength = current_pen.map_or(0.0, |pen| {

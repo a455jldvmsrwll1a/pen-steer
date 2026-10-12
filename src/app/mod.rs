@@ -14,10 +14,8 @@ use anyhow::Result;
 use arc_swap::ArcSwapAny;
 use log::{error, info};
 use pen_steer::{
-    PACKAGE_VERSION,
-    core::{
-        config::Profile,
-        controller::{self, Snapshot},
+    PACKAGE_VERSION, core::{
+        config::Profile, controller::{self, Snapshot}, output::FFbState,
     },
 };
 use slint::{ComponentHandle, ToSharedString};
@@ -64,8 +62,17 @@ pub fn start_app() -> Result<()> {
         let state = snapshot_rx.read();
 
         let global = ui.global::<ViewTabStatus>();
-        global.set_ffb_available(state.ffb_value.is_some());
-        global.set_ffb_value(state.ffb_value.unwrap_or(0.0));
+
+        match state.ffb_state {
+            FFbState::Active { constant_force, .. } => {
+                global.set_ffb_available(true);
+                global.set_ffb_value(constant_force);
+            }
+            FFbState::Unavailable | FFbState::Idle { .. }  => {
+                global.set_ffb_available(false);
+            }
+        }
+
         global.set_steer_value(state.output_state.wheel);
         global.set_horn_pressed(state.output_state.horn);
 
