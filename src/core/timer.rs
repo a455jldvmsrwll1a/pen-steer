@@ -7,22 +7,27 @@
 use std::time::{Duration, Instant};
 
 pub struct Timer {
-    next_tick: Instant,
     period: Duration,
+    next_tick: Instant,
 }
 
 impl Timer {
-    pub fn new(freq: f64) -> Self {
-        let now = Instant::now();
-        let period = Duration::from_secs_f64(1.0 / freq);
-
-        Self {
-            next_tick: now + period,
-            period,
+    pub fn with_frequency(freq: f64) -> Self {
+        if freq != 0.0 {
+            Self::with_period(Duration::from_secs_f64(freq.recip()))
+        } else {
+            Self::with_period(Duration::MAX)
         }
     }
 
-    pub fn wait(&mut self) {
+    pub fn with_period(period: Duration) -> Self {
+        Self {
+            period,
+            next_tick: Instant::now() + period,
+        }
+    }
+
+    pub fn wait_for_next_tick(&mut self) {
         loop {
             let now = Instant::now();
 

@@ -189,7 +189,7 @@ pub fn controller(
         snapshot.horn_pressed = state.output.as_ref().map_or(false, |out| out.last_horn);
         drop(snapshot);
 
-        state.timer.wait();
+        state.timer.wait_for_next_tick();
     }
 
     info!("Controller stopping!");
@@ -211,7 +211,7 @@ impl State {
             control: control::create_control(&config.load()),
             input: None,
             output: None,
-            timer: Timer::new(400.0 / 3.0),
+            timer: Timer::with_frequency(400.0 / 3.0),
             config,
         }
     }
@@ -256,6 +256,6 @@ impl State {
     }
 
     fn wait_for_next_tick(&mut self) {
-        self.timer.wait();
+        self.timer.wait_for_next_tick();
     }
 }
