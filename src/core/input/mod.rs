@@ -94,7 +94,7 @@ impl InputBackendHandle {
             };
 
             if let Err(err) = result {
-                error!("Input thread terminated with error: {err}");
+                error!("Input thread terminated with error: {err:?}");
                 let _ = tx_clone.send(InputBackendEvent::Error(err));
             } else {
                 info!("Input thread terminated normally.");

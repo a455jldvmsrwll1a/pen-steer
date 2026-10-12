@@ -149,7 +149,7 @@ pub fn controller(
 
         if let Some(command) = command.take() {
             if let Err(err) = state.process_command(command) {
-                error!("Error processing command: {err}");
+                error!("Error processing command: {err:?}");
                 let _ = event_tx.push(Event::Error(err));
             }
         }
@@ -167,7 +167,7 @@ pub fn controller(
         {
             state.prev_output_state = state.output_state.clone();
             if let Err(err) = output.update_output(state.output_state.clone()) {
-                error!("Error updating output state: {err}");
+                error!("Error updating output state: {err:?}");
                 let _ = event_tx.push(Event::Error(err));
 
                 state.output = None;

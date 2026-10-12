@@ -72,7 +72,7 @@ fn read_packet(sock: &mut UdpSocket, tx: &Sender<InputBackendEvent>) -> Result<(
         Ok(len) => len,
         Err(err) => match err.kind() {
             ErrorKind::WouldBlock | ErrorKind::TimedOut => return Ok(()),
-            _ => bail!("error receiving on socket: {err}"),
+            _ => bail!("error receiving on socket: {err:?}"),
         },
     };
 

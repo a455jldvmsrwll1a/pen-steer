@@ -46,7 +46,7 @@ pub fn start_app() -> Result<()> {
     cmd_tx.send(controller::Command::StartOutput)?;
 
     if let Err(err) = std::fs::create_dir_all(save_path::save_dir()) {
-        error!("Could not create configuration directory: {err}");
+        error!("Could not create configuration directory: {err:?}");
     }
 
     let is_running = Arc::new(AtomicBool::default());

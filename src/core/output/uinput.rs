@@ -390,12 +390,12 @@ impl State {
                 EV_UINPUT => match i32::from(ev.code) {
                     UI_FF_UPLOAD => {
                         if let Err(err) = self.handle_ff_upload(ev.value.cast_unsigned()) {
-                            error!("Error handling ff upload: {err}");
+                            error!("Error handling ff upload: {err:?}");
                         }
                     }
                     UI_FF_ERASE => {
                         if let Err(err) = self.handle_ff_erase(ev.value.cast_unsigned()) {
-                            error!("Error handling ff erase: {err}");
+                            error!("Error handling ff erase: {err:?}");
                         }
                     }
                     _ => {
@@ -423,7 +423,7 @@ impl State {
 impl Drop for State {
     fn drop(&mut self) {
         if let Err(err) = self.handle.dev_destroy() {
-            error!("Error occured destroying uinput device: {err}");
+            error!("Error occured destroying uinput device: {err:?}");
         }
     }
 }

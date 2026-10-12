@@ -132,7 +132,7 @@ impl OutputBackendHandle {
 
             if let Err(err) = result {
                 error!(
-                    "Output {:?} thread terminated with error: {err}",
+                    "Output {:?} thread terminated with error: {err:?}",
                     conf.active_output
                 );
                 let _ = event_tx_2.send(OutputEvent::Error(err));

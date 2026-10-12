@@ -19,7 +19,7 @@ fn main() {
     info!("Hello world! pen-steer v{}", pen_steer::PACKAGE_VERSION);
 
     if let Err(err) = app::start_app() {
-        error!("An error occured: {err}");
+        error!("An error occured: {err:?}");
     }
 
     info!("Bye.");

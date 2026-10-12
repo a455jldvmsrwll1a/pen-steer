@@ -23,10 +23,10 @@ pub fn set_handler(quit_tx: Sender<()>) {
         info!("Got stop request.");
 
         if let Err(err) = quit_tx.send(()) {
-            error!("Could not send quit message: {err}");
+            error!("Could not send quit message: {err:?}");
         }
     }) {
-        error!("Could not set signal handler: {err}");
+        error!("Could not set signal handler: {err:?}");
     }
 }
 
