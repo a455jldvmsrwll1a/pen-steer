@@ -9,7 +9,7 @@
 use std::{
     fmt::Debug,
     fs::{File, OpenOptions},
-    os::unix::fs::OpenOptionsExt,
+    os::{fd::AsRawFd, unix::fs::OpenOptionsExt},
     time::Instant,
 };
 
@@ -24,6 +24,7 @@ use input_linux::{
     },
 };
 use log::{debug, error, info, trace};
+use mio::unix::SourceFd;
 use nix::libc::{
     O_NONBLOCK, ff_constant_effect, ff_effect, ff_replay, ff_trigger, input_event, timeval,
 };
@@ -35,9 +36,11 @@ use crate::core::{
 
 use super::FFbState;
 
+const UINPUT_FD_TOKEN: mio::Token = mio::Token(232);
+
 pub fn uinput_thread_loop(config: &LinuxUinputOutput, mut obs: OutputBackendStuffs) -> Result<()> {
     let mut events = mio::Events::with_capacity(128);
-    let mut state = State::create(config)?;
+    let mut state = State::create(config, &mut obs.waker_poll)?;
 
     obs.send_event(OutputEvent::Started)?;
 
@@ -90,7 +93,7 @@ struct State {
 }
 
 impl State {
-    fn create(config: &LinuxUinputOutput) -> Result<Self> {
+    fn create(config: &LinuxUinputOutput, poll: &mut mio::Poll) -> Result<Self> {
         if config.resolution > u32::from(u16::MAX) {
             bail!("Device resolution too high!");
         }
@@ -109,6 +112,14 @@ impl State {
             .custom_flags(O_NONBLOCK)
             .open("/dev/uinput")
             .context("Could not open uinput file!")?;
+
+        poll.registry()
+            .register(
+                &mut SourceFd(&file.as_raw_fd()),
+                UINPUT_FD_TOKEN,
+                mio::Interest::READABLE,
+            )
+            .context("could not register /dev/uinput for polling")?;
 
         let handle = UInputHandle::new(file);
 
