@@ -156,8 +156,8 @@ pub fn controller(
 
         state.control.update(
             &state.config.load(),
-            3.0 / 400.0,
-            current_pen,
+            1.0 / 400.0,
+            Some(current_pen),
             &current_ffb_state,
             &mut state.output_state,
         );
@@ -215,7 +215,7 @@ impl State {
             control: control::create_control(&config.load()),
             input: None,
             output: None,
-            timer: Timer::with_frequency(400.0 / 3.0),
+            timer: Timer::with_frequency(400.0),
             output_state: OutputSample::default(),
             prev_output_state: OutputSample::default(),
             config,
