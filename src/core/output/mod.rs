@@ -14,7 +14,7 @@ use std::{
 };
 
 use anyhow::{Result, anyhow, bail};
-use flume::{Receiver, Sender};
+use flume::{Receiver, Sender, TrySendError};
 use log::{debug, error, info};
 use mio::{Events, Poll, Token, Waker};
 
@@ -198,7 +198,9 @@ impl OutputBackendStuffs {
         }
 
         self.feedback_tx.write(ffb);
-        self.notification_tx.try_send(())?;
+        if let Err(TrySendError::Disconnected(..)) = self.notification_tx.try_send(()) {
+            bail!("notification channel was disconnected");
+        }
 
         Ok(())
     }
