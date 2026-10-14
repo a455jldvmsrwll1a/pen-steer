@@ -14,18 +14,14 @@ use crate::core::{
 
 pub struct SteeringWheel {
     angle: f32,
-    honking: bool,
-    dragging: bool,
-    prev_pen: Pen,
+    state: HoldState,
 }
 
 impl Default for SteeringWheel {
     fn default() -> Self {
         Self {
             angle: 0.0,
-            honking: false,
-            dragging: false,
-            prev_pen: Pen::default(),
+            state: HoldState::Free,
         }
     }
 }
@@ -40,59 +36,39 @@ impl Control for SteeringWheel {
         output: &mut OutputSample,
     ) {
         let config = &profile.steering_wheel_control;
+        let min_pressure = config.pressure_min / 100.0;
+        let horn_radius = config.horn_radius / 100.0;
+        let base_radius = config.natural_rotation_radius_min / 100.0;
 
-        let pen_now = if pen.pressure > config.pressure_min / 100.0 {
-            Some(pen)
-        } else {
-            None
-        };
-        let pen_then = if self.prev_pen.pressure > config.pressure_min / 100.0 {
-            Some(self.prev_pen)
-        } else {
-            None
-        };
-
-        self.prev_pen = pen;
-
-        match (pen_now, pen_then) {
-            (None, None) | (None, Some(..)) => {
-                // Pen released.
-
-                self.honking = false;
-                self.dragging = false;
-            }
-            (Some(pen), None) => {
-                // Pen just placed.
-
-                if config.fast_mode_switch || (!self.dragging && !self.honking) {
-                    let horn_radius = config.horn_radius / 100.0;
-                    let r_sq = pen.position.length_squared();
-                    if r_sq > horn_radius * horn_radius {
-                        // We want to turn the wheel.
-                        self.dragging = true;
+        match &mut self.state {
+            HoldState::Free => {
+                if pen.pressure >= min_pressure {
+                    if pen.is_within_range(..=horn_radius) {
+                        self.state = HoldState::Honking;
                     } else {
-                        // We want to press the horn.
-                        self.honking = true;
+                        self.state = HoldState::Dragging;
                     }
                 }
             }
-            (Some(pen), Some(prev)) => {
-                // Dragging / holding.
-
-                if self.dragging {
-                    let r = pen.position.length();
-
-                    let dtheta =
-                        if r > f32::EPSILON && prev.position.length_squared() > f32::EPSILON {
-                            prev.position.angle_to(pen.position)
-                        } else {
-                            0.0
-                        };
-
-                    let base_radius = config.natural_rotation_radius_min / 100.0;
-                    let adjusted_delta = math::adjust_angle_delta(dtheta, r, base_radius);
-                    self.angle += adjusted_delta;
+            HoldState::Honking => {
+                if pen.pressure < min_pressure {
+                    self.state = HoldState::Free;
+                } else if config.fast_mode_switch && !pen.is_within_range(..=horn_radius) {
+                    self.state = HoldState::Dragging;
                 }
+            }
+            HoldState::Dragging => {
+                if pen.pressure < min_pressure {
+                    self.state = HoldState::Free;
+                } else if config.fast_mode_switch && pen.is_within_range(..=horn_radius) {
+                    self.state = HoldState::Honking;
+                }
+
+                let dtheta = pen.compute_angular_velocity() * dt;
+                let r = pen.distance_to_centre();
+                let adjusted_delta = math::adjust_angle_delta(dtheta, r, base_radius);
+
+                self.angle += adjusted_delta;
             }
         }
 
@@ -105,8 +81,15 @@ impl Control for SteeringWheel {
 
         // Positive angle is counterclockwise, so we need to take the negative of it.
         output.wheel = -self.angle / half_range;
-        output.horn = self.honking;
+        output.horn = matches!(self.state, HoldState::Honking);
         output.accelerator = 0.0;
         output.brake = 0.0;
     }
+}
+
+#[derive(Debug, Clone)]
+enum HoldState {
+    Free,
+    Honking,
+    Dragging,
 }
