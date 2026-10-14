@@ -27,6 +27,10 @@ impl Timer {
         }
     }
 
+    pub fn reset_next_tick(&mut self) {
+        self.next_tick = Instant::now();
+    }
+
     pub fn wait_for_next_tick(&mut self) {
         loop {
             let now = Instant::now();

@@ -11,8 +11,9 @@ use log::{error, info};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
-use crate::core::config::Profile;
+use crate::core::config::{Profile, TickMode};
 use crate::core::control::{self, Control};
 use crate::core::input::{InputBackendEvent, InputBackendHandle};
 use crate::core::math;
@@ -44,8 +45,8 @@ pub struct Snapshot {
 
 pub fn controller(
     config: Arc<ArcSwap<Profile>>,
-    mut cmd_rx: Receiver<Command>,
-    mut quit_rx: Receiver<()>,
+    cmd_rx: Receiver<Command>,
+    quit_rx: Receiver<()>,
     mut event_tx: rtrb::Producer<Event>,
     mut snapshot_tx: triple_buffer::Input<Snapshot>,
 ) {
@@ -55,30 +56,38 @@ pub fn controller(
     let quit = Rc::new(AtomicBool::new(false));
     let mut current_ffb_state = FFbState::Unavailable;
 
-    'main: while !quit.load(Ordering::Acquire) {
+    while !quit.load(Ordering::Acquire) {
         let mut command = None;
+        let mut should_stop_input = false;
 
-        match quit_rx.try_recv() {
-            Ok(..) | Err(TryRecvError::Disconnected) => {
-                quit.store(true, Ordering::Release);
-
-                break 'main;
-            }
-            Err(TryRecvError::Empty) => {}
+        if let Some(output) = &mut state.output {
+            current_ffb_state = output.read_feedback_state().clone();
         }
 
-        match cmd_rx.try_recv() {
-            Ok(cmd) => command = Some(cmd),
-            Err(TryRecvError::Disconnected) => {
+        let mut selector = flume::Selector::new();
+
+        selector = selector.recv(&quit_rx, |_| {
+            quit.store(true, Ordering::Release);
+        });
+
+        selector = selector.recv(&cmd_rx, |maybe_cmd| {
+            let Ok(cmd) = maybe_cmd else {
                 quit.store(true, Ordering::Release);
 
-                break 'main;
-            }
-            Err(TryRecvError::Empty) => {}
-        }
+                return;
+            };
+
+            command = Some(cmd);
+        });
 
         if let Some(input) = &mut state.input {
-            for event in input.rx().try_iter() {
+            selector = selector.recv(input.rx(), |maybe_event| {
+                let Ok(event) = maybe_event else {
+                    should_stop_input = true;
+
+                    return;
+                };
+
                 match event {
                     InputBackendEvent::Started => {}
                     InputBackendEvent::Error(error) => {
@@ -89,55 +98,19 @@ pub fn controller(
                         state.transformer.update(input_sample);
                     }
                 }
-            }
-
-            if input.rx().is_disconnected() {
-                state.input = None;
-            }
+            });
         }
 
-        if let Some(output) = &mut state.output {
-            current_ffb_state = output.read_feedback_state().clone();
+        if state.control.can_sleep() {
+            selector.wait();
+            state.timer.reset_next_tick();
+        } else {
+            let _ = selector.wait_timeout(Duration::ZERO);
         }
 
-        // let mut selector = flume::Selector::new();
-
-        // selector = selector.recv(&quit_rx, |_| {
-        //     quit.store(true, Ordering::Release);
-        // });
-
-        // selector = selector.recv(&cmd_rx, |maybe_cmd| {
-        //     let Ok(cmd) = maybe_cmd else {
-        //         quit.store(true, Ordering::Release);
-
-        //         return;
-        //     };
-
-        //     command = Some(cmd);
-        // });
-
-        // if let Some(input) = &mut state.input {
-        //     selector = selector.recv(input.rx(), |maybe_event| {
-        //         let Ok(event) = maybe_event else {
-        //             should_stop_input = true;
-
-        //             return;
-        //         };
-
-        //         match event {
-        //             InputBackendEvent::Started => {}
-        //             InputBackendEvent::Error(error) => {
-        //                 error!("Input backend error occured: {error}");
-        //                 let _ = event_tx.push(Event::Error(error));
-        //             }
-        //             InputBackendEvent::Sample(input_sample) => {
-        //                 sample = Some(input_sample);
-        //             }
-        //         }
-        //     });
-        // }
-
-        // selector.wait();
+        if should_stop_input {
+            state.input = None;
+        }
 
         let current_pen = state.transformer.get_pen();
 
