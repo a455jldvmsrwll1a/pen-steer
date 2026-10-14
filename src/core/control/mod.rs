@@ -22,6 +22,8 @@ pub trait Control {
         force_feedback: &FFbState,
         output: &mut OutputSample,
     );
+
+    fn can_sleep(&self) -> bool;
 }
 
 pub fn create_control(profile: &Profile) -> Box<dyn Control> {
@@ -37,4 +39,8 @@ pub struct DummyControl;
 
 impl Control for DummyControl {
     fn update(&mut self, _: &Profile, _: f32, _: Pen, _: &FFbState, _: &mut OutputSample) {}
+
+    fn can_sleep(&self) -> bool {
+        true
+    }
 }

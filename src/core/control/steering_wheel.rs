@@ -118,6 +118,10 @@ impl Control for SteeringWheel {
         output.accelerator = 0.0;
         output.brake = 0.0;
     }
+
+    fn can_sleep(&self) -> bool {
+        self.velocity.abs() < 1e-5
+    }
 }
 
 #[derive(Debug, Clone)]
