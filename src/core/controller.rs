@@ -57,7 +57,6 @@ pub fn controller(
 
     'main: while !quit.load(Ordering::Acquire) {
         let mut command = None;
-        let mut sample = None;
 
         match quit_rx.try_recv() {
             Ok(..) | Err(TryRecvError::Disconnected) => {
@@ -88,8 +87,6 @@ pub fn controller(
                     }
                     InputBackendEvent::Sample(input_sample) => {
                         state.transformer.update(input_sample);
-
-                        sample = Some(input_sample);
                     }
                 }
             }
