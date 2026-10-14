@@ -71,7 +71,7 @@ pub fn start_app() -> Result<()> {
                 global.set_ffb_available(true);
                 global.set_ffb_value(constant_force);
             }
-            FFbState::Unavailable | FFbState::Idle { .. }  => {
+            FFbState::Unavailable | FFbState::Idle { .. } => {
                 global.set_ffb_available(false);
             }
         }
