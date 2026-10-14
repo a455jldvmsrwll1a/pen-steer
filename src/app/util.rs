@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use std::env::args;
-use flume::Sender;
+use crossbeam_channel::Sender;
 use log::{LevelFilter, error, info};
+use std::env::args;
 
 pub fn init_logging() {
     env_logger::Builder::default()

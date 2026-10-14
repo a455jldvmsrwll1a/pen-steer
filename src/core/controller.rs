@@ -6,7 +6,7 @@
 
 use anyhow::{Result, bail};
 use arc_swap::ArcSwap;
-use flume::{Receiver, TryRecvError};
+use crossbeam_channel::{Receiver, TryRecvError};
 use log::{error, info};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -17,7 +17,7 @@ use crate::core::config::{Profile, TickMode};
 use crate::core::control::{self, Control};
 use crate::core::input::{InputBackendEvent, InputBackendHandle};
 use crate::core::math;
-use crate::core::output::{FFbState, OutputBackendHandle, OutputSample};
+use crate::core::output::{FFbState, OutputBackendHandle, OutputEvent, OutputSample};
 use crate::core::pen::Pen;
 use crate::core::timer::Timer;
 use crate::core::transform::Transformer;
@@ -56,70 +56,88 @@ pub fn controller(
     let quit = Rc::new(AtomicBool::new(false));
     let mut current_ffb_state = FFbState::Unavailable;
 
-    while !quit.load(Ordering::Acquire) {
-        let mut command = None;
-        let mut should_stop_input = false;
+    'main: while !quit.load(Ordering::Acquire) {
+        // Setup for wait.
+        let mut selector = crossbeam_channel::Select::new();
+        selector.recv(&quit_rx);
+        selector.recv(&cmd_rx);
 
-        if let Some(output) = &mut state.output {
-            current_ffb_state = output.read_feedback_state().clone();
+        if let Some(input) = &state.input {
+            selector.recv(input.rx());
         }
 
-        let mut selector = flume::Selector::new();
-
-        selector = selector.recv(&quit_rx, |_| {
-            quit.store(true, Ordering::Release);
-        });
-
-        selector = selector.recv(&cmd_rx, |maybe_cmd| {
-            let Ok(cmd) = maybe_cmd else {
-                quit.store(true, Ordering::Release);
-
-                return;
-            };
-
-            command = Some(cmd);
-        });
-
-        if let Some(input) = &mut state.input {
-            selector = selector.recv(input.rx(), |maybe_event| {
-                let Ok(event) = maybe_event else {
-                    should_stop_input = true;
-
-                    return;
-                };
-
-                match event {
-                    InputBackendEvent::Started => {}
-                    InputBackendEvent::Error(error) => {
-                        error!("Input backend error occured: {error}");
-                        let _ = event_tx.push(Event::Error(error));
-                    }
-                    InputBackendEvent::Sample(input_sample) => {
-                        state.transformer.update(input_sample);
-                    }
-                }
-            });
+        if let Some(output) = &state.output {
+            selector.recv(output.event_rx());
+            selector.recv(output.notification_rx());
         }
 
         if state.control.can_sleep() {
-            selector.wait();
+            selector.ready();
             state.timer.reset_next_tick();
         } else {
-            let _ = selector.wait_timeout(Duration::ZERO);
+            let _ = selector.ready_timeout(Duration::ZERO);
         }
 
-        if should_stop_input {
-            state.input = None;
+        // Process any new data after waiting.
+
+        match quit_rx.try_recv() {
+            Ok(..) | Err(TryRecvError::Disconnected) => {
+                quit.store(true, Ordering::Release);
+
+                break 'main;
+            }
+            Err(TryRecvError::Empty) => {}
         }
 
-        let current_pen = state.transformer.get_pen();
-
-        if let Some(command) = command.take() {
+        for command in cmd_rx.try_iter() {
             if let Err(err) = state.process_command(command) {
                 error!("Error processing command: {err:?}");
                 let _ = event_tx.push(Event::Error(err));
             }
         }
+
+        // Check for queued events from input.
+        if let Some(input) = &mut state.input {
+            loop {
+                match input.rx().try_recv() {
+                    Ok(InputBackendEvent::Started) => { /* we don't care */ }
+                    Ok(InputBackendEvent::Error(error)) => {
+                        error!("Input backend error occured: {error}");
+                        let _ = event_tx.push(Event::Error(error));
+                    }
+                    Ok(InputBackendEvent::Sample(input_sample)) => {
+                        state.transformer.update(input_sample);
+                    }
+                    Err(TryRecvError::Disconnected) => {
+                        state.input = None;
+                        break;
+                    }
+                    Err(TryRecvError::Empty) => break,
+                }
+            }
+        }
+
+        // Check for FFB state and queued events from output.
+        if let Some(output) = &mut state.output {
+            current_ffb_state = output.read_ffb_state_and_clear_notification().clone();
+
+            loop {
+                match output.event_rx().try_recv() {
+                    Ok(OutputEvent::Started) => { /* we don't care */ }
+                    Ok(OutputEvent::Error(error)) => {
+                        error!("Output backend error occured: {error}");
+                        let _ = event_tx.push(Event::Error(error));
+                    }
+                    Err(TryRecvError::Disconnected) => {
+                        state.output = None;
+                        break;
+                    }
+                    Err(TryRecvError::Empty) => break,
+                }
+            }
+        }
+
+        let current_pen = state.transformer.get_pen();
 
         state.control.update(
             &state.config.load(),

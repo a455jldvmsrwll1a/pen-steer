@@ -14,7 +14,7 @@ use std::{
 };
 
 use anyhow::{Result, anyhow, bail};
-use flume::{Receiver, Sender, TrySendError};
+use crossbeam_channel::{Receiver, Sender, TrySendError};
 use log::{debug, error, info};
 use mio::{Events, Poll, Token, Waker};
 
@@ -79,7 +79,9 @@ impl OutputBackendHandle {
             .expect("should always be Some() up until destruction")
     }
 
-    pub fn read_feedback_state(&mut self) -> &FFbState {
+    pub fn read_ffb_state_and_clear_notification(&mut self) -> &FFbState {
+        while let Ok(()) = self.notification_rx().try_recv() {}
+
         self.feedback_rx.read()
     }
 
@@ -97,8 +99,8 @@ impl OutputBackendHandle {
         let waker = Waker::new(waker_poll.registry(), Self::WAKE_TOKEN)?;
 
         let stop_flag = Arc::new(AtomicBool::new(false));
-        let (event_tx, event_rx) = flume::bounded(8192);
-        let (notification_tx, notification_rx) = flume::bounded(1);
+        let (event_tx, event_rx) = crossbeam_channel::bounded(8192);
+        let (notification_tx, notification_rx) = crossbeam_channel::bounded(1);
         let (feedback_tx, feedback_rx) = triple_buffer::triple_buffer(&FFbState::Unavailable);
         let (output_tx, output_rx) = triple_buffer::triple_buffer(&OutputSample::default());
 

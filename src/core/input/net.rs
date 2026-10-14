@@ -5,7 +5,7 @@
  */
 
 use anyhow::{Context, Result, bail};
-use flume::Sender;
+use crossbeam_channel::Sender;
 use glam::Vec2;
 use log::info;
 use mio::{Events, Interest, Poll, Token, net::UdpSocket};
