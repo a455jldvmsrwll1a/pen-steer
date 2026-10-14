@@ -30,14 +30,16 @@ impl Pen {
     }
 
     pub fn compute_angular_velocity(&self) -> f32 {
-        // undefined when at pen is at (0, 0)
-        if self.position.length_squared() < f32::EPSILON {
-            return 0.0;
-        }
-
         let Vec2 { x, y } = self.position;
         let Vec2 { x: vx, y: vy } = self.velocity;
 
-        ((x * vy) - (y * vx)) / (x * x + y * y)
+        let len_sq = self.position.length_squared();
+
+        // undefined when at pen is at (0, 0)
+        if len_sq < f32::EPSILON {
+            return 0.0;
+        }
+
+        ((x * vy) - (y * vx)) / len_sq
     }
 }
