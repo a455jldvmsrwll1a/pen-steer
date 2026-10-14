@@ -14,8 +14,11 @@ use anyhow::Result;
 use arc_swap::ArcSwapAny;
 use log::{error, info};
 use pen_steer::{
-    PACKAGE_VERSION, core::{
-        config::Profile, controller::{self, Snapshot}, output::FFbState,
+    PACKAGE_VERSION,
+    core::{
+        config::Profile,
+        controller::{self, Snapshot},
+        output::FFbState,
     },
 };
 use slint::{ComponentHandle, ToSharedString};

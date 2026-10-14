@@ -10,7 +10,7 @@ use crate::core::{
     config::Profile,
     control::steering_wheel::SteeringWheel,
     output::{FFbState, OutputSample},
-    transform::Pen,
+    pen::Pen,
 };
 
 pub trait Control {

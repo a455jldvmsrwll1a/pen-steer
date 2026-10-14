@@ -8,15 +8,7 @@ use std::time::{Duration, Instant};
 
 use glam::{Affine2, Vec2};
 
-use crate::core::{config::Mapping, input::InputSample};
-
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct Pen {
-    pub buttons: u32,
-    pub pressure: f32,
-    pub position: Vec2,
-    pub velocity: Vec2,
-}
+use crate::core::{config::Mapping, input::InputSample, pen::Pen};
 
 pub struct Transformer {
     transform: Affine2,

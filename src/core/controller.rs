@@ -17,8 +17,9 @@ use crate::core::control::{self, Control};
 use crate::core::input::{InputBackendEvent, InputBackendHandle};
 use crate::core::math;
 use crate::core::output::{FFbState, OutputBackendHandle, OutputSample};
+use crate::core::pen::Pen;
 use crate::core::timer::Timer;
-use crate::core::transform::{Pen, Transformer};
+use crate::core::transform::Transformer;
 
 #[derive(Debug)]
 pub enum Command {

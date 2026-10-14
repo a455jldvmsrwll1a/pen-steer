@@ -9,7 +9,7 @@ use crate::core::{
     control::Control,
     math,
     output::{FFbState, OutputSample},
-    transform::Pen,
+    pen::Pen,
 };
 
 pub struct SteeringWheel {
