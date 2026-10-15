@@ -23,6 +23,24 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
     property <SteeringWheelConfig> config <=> GlobalUiState.control-config.steering-wheel;
     property <length> slider_label_width: 0px;
 
+    public function refresh() {
+        angular_range.refresh();
+        base_radius.refresh();
+        horn_radius.refresh();
+        pressure_min.refresh();
+        pressure_max.refresh();
+        inertia.refresh();
+        friction_coeff.refresh();
+        spring_stiffness.refresh();
+        direct_grip_threshold.refresh();
+        full_grip_force.refresh();
+        full_ffb.refresh();
+    }
+
+    changed config => {
+        refresh();
+    }
+
     init => {
         slider_label_width = slider_label_width.max(angular_range.preferred-label-width);
         slider_label_width = slider_label_width.max(base_radius.preferred-label-width);

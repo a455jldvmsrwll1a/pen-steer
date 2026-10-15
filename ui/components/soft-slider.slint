@@ -29,15 +29,18 @@ export component LabelledSoftSlider inherits HorizontalLayout {
 
     out property <length> preferred-label-width <=> label_widget.preferred-width;
 
+    public function refresh() {
+        let clamped = min(max(current-value, value-hard-min), value-hard-max);
+
+        current-value = clamped;
+        textbox.display-pretty();
+    }
+
     padding: 0;
     spacing: 8px;
 
     init => {
-        let clamped = min(max(current-value, value-hard-min), value-hard-max);
-
-        current-value = clamped;
-        slider.value = clamped;
-        textbox.display-pretty();
+        self.refresh();
     }
 
     HorizontalLayout {
@@ -73,12 +76,12 @@ export component LabelledSoftSlider inherits HorizontalLayout {
         maximum <=> value-soft-max;
         step <=> value-step;
         enabled <=> root.enabled;
+        value <=> current-value;
 
         changed(value) => {
             let clamped = min(max(value, value-hard-min), value-hard-max);
             let snapped = round(clamped / root.value-step) * root.value-step;
 
-            self.value = snapped;
             current-value = snapped;
 
             textbox.display-pretty();
@@ -122,7 +125,6 @@ export component LabelledSoftSlider inherits HorizontalLayout {
                 let clamped = min(max(value, value-hard-min), value-hard-max);
 
                 root.current-value = clamped;
-                slider.value = clamped;
             } else {
                 self.select-all();
             }
