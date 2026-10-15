@@ -8,11 +8,7 @@ pub mod save_path;
 pub mod slint_sync;
 pub mod util;
 
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, Mutex, atomic::AtomicBool},
-};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use anyhow::Result;
 use arc_swap::{ArcSwap, ArcSwapAny};
