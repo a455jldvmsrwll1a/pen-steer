@@ -12,7 +12,8 @@ use std::sync::{Arc, atomic::AtomicBool};
 
 use anyhow::Result;
 use arc_swap::ArcSwapAny;
-use log::{error, info};
+use crossbeam_channel::RecvError;
+use log::{debug, error, info};
 use pen_steer::{
     PACKAGE_VERSION,
     core::{
@@ -55,6 +56,34 @@ pub fn start_app() -> Result<()> {
     let ui = AppWindow::new()?;
     slint::set_xdg_app_id(APP_ID)?;
     ui.set_app_version(PACKAGE_VERSION.to_shared_string());
+
+    let ui_weak = ui.as_weak();
+    let relay_thread = std::thread::spawn(move || {
+        'read: loop {
+            match event_rx.recv() {
+                Ok(controller::Event::Error(err)) => {
+                    error!("Received error from controller thread:\n{err:?}");
+                }
+                Ok(controller::Event::InputStarted) => {
+                    info!("Controller thread says input started!");
+
+                    let _ = ui_weak.upgrade_in_event_loop(|ui| {
+                        ui.invoke_set_running_state(true);
+                    });
+                }
+                Ok(controller::Event::OutputStarted) => {
+                    info!("Controller thread says output started!");
+
+                    let _ = ui_weak.upgrade_in_event_loop(|ui| {
+                        ui.invoke_set_running_state(true);
+                    });
+                }
+                Err(RecvError) => break 'read,
+            }
+        }
+
+        debug!("Relay thread stopping!");
+    });
 
     let ui_weak = ui.as_weak();
     ui.global::<ViewTabStatus>().on_fetch_status(move || {
@@ -125,6 +154,10 @@ pub fn start_app() -> Result<()> {
 
     if let Err(err) = controller_thread.join() {
         error!("Error while waiting for controller thread to stop: {err:?}");
+    }
+
+    if let Err(err) = relay_thread.join() {
+        error!("Error while waiting for relay thread to stop: {err:?}");
     }
 
     Ok(())
