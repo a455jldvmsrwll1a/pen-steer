@@ -8,10 +8,14 @@ pub mod save_path;
 pub mod slint_sync;
 pub mod util;
 
-use std::sync::{Arc, atomic::AtomicBool};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::{Arc, Mutex, atomic::AtomicBool},
+};
 
 use anyhow::Result;
-use arc_swap::ArcSwapAny;
+use arc_swap::{ArcSwap, ArcSwapAny};
 use crossbeam_channel::RecvError;
 use log::{debug, error, info};
 use pen_steer::{
@@ -27,11 +31,18 @@ use slint::{ComponentHandle, ToSharedString};
 use crate::{APP_ID, AboutWindow, AppWindow, GlobalUiState, SlintWindow, ViewTabStatus};
 
 pub fn start_app() -> Result<()> {
-    let profile = Arc::new(ArcSwapAny::new(Arc::new(Profile {
+    if let Err(err) = std::fs::create_dir_all(save_path::save_dir()) {
+        error!("Could not create configuration directory: {err:?}");
+    }
+
+    let local_profile = Rc::new(RefCell::new(Profile {
         active_input: pen_steer::core::config::InputBackend::Net,
         active_output: pen_steer::core::config::OutputBackend::LinuxUinput,
         ..Default::default()
-    })));
+    }));
+
+    let profile: Arc<ArcSwap<Profile>> =
+        Arc::new(ArcSwapAny::new(Arc::new(local_profile.borrow().clone())));
 
     let (quit_tx, quit_rx) = crossbeam_channel::unbounded();
     util::set_handler(quit_tx.clone());
@@ -40,17 +51,19 @@ pub fn start_app() -> Result<()> {
     let (event_tx, event_rx) = crossbeam_channel::bounded(128);
     let (snapshot_tx, mut snapshot_rx) = triple_buffer::triple_buffer(&Snapshot::default());
 
+    let profile_clone = profile.clone();
     let controller_thread = std::thread::spawn(|| {
-        controller::controller(profile, cmd_rx, quit_rx, event_tx, snapshot_tx);
+        controller::controller(profile_clone, cmd_rx, quit_rx, event_tx, snapshot_tx);
     });
-
-    if let Err(err) = std::fs::create_dir_all(save_path::save_dir()) {
-        error!("Could not create configuration directory: {err:?}");
-    }
 
     let ui = AppWindow::new()?;
     slint::set_xdg_app_id(APP_ID)?;
     ui.set_app_version(PACKAGE_VERSION.to_shared_string());
+
+    slint_sync::update_global_from_profile(
+        &mut ui.global::<GlobalUiState>(),
+        &local_profile.borrow(),
+    );
 
     let ui_weak = ui.as_weak();
     let relay_thread = std::thread::spawn(move || {
@@ -123,6 +136,8 @@ pub fn start_app() -> Result<()> {
         global.set_pen_y(state.pen.position.y);
     });
 
+    let local_profile_clone = local_profile.clone();
+    let profile_clone = profile.clone();
     let ui_weak = ui.as_weak();
     ui.global::<GlobalUiState>().on_ctl_config_changed(move || {
         let Some(ui) = ui_weak.upgrade() else {
@@ -130,11 +145,31 @@ pub fn start_app() -> Result<()> {
         };
 
         let global = ui.global::<GlobalUiState>();
-        debug!(
-            "control config updated!\n\n{:#?}\n\n",
-            global.get_control_config()
-        );
+        let config = global.get_control_config();
+        debug!("control config updated!\n\n{:#?}\n\n", config);
+
+        let mut profile = local_profile_clone.borrow_mut();
+        slint_sync::update_profile_from_control(&mut profile, &config);
+        profile_clone.store(Arc::new(profile.clone()));
     });
+
+    let local_profile_clone = local_profile.clone();
+    let profile_clone = profile.clone();
+    let ui_weak = ui.as_weak();
+    ui.global::<GlobalUiState>()
+        .on_input_config_changed(move || {
+            let Some(ui) = ui_weak.upgrade() else {
+                return;
+            };
+
+            let global = ui.global::<GlobalUiState>();
+            let config = global.get_input_config();
+            debug!("input config updated!\n\n{:#?}\n\n", config);
+
+            let mut profile = local_profile_clone.borrow_mut();
+            slint_sync::update_profile_from_input(&mut profile, &config);
+            profile_clone.store(Arc::new(profile.clone()));
+        });
 
     ui.on_show_about_app(move || {
         debug!("show_about_app()");
