@@ -36,7 +36,7 @@ pub fn start_app() -> Result<()> {
     util::set_handler(quit_tx.clone());
 
     let (cmd_tx, cmd_rx) = crossbeam_channel::unbounded();
-    let (event_tx, event_rx) = rtrb::RingBuffer::new(128);
+    let (event_tx, event_rx) = crossbeam_channel::bounded(128);
     let (snapshot_tx, mut snapshot_rx) = triple_buffer::triple_buffer(&Snapshot::default());
 
     let controller_thread = std::thread::spawn(|| {

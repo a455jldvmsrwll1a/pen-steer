@@ -6,7 +6,7 @@
 
 use anyhow::{Result, bail};
 use arc_swap::ArcSwap;
-use crossbeam_channel::{Receiver, TryRecvError};
+use crossbeam_channel::{Receiver, Sender, TryRecvError};
 use log::{error, info};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -33,6 +33,8 @@ pub enum Command {
 
 pub enum Event {
     Error(anyhow::Error),
+    InputStarted,
+    OutputStarted,
 }
 
 #[derive(Default, Clone)]
@@ -47,7 +49,7 @@ pub fn controller(
     config: Arc<ArcSwap<Profile>>,
     cmd_rx: Receiver<Command>,
     quit_rx: Receiver<()>,
-    mut event_tx: rtrb::Producer<Event>,
+    mut event_tx: Sender<Event>,
     mut snapshot_tx: triple_buffer::Input<Snapshot>,
 ) {
     info!("Controller starting.");
@@ -92,7 +94,7 @@ pub fn controller(
         for command in cmd_rx.try_iter() {
             if let Err(err) = state.process_command(command) {
                 error!("Error processing command: {err:?}");
-                let _ = event_tx.push(Event::Error(err));
+                let _ = event_tx.try_send(Event::Error(err));
             }
         }
 
@@ -100,10 +102,12 @@ pub fn controller(
         if let Some(input) = &mut state.input {
             loop {
                 match input.rx().try_recv() {
-                    Ok(InputBackendEvent::Started) => { /* we don't care */ }
+                    Ok(InputBackendEvent::Started) => {
+                        let _ = event_tx.try_send(Event::InputStarted);
+                    }
                     Ok(InputBackendEvent::Error(error)) => {
                         error!("Input backend error occured: {error}");
-                        let _ = event_tx.push(Event::Error(error));
+                        let _ = event_tx.try_send(Event::Error(error));
                     }
                     Ok(InputBackendEvent::Sample(input_sample)) => {
                         state.transformer.update(input_sample);
@@ -123,10 +127,12 @@ pub fn controller(
 
             loop {
                 match output.event_rx().try_recv() {
-                    Ok(OutputEvent::Started) => { /* we don't care */ }
+                    Ok(OutputEvent::Started) => {
+                        let _ = event_tx.try_send(Event::OutputStarted);
+                    }
                     Ok(OutputEvent::Error(error)) => {
                         error!("Output backend error occured: {error}");
-                        let _ = event_tx.push(Event::Error(error));
+                        let _ = event_tx.try_send(Event::Error(error));
                     }
                     Err(TryRecvError::Disconnected) => {
                         state.output = None;
@@ -153,7 +159,7 @@ pub fn controller(
             state.prev_output_state = state.output_state.clone();
             if let Err(err) = output.update_output(state.output_state.clone()) {
                 error!("Error updating output state: {err:?}");
-                let _ = event_tx.push(Event::Error(err));
+                let _ = event_tx.try_send(Event::Error(err));
 
                 state.output = None;
             }
