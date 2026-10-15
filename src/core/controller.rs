@@ -7,7 +7,7 @@
 use anyhow::{Result, bail};
 use arc_swap::ArcSwap;
 use crossbeam_channel::{Receiver, Sender, TryRecvError};
-use log::{error, info};
+use log::{error, info, warn};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -222,9 +222,14 @@ impl State {
                 self.control = control::create_control(&self.config.load());
             }
             Command::StartInput => {
+                if self.input.is_some() {
+                    warn!("Received StartInput command but input is already up!");
+
+                    return Ok(());
+                }
+
                 info!("Starting input...");
 
-                self.input = None;
                 self.input = match InputBackendHandle::create(&self.config.load()) {
                     Ok(ibh) => Some(ibh),
                     Err(err) => bail!(err),
@@ -238,6 +243,12 @@ impl State {
                 self.input = None;
             }
             Command::StartOutput => {
+                if self.output.is_some() {
+                    warn!("Received StartOutput command but output is already up!");
+
+                    return Ok(());
+                }
+
                 info!("Starting output...");
 
                 self.output = match OutputBackendHandle::create(&self.config.load()) {

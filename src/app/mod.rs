@@ -44,14 +44,9 @@ pub fn start_app() -> Result<()> {
         controller::controller(profile, cmd_rx, quit_rx, event_tx, snapshot_tx);
     });
 
-    cmd_tx.send(controller::Command::StartInput)?;
-    cmd_tx.send(controller::Command::StartOutput)?;
-
     if let Err(err) = std::fs::create_dir_all(save_path::save_dir()) {
         error!("Could not create configuration directory: {err:?}");
     }
-
-    let is_running = Arc::new(AtomicBool::default());
 
     let ui = AppWindow::new()?;
     slint::set_xdg_app_id(APP_ID)?;
@@ -69,6 +64,7 @@ pub fn start_app() -> Result<()> {
 
                     let _ = ui_weak.upgrade_in_event_loop(|ui| {
                         ui.invoke_set_running_state(true);
+                        ui.invoke_on_input_started();
                     });
                 }
                 Ok(controller::Event::OutputStarted) => {
@@ -76,6 +72,7 @@ pub fn start_app() -> Result<()> {
 
                     let _ = ui_weak.upgrade_in_event_loop(|ui| {
                         ui.invoke_set_running_state(true);
+                        ui.invoke_on_output_started();
                     });
                 }
                 Err(RecvError) => break 'read,
@@ -138,14 +135,24 @@ pub fn start_app() -> Result<()> {
         }
     });
 
-    let is_running_clone = is_running.clone();
     let ui_weak = ui.as_weak();
-    ui.on_main_action_clicked(move || {
-        is_running_clone.fetch_not(std::sync::atomic::Ordering::SeqCst);
+    ui.on_main_action_clicked(move |was_indicated_running| {
+        let inner = || -> Result<()> {
+            if was_indicated_running {
+                cmd_tx.send(controller::Command::StopInput)?;
+                cmd_tx.send(controller::Command::StopOutput)?;
 
-        ui_weak
-            .unwrap()
-            .invoke_set_running_state(is_running_clone.load(std::sync::atomic::Ordering::SeqCst));
+                ui_weak.unwrap().invoke_set_running_state(false);
+            } else {
+                cmd_tx.send(controller::Command::StartInput)?;
+                cmd_tx.send(controller::Command::StartOutput)?;
+            };
+            Ok(())
+        };
+
+        if let Err(err) = inner() {
+            error!("Error trying to send start/stop command: {err:?}");
+        }
     });
 
     ui.run()?;

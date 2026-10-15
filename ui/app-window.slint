@@ -44,9 +44,20 @@ export component AppWindow inherits Window {
     preferred-width: 640px;
     preferred-height: 720px;
 
+    property <bool> input-running: false;
+    property <bool> output-running: false;
+
     callback show-about-app();
     callback show-about-slint();
-    callback main_action_clicked <=> action_button.main_clicked;
+    callback main_action_clicked(was-indicated-running: bool);
+
+    public function on-input-started() {
+        root.input-running = true;
+    }
+
+    public function on-output-started() {
+        root.output-running = true;
+    }
 
     public function set_running_state(running: bool) {
         if running {
@@ -280,6 +291,16 @@ export component AppWindow inherits Window {
                     main_text: @tr("Start");
                     base_colour: #00d600;
 
+                    main_clicked => {
+                        let running = input-running && output-running;
+                        main_action_clicked(running);
+
+                        if running {
+                            input-running = false;
+                            output-running = false;
+                        }
+                    }
+
                     side_clicked => {
                         menu_popup.show();
                     }
@@ -305,11 +326,11 @@ export component AppWindow inherits Window {
                             }
 
                             Button {
-                                text: @tr("Start {} input", "evdev");
+                                text: @tr("Start input");
                             }
 
                             Button {
-                                text: @tr("Start {} output", "uinput");
+                                text: @tr("Start output");
                             }
                         }
                     }
