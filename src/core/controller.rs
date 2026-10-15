@@ -92,7 +92,7 @@ pub fn controller(
         }
 
         for command in cmd_rx.try_iter() {
-            if let Err(err) = state.process_command(command) {
+            if let Err(err) = state.process_command(&mut event_tx, command) {
                 error!("Error processing command: {err:?}");
                 let _ = event_tx.try_send(Event::Error(err));
             }
@@ -103,7 +103,8 @@ pub fn controller(
             loop {
                 match input.rx().try_recv() {
                     Ok(InputBackendEvent::Started) => {
-                        let _ = event_tx.try_send(Event::InputStarted);
+                        // we don't care; no more of these events should be
+                        // emitted anyway
                     }
                     Ok(InputBackendEvent::Error(error)) => {
                         error!("Input backend error occured: {error}");
@@ -128,7 +129,8 @@ pub fn controller(
             loop {
                 match output.event_rx().try_recv() {
                     Ok(OutputEvent::Started) => {
-                        let _ = event_tx.try_send(Event::OutputStarted);
+                        // we don't care; no more of these events should be
+                        // emitted anyway
                     }
                     Ok(OutputEvent::Error(error)) => {
                         error!("Output backend error occured: {error}");
@@ -212,7 +214,7 @@ impl State {
         }
     }
 
-    fn process_command(&mut self, command: Command) -> Result<()> {
+    fn process_command(&mut self, event_tx: &mut Sender<Event>, command: Command) -> Result<()> {
         match command {
             Command::ResetControlState => {
                 info!("Resetting control state...");
@@ -227,6 +229,8 @@ impl State {
                     Ok(ibh) => Some(ibh),
                     Err(err) => bail!(err),
                 };
+
+                let _ = event_tx.try_send(Event::InputStarted);
             }
             Command::StopInput => {
                 info!("Stopping input...");
@@ -240,6 +244,8 @@ impl State {
                     Ok(obh) => Some(obh),
                     Err(err) => bail!(err),
                 };
+
+                let _ = event_tx.try_send(Event::OutputStarted);
             }
             Command::StopOutput => {
                 info!("Stopping output...");
