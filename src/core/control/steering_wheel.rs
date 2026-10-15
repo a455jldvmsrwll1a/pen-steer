@@ -16,6 +16,7 @@ pub struct SteeringWheel {
     angle: f32,
     velocity: f32,
     state: HoldState,
+    horn_toggled: bool,
 }
 
 impl Default for SteeringWheel {
@@ -24,6 +25,7 @@ impl Default for SteeringWheel {
             angle: 0.0,
             velocity: 0.0,
             state: HoldState::Free,
+            horn_toggled: false,
         }
     }
 }
@@ -38,41 +40,55 @@ impl Control for SteeringWheel {
         output: &mut OutputSample,
     ) {
         let config = &profile.steering_wheel_control;
-        let min_pressure = config.pressure_min / 100.0;
+        let min_pressure = (config.pressure_min / 100.0).max(0.01);
         let horn_radius = config.horn_radius / 100.0;
         let base_radius = config.natural_rotation_radius_min / 100.0;
         let can_switch_anytime = config.fast_mode_switch;
 
+        let can_drag = pen.pressure >= min_pressure
+            && (!config.ignore_exterior_input || pen.is_within_range(..=1.0));
+
         // Handle state transitions.
         match &mut self.state {
             HoldState::Free => {
-                if pen.pressure >= min_pressure {
+                if can_drag {
                     if pen.is_within_range(..=horn_radius) {
-                        self.state = HoldState::Honking;
+                        self.state = HoldState::PressingHorn;
+                        self.horn_toggled = !self.horn_toggled;
                     } else {
                         self.state = HoldState::Dragging;
                     }
                 }
             }
-            HoldState::Honking => {
-                if pen.pressure < min_pressure {
+            HoldState::PressingHorn => {
+                if !can_drag {
                     self.state = HoldState::Free;
                 } else if can_switch_anytime && !pen.is_within_range(..=horn_radius) {
                     self.state = HoldState::Dragging;
+                    self.horn_toggled = !self.horn_toggled;
                 }
             }
             HoldState::Dragging => {
-                if pen.pressure < min_pressure {
+                if !can_drag {
                     self.state = HoldState::Free;
                 } else if can_switch_anytime && pen.is_within_range(..=horn_radius) {
-                    self.state = HoldState::Honking;
+                    self.state = HoldState::PressingHorn;
+                    self.horn_toggled = !self.horn_toggled;
                 }
             }
         }
 
         match self.state {
-            HoldState::Free | HoldState::Honking => {
-                let ffb_torque = if let FFbState::Active { constant_force, .. } = force_feedback {
+            HoldState::Free | HoldState::PressingHorn => 'phys: {
+                if !config.physics_enable {
+                    self.velocity = 0.0;
+
+                    break 'phys;
+                }
+
+                let ffb_torque = if config.enable_ffb
+                    && let FFbState::Active { constant_force, .. } = force_feedback
+                {
                     let sign = if config.full_ffb_negate { -1.0 } else { 1.0 };
 
                     // TODO: either `full_ffb_force` should be `full_ffb_torque`,
@@ -114,7 +130,13 @@ impl Control for SteeringWheel {
 
         // Positive angle is counterclockwise, so we need to take the negative of it.
         output.wheel = -self.angle / half_range;
-        output.horn = matches!(self.state, HoldState::Honking);
+
+        output.horn = if config.sticky_horn {
+            self.horn_toggled
+        } else {
+            matches!(self.state, HoldState::PressingHorn)
+        };
+
         output.accelerator = 0.0;
         output.brake = 0.0;
     }
@@ -127,6 +149,6 @@ impl Control for SteeringWheel {
 #[derive(Debug, Clone)]
 enum HoldState {
     Free,
-    Honking,
+    PressingHorn,
     Dragging,
 }
