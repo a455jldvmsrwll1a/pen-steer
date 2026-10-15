@@ -49,7 +49,8 @@ export component AppWindow inherits Window {
 
     callback show-about-app();
     callback show-about-slint();
-    callback main_action_clicked(was-indicated-running: bool);
+    callback main-action-clicked(was-indicated-running: bool);
+    callback reset-wheel-state-clicked();
 
     public function on-input-started() {
         root.input-running = true;
@@ -110,6 +111,8 @@ export component AppWindow inherits Window {
 
             MenuItem {
                 title: @tr("Reset wheel state");
+
+                activated => reset-wheel-state-clicked();
             }
         }
 
@@ -285,6 +288,8 @@ export component AppWindow inherits Window {
 
                 Button {
                     text: @tr("Reset wheel");
+
+                    clicked => reset-wheel-state-clicked();
                 }
 
                 action_button := SplitButton {

@@ -135,17 +135,25 @@ pub fn start_app() -> Result<()> {
         }
     });
 
+    let cmd_tx_clone = cmd_tx.clone();
+    ui.on_reset_wheel_state_clicked(move || {
+        if let Err(err) = cmd_tx_clone.send(controller::Command::ResetControlState) {
+            error!("Error trying to send control reset command: {err:?}");
+        }
+    });
+
+    let cmd_tx_clone = cmd_tx.clone();
     let ui_weak = ui.as_weak();
     ui.on_main_action_clicked(move |was_indicated_running| {
         let inner = || -> Result<()> {
             if was_indicated_running {
-                cmd_tx.send(controller::Command::StopInput)?;
-                cmd_tx.send(controller::Command::StopOutput)?;
+                cmd_tx_clone.send(controller::Command::StopInput)?;
+                cmd_tx_clone.send(controller::Command::StopOutput)?;
 
                 ui_weak.unwrap().invoke_set_running_state(false);
             } else {
-                cmd_tx.send(controller::Command::StartInput)?;
-                cmd_tx.send(controller::Command::StartOutput)?;
+                cmd_tx_clone.send(controller::Command::StartInput)?;
+                cmd_tx_clone.send(controller::Command::StartOutput)?;
             };
             Ok(())
         };
