@@ -35,6 +35,8 @@ pub enum Event {
     Error(anyhow::Error),
     InputStarted,
     OutputStarted,
+    InputStopped,
+    OutputStopped,
 }
 
 #[derive(Default, Clone)]
@@ -115,6 +117,7 @@ pub fn controller(
                     }
                     Err(TryRecvError::Disconnected) => {
                         state.input = None;
+                        let _ = event_tx.try_send(Event::InputStopped);
                         break;
                     }
                     Err(TryRecvError::Empty) => break,
@@ -138,6 +141,7 @@ pub fn controller(
                     }
                     Err(TryRecvError::Disconnected) => {
                         state.output = None;
+                        let _ = event_tx.try_send(Event::OutputStopped);
                         break;
                     }
                     Err(TryRecvError::Empty) => break,
@@ -164,6 +168,7 @@ pub fn controller(
                 let _ = event_tx.try_send(Event::Error(err));
 
                 state.output = None;
+                let _ = event_tx.try_send(Event::OutputStopped);
             }
         }
 
@@ -241,6 +246,7 @@ impl State {
                 info!("Stopping input...");
 
                 self.input = None;
+                let _ = event_tx.try_send(Event::InputStopped);
             }
             Command::StartOutput => {
                 if self.output.is_some() {
@@ -262,6 +268,7 @@ impl State {
                 info!("Stopping output...");
 
                 self.output = None;
+                let _ = event_tx.try_send(Event::OutputStopped);
             }
         }
 

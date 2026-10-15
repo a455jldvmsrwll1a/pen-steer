@@ -63,16 +63,28 @@ pub fn start_app() -> Result<()> {
                     info!("Controller thread says input started!");
 
                     let _ = ui_weak.upgrade_in_event_loop(|ui| {
-                        ui.invoke_set_running_state(true);
-                        ui.invoke_on_input_started();
+                        ui.invoke_on_input_state_changed(true);
                     });
                 }
                 Ok(controller::Event::OutputStarted) => {
                     info!("Controller thread says output started!");
 
                     let _ = ui_weak.upgrade_in_event_loop(|ui| {
-                        ui.invoke_set_running_state(true);
-                        ui.invoke_on_output_started();
+                        ui.invoke_on_output_state_changed(true);
+                    });
+                }
+                Ok(controller::Event::InputStopped) => {
+                    info!("Controller thread says input stopped!");
+
+                    let _ = ui_weak.upgrade_in_event_loop(|ui| {
+                        ui.invoke_on_input_state_changed(false);
+                    });
+                }
+                Ok(controller::Event::OutputStopped) => {
+                    info!("Controller thread says output stopped!");
+
+                    let _ = ui_weak.upgrade_in_event_loop(|ui| {
+                        ui.invoke_on_output_state_changed(false);
                     });
                 }
                 Err(RecvError) => break 'read,
@@ -118,18 +130,23 @@ pub fn start_app() -> Result<()> {
         };
 
         let global = ui.global::<GlobalUiState>();
-
-        info!("control config updated!");
-        eprintln!("{:#?}", global.get_control_config());
+        debug!(
+            "control config updated!\n\n{:#?}\n\n",
+            global.get_control_config()
+        );
     });
 
     ui.on_show_about_app(move || {
+        debug!("show_about_app()");
+
         if let Ok(window) = AboutWindow::new() {
             let _ = window.run();
         }
     });
 
     ui.on_show_about_slint(move || {
+        debug!("show_about_slint()");
+
         if let Ok(window) = SlintWindow::new() {
             let _ = window.run();
         }
@@ -137,29 +154,56 @@ pub fn start_app() -> Result<()> {
 
     let cmd_tx_clone = cmd_tx.clone();
     ui.on_reset_wheel_state_clicked(move || {
+        debug!("reset_wheel_state_clicked()");
+
         if let Err(err) = cmd_tx_clone.send(controller::Command::ResetControlState) {
             error!("Error trying to send control reset command: {err:?}");
         }
     });
 
     let cmd_tx_clone = cmd_tx.clone();
-    let ui_weak = ui.as_weak();
-    ui.on_main_action_clicked(move |was_indicated_running| {
-        let inner = || -> Result<()> {
-            if was_indicated_running {
-                cmd_tx_clone.send(controller::Command::StopInput)?;
-                cmd_tx_clone.send(controller::Command::StopOutput)?;
+    ui.on_set_input_state_clicked(move |should_run| {
+        debug!("set_input_state_clicked(should_run = {should_run})");
 
-                ui_weak.unwrap().invoke_set_running_state(false);
-            } else {
+        let inner = || -> Result<()> {
+            if should_run {
                 cmd_tx_clone.send(controller::Command::StartInput)?;
-                cmd_tx_clone.send(controller::Command::StartOutput)?;
-            };
+            } else {
+                cmd_tx_clone.send(controller::Command::StopInput)?;
+            }
+
             Ok(())
         };
 
         if let Err(err) = inner() {
-            error!("Error trying to send start/stop command: {err:?}");
+            if should_run {
+                error!("Error trying to send start input command: {err:?}");
+            } else {
+                error!("Error trying to send stop input command: {err:?}");
+            }
+        }
+    });
+
+    let cmd_tx_clone = cmd_tx.clone();
+    ui.on_set_output_state_clicked(move |should_run| {
+        debug!("set_output_state_clicked(should_run = {should_run})");
+
+        let inner = || -> Result<()> {
+            if should_run {
+                cmd_tx_clone.send(controller::Command::StartOutput)?;
+            } else {
+                cmd_tx_clone.send(controller::Command::StopOutput)?;
+            }
+
+            Ok(())
+        };
+
+        if let Err(err) = inner() {
+            if should_run {
+                error!("Error trying to send start output command: {err:?}");
+            } else {
+                error!("Error trying to send stop output command: {err:?}");
+            }
         }
     });
 

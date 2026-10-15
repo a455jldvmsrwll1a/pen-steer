@@ -46,28 +46,20 @@ export component AppWindow inherits Window {
 
     property <bool> input-running: false;
     property <bool> output-running: false;
+    property <bool> overall-running: input-running && output-running;
 
     callback show-about-app();
     callback show-about-slint();
-    callback main-action-clicked(was-indicated-running: bool);
+    callback set-input-state-clicked(should_run: bool);
+    callback set-output-state-clicked(should_run: bool);
     callback reset-wheel-state-clicked();
 
-    public function on-input-started() {
-        root.input-running = true;
+    public function on-input-state-changed(running: bool) {
+        root.input-running = running;
     }
 
-    public function on-output-started() {
-        root.output-running = true;
-    }
-
-    public function set_running_state(running: bool) {
-        if running {
-            action_button.base_colour = #d60000;
-            action_button.main_text = @tr("Stop");
-        } else {
-            action_button.base_colour = #00d600;
-            action_button.main_text = @tr("Start");
-        }
+    public function on-output-state-changed(running: bool) {
+        root.output-running = running;
     }
 
     MenuBar {
@@ -293,17 +285,12 @@ export component AppWindow inherits Window {
                 }
 
                 action_button := SplitButton {
-                    main_text: @tr("Start");
-                    base_colour: #00d600;
+                    main_text: overall-running ? @tr("Stop") : @tr("Start");
+                    base_colour: overall-running ? #d60000 : #00d600;
 
                     main_clicked => {
-                        let running = input-running && output-running;
-                        main_action_clicked(running);
-
-                        if running {
-                            input-running = false;
-                            output-running = false;
-                        }
+                        set-input-state-clicked(!overall-running);
+                        set-output-state-clicked(!overall-running);
                     }
 
                     side_clicked => {
