@@ -132,6 +132,7 @@ pub fn start_app() -> Result<()> {
         global.set_pen_y(state.pen.position.y);
     });
 
+    let cmd_tx_clone = cmd_tx.clone();
     let local_profile_clone = local_profile.clone();
     let profile_clone = profile.clone();
     let ui_weak = ui.as_weak();
@@ -147,8 +148,10 @@ pub fn start_app() -> Result<()> {
         let mut profile = local_profile_clone.borrow_mut();
         slint_sync::update_profile_from_control(&mut profile, &config);
         profile_clone.store(Arc::new(profile.clone()));
+        let _ = cmd_tx_clone.try_send(controller::Command::WakeUp);
     });
 
+    let cmd_tx_clone = cmd_tx.clone();
     let local_profile_clone = local_profile.clone();
     let profile_clone = profile.clone();
     let ui_weak = ui.as_weak();
@@ -165,6 +168,7 @@ pub fn start_app() -> Result<()> {
             let mut profile = local_profile_clone.borrow_mut();
             slint_sync::update_profile_from_input(&mut profile, &config);
             profile_clone.store(Arc::new(profile.clone()));
+            let _ = cmd_tx_clone.try_send(controller::Command::WakeUp);
         });
 
     ui.on_show_about_app(move || {

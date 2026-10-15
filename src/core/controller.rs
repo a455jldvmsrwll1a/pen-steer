@@ -24,6 +24,7 @@ use crate::core::transform::Transformer;
 
 #[derive(Debug)]
 pub enum Command {
+    WakeUp,
     ResetControlState,
     StartInput,
     StopInput,
@@ -221,6 +222,7 @@ impl State {
 
     fn process_command(&mut self, event_tx: &mut Sender<Event>, command: Command) -> Result<()> {
         match command {
+            Command::WakeUp => { /* ignore */ }
             Command::ResetControlState => {
                 info!("Resetting control state...");
 
