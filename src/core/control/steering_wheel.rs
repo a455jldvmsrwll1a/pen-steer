@@ -104,10 +104,12 @@ impl Control for SteeringWheel {
                 let torque_no_friction = ffb_torque + spring_torque + damping_torque;
 
                 // Apply static or kinetic friction depending on current situation.
+                // TODO: fix issues that can happen when velocity crosses zero or goes near it in a tick.
                 let friction_torque = if self.velocity.abs() >= 1e-5
                     || torque_no_friction.abs() > config.static_friction_torque
                 {
-                    config.kinematic_friction_torque * -self.velocity.signum()
+                    // FIXME: KINETIC HINDI KINEMATIC 8080
+                    config.kinetic_friction_torque * -self.velocity.signum()
                 } else {
                     math::clamp_symmetric(config.static_friction_torque, -torque_no_friction)
                 };
