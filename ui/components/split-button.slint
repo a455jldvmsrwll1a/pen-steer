@@ -13,30 +13,30 @@ import {
 import { SeparatorLine } from "separator-line.slint";
 
 export component SplitButton inherits Rectangle {
-    in property main_text <=> main_text_widget.text;
-    in property <color> base_colour: Palette.control-background;
-    in property <color> base_text_colour: Palette.control-foreground;
+    in property main-text <=> main-text-widget.text;
+    in property <color> base-colour: Palette.control-background;
+    in property <color> base-text-colour: Palette.control-foreground;
 
-    callback main_clicked <=> main_touch.clicked;
-    callback side_clicked <=> side_touch.clicked;
+    callback main-clicked <=> main-touch.clicked;
+    callback side-clicked <=> side-touch.clicked;
 
     background: Colors.transparent;
-    min-width: main_text_widget.preferred-width + 60px;
-    min-height: main_text_widget.preferred-height;
-    forward-focus: main_focus_scope;
+    min-width: main-text-widget.preferred-width + 60px;
+    min-height: main-text-widget.preferred-height;
+    forward-focus: main-focus-scope;
 
     HorizontalLayout {
-        main_touch := TouchArea {
+        main-touch := TouchArea {
             horizontal-stretch: 0.6;
 
-            main_rect := Rectangle {
+            main-rect := Rectangle {
                 border-top-left-radius: 4px;
                 border-bottom-left-radius: 4px;
                 border-width: 1px;
                 border-color: self.background.darker(25%);
-                background: main_touch.pressed ? base_colour.darker(50%) : main_touch.has-hover ? base_colour.brighter(50%) : base_colour;
+                background: main-touch.pressed ? base-colour.darker(50%) : main-touch.has-hover ? base-colour.brighter(50%) : base-colour;
 
-                main_focus_rect := Rectangle {
+                main-focus-rect := Rectangle {
                     visible: false;
                     border-top-left-radius: 4px;
                     border-bottom-left-radius: 4px;
@@ -50,9 +50,9 @@ export component SplitButton inherits Rectangle {
                     duration: 0.1s;
                 }
 
-                main_text_widget := Text {
+                main-text-widget := Text {
                     y: (parent.height - self.height) / 2;
-                    color: main_touch.pressed ? base_text_colour.darker(25%) : base_text_colour;
+                    color: main-touch.pressed ? base-text-colour.darker(25%) : base-text-colour;
 
                     animate color {
                         easing: ease-in;
@@ -61,20 +61,20 @@ export component SplitButton inherits Rectangle {
                 }
             }
 
-            main_focus_scope := FocusScope {
+            main-focus-scope := FocusScope {
                 focus-gained(reason) => {
                     if reason != pointer-click {
-                        main_focus_rect.visible = true;
+                        main-focus-rect.visible = true;
                     }
                 }
 
                 focus-lost(reason) => {
-                    main_focus_rect.visible = false;
+                    main-focus-rect.visible = false;
                 }
 
                 key-pressed(event) => {
                     if event.text == Key.Space || event.text == Key.Return {
-                        main_clicked();
+                        main-clicked();
                         return accept;
                     } else {
                         return reject;
@@ -83,17 +83,17 @@ export component SplitButton inherits Rectangle {
             }
         }
 
-        side_touch := TouchArea {
+        side-touch := TouchArea {
             horizontal-stretch: 0.4;
 
-            side_rect := Rectangle {
+            side-rect := Rectangle {
                 border-top-right-radius: 4px;
                 border-bottom-right-radius: 4px;
                 border-width: 1px;
                 border-color: self.background.darker(25%);
-                background: side_touch.pressed ? base_colour.darker(50%) : side_touch.has-hover ? base_colour.brighter(50%) : base_colour;
+                background: side-touch.pressed ? base-colour.darker(50%) : side-touch.has-hover ? base-colour.brighter(50%) : base-colour;
 
-                side_focus_rect := Rectangle {
+                side-focus-rect := Rectangle {
                     visible: false;
                     border-top-right-radius: 4px;
                     border-bottom-right-radius: 4px;
@@ -109,7 +109,7 @@ export component SplitButton inherits Rectangle {
 
                 Text {
                     y: (parent.height - self.height) / 2;
-                    color: side_touch.pressed ? base_text_colour.darker(25%) : base_text_colour;
+                    color: side-touch.pressed ? base-text-colour.darker(25%) : base-text-colour;
                     text: "...";
 
                     animate color {
@@ -122,17 +122,17 @@ export component SplitButton inherits Rectangle {
             FocusScope {
                 focus-gained(reason) => {
                     if reason != pointer-click {
-                        side_focus_rect.visible = true;
+                        side-focus-rect.visible = true;
                     }
                 }
 
                 focus-lost(reason) => {
-                    side_focus_rect.visible = false;
+                    side-focus-rect.visible = false;
                 }
 
                 key-pressed(event) => {
                     if event.text == Key.Space || event.text == Key.Return {
-                        side_clicked();
+                        side-clicked();
                         return accept;
                     } else {
                         return reject;

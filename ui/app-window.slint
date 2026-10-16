@@ -32,14 +32,14 @@ import { ViewTabContents, ViewTabStatus } from "view-tab-contents.slint";
 export { GlobalUiState }
 export { ViewTabStatus }
 export component AppWindow inherits Window {
-    in property <string> app_version: "<unknown>";
-    in property <string> current_profile: "<unknown profile>";
+    in property <string> app-version: "<unknown>";
+    in property <string> current-profile: "<unknown profile>";
 
-    in-out property <bool> show_steer_meter: true;
-    in-out property <bool> show_ffb_meter: true;
-    in-out property <bool> always_show_perf_stats: true;
+    in-out property <bool> show-steer-meter: true;
+    in-out property <bool> show-ffb-meter: true;
+    in-out property <bool> always-show-perf-stats: true;
 
-    title: @tr("pen-steer {} :: {}", app_version, current_profile);
+    title: @tr("pen-steer {} :: {}", app-version, current-profile);
     icon: @image-url("../assets/icon.png");
     preferred-width: 640px;
     preferred-height: 720px;
@@ -50,8 +50,8 @@ export component AppWindow inherits Window {
 
     callback show-about-app();
     callback show-about-slint();
-    callback set-input-state-clicked(should_run: bool);
-    callback set-output-state-clicked(should_run: bool);
+    callback set-input-state-clicked(should-run: bool);
+    callback set-output-state-clicked(should-run: bool);
     callback reset-wheel-state-clicked();
 
     public function on-input-state-changed(running: bool) {
@@ -120,19 +120,19 @@ export component AppWindow inherits Window {
             MenuItem {
                 title: @tr("Show wheel angle bar");
                 checkable: true;
-                checked <=> root.show_steer_meter;
+                checked <=> root.show-steer-meter;
             }
 
             MenuItem {
                 title: @tr("Show force-feedback meter");
                 checkable: true;
-                checked <=> root.show_ffb_meter;
+                checked <=> root.show-ffb-meter;
             }
 
             MenuItem {
                 title: @tr("Always show performance stats");
                 checkable: true;
-                checked <=> always_show_perf_stats;
+                checked <=> always-show-perf-stats;
             }
         }
 
@@ -156,10 +156,10 @@ export component AppWindow inherits Window {
 
         tabs := TabWidget {
             changed current-index => {
-                view_tab_contents.should_refresh = self.current-index == 1;
+                view-tab-contents.should-refresh = self.current-index == 1;
 
-                if view_tab_contents.should_refresh {
-                    ViewTabStatus.fetch_status();
+                if view-tab-contents.should-refresh {
+                    ViewTabStatus.fetch-status();
                 }
             }
 
@@ -171,7 +171,7 @@ export component AppWindow inherits Window {
 
                     HeadingText {
                         horizontal-alignment: center;
-                        text: @tr("Hello world! pen-steer {}", app_version);
+                        text: @tr("Hello world! pen-steer {}", app-version);
                     }
 
                     Rectangle {
@@ -188,9 +188,9 @@ export component AppWindow inherits Window {
             Tab {
                 title: @tr("View");
 
-                view_tab_contents := ViewTabContents {
-                    show_steer_meter: root.show_steer_meter;
-                    show_ffb_meter: root.show_ffb_meter;
+                view-tab-contents := ViewTabContents {
+                    show-steer-meter: root.show-steer-meter;
+                    show-ffb-meter: root.show-ffb-meter;
                 }
             }
 
@@ -256,7 +256,7 @@ export component AppWindow inherits Window {
                     background: limegreen;
                     min-width: 80px;
                     border-radius: 3px;
-                    visible: always_show_perf_stats || tabs.current-index == 0;
+                    visible: always-show-perf-stats || tabs.current-index == 0;
 
                     HorizontalLayout {
                         padding: 2px;
@@ -271,7 +271,7 @@ export component AppWindow inherits Window {
                         }
                     }
 
-                    metrics_hover_ta := TouchArea { }
+                    metrics-hover-ta := TouchArea { }
                 }
             }
 
@@ -284,23 +284,23 @@ export component AppWindow inherits Window {
                     clicked => reset-wheel-state-clicked();
                 }
 
-                action_button := SplitButton {
-                    main_text: overall-running ? @tr("Stop") : @tr("Start");
-                    base_colour: overall-running ? #d60000 : #00d600;
+                action-button := SplitButton {
+                    main-text: overall-running ? @tr("Stop") : @tr("Start");
+                    base-colour: overall-running ? #d60000 : #00d600;
 
-                    main_clicked => {
+                    main-clicked => {
                         set-input-state-clicked(!overall-running);
                         set-output-state-clicked(!overall-running);
                     }
 
-                    side_clicked => {
-                        menu_popup.show();
+                    side-clicked => {
+                        menu-popup.show();
                     }
                 }
 
-                menu_popup := PopupWindow {
-                    x: action_button.x - self.width + action_button.width;
-                    y: action_button.y - self.height - StyleMetrics.layout-spacing;
+                menu-popup := PopupWindow {
+                    x: action-button.x - self.width + action-button.width;
+                    y: action-button.y - self.height - StyleMetrics.layout-spacing;
                     close-policy: close-on-click-outside;
 
                     Rectangle {
@@ -331,20 +331,20 @@ export component AppWindow inherits Window {
         }
     }
 
-    metrics_popup := Rectangle {
+    metrics-popup := Rectangle {
         background: Palette.background;
         border-color: Palette.border;
         border-radius: 4px;
         border-width: 1px;
-        visible: metrics_hover_ta.has-hover || metrics_hover_ta1.has-hover;
-        width: metrics_popup_layout.preferred-width;
-        height: metrics_popup_layout.preferred-height;
+        visible: metrics-hover-ta.has-hover || metrics-hover-ta1.has-hover;
+        width: metrics-popup-layout.preferred-width;
+        height: metrics-popup-layout.preferred-height;
         x: StyleMetrics.layout-spacing;
-        y: parent.height - self.height - StyleMetrics.layout-spacing - metrics_hover_ta.height;
+        y: parent.height - self.height - StyleMetrics.layout-spacing - metrics-hover-ta.height;
 
-        metrics_hover_ta1 := TouchArea { }
+        metrics-hover-ta1 := TouchArea { }
 
-        metrics_popup_layout := VerticalLayout {
+        metrics-popup-layout := VerticalLayout {
             alignment: start;
             padding: 8px;
             spacing: StyleMetrics.layout-spacing;

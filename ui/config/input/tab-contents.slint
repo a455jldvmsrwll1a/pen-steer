@@ -14,11 +14,11 @@ export component InputTabContents inherits Rectangle {
     in-out property <InputBackend> selected-backend: GlobalUiState.control-config.input-backend;
 
     init => {
-        backend_cb.set-backend(selected-backend);
+        backend-cb.set-backend(selected-backend);
     }
 
     changed selected-backend => {
-        backend_cb.set-backend(selected-backend);
+        backend-cb.set-backend(selected-backend);
     }
 
     ScrollView {
@@ -39,7 +39,7 @@ export component InputTabContents inherits Rectangle {
                     vertical-alignment: center;
                 }
 
-                backend_cb := ComboBox {
+                backend-cb := ComboBox {
                     model: [
                         "Null source",
                         "Report over UDP socket",
@@ -55,10 +55,10 @@ export component InputTabContents inherits Rectangle {
                     }
 
                     function set-backend(backend: InputBackend) {
-                        if backend == null { backend_cb.current-index = 0; }
-                        else if backend == net { backend_cb.current-index = 1; }
-                        else if backend == linux-evdev { backend_cb.current-index = 2; }
-                        else if backend == windows-wintab { backend_cb.current-index = 3; }
+                        if backend == null { backend-cb.current-index = 0; }
+                        else if backend == net { backend-cb.current-index = 1; }
+                        else if backend == linux-evdev { backend-cb.current-index = 2; }
+                        else if backend == windows-wintab { backend-cb.current-index = 3; }
                     }
                 }
             }

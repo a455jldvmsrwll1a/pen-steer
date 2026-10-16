@@ -29,28 +29,28 @@ export enum OutputBackend {
 export struct DummyConfig {}
 
 export struct SteeringWheelConfig {
-    angle_range: float = 1080.0,
-    natural_rotation_radius_min: float,
-    horn_radius: float = 40.0,
-    pressure_min: float,
-    pressure_max: float,
-    ignore_exterior_input: bool,
-    sticky_horn: bool,
-    fast_mode_switch: bool,
-    physics_enable: bool,
+    angle-range: float = 1080.0,
+    natural-rotation-radius-min: float,
+    horn-radius: float = 40.0,
+    pressure-min: float,
+    pressure-max: float,
+    ignore-exterior-input: bool,
+    sticky-horn: bool,
+    fast-mode-switch: bool,
+    physics-enable: bool,
     inertia: float,
-    spring_stiffness: float,
-    damping_coeff: float,
-    kinematic_friction_torque: float,
-    static_friction_torque: float,
-    allow_slippage: bool,
-    auto_grip_force: bool,
-    vary_grip_arm_length: bool,
-    direct_grip_threshold: float,
-    full_grip_force: float,
-    enable_ffb: bool,
-    full_ffb_negate: bool,
-    full_ffb_force: float,
+    spring-stiffness: float,
+    damping-coeff: float,
+    kinematic-friction-torque: float,
+    static-friction-torque: float,
+    allow-slippage: bool,
+    auto-grip-force: bool,
+    vary-grip-arm-length: bool,
+    direct-grip-threshold: float,
+    full-grip-force: float,
+    enable-ffb: bool,
+    full-ffb-negate: bool,
+    full-ffb-force: float,
 }
 
 export struct OneTabletDriveConfig {}
@@ -73,7 +73,7 @@ export struct NetInputBackendConfig {
 export struct NetInputBackendState {
     raw-message: string,
     origin: string,
-    decoded_fields: [string],
+    decoded-fields: [string],
 }
 
 export struct InputConfig {

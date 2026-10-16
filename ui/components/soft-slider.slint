@@ -27,7 +27,7 @@ export component LabelledSoftSlider inherits HorizontalLayout {
 
     in-out property <float> current-value: 0.0;
 
-    out property <length> preferred-label-width <=> label_widget.preferred-width;
+    out property <length> preferred-label-width <=> label-widget.preferred-width;
 
     public function refresh() {
         let clamped = min(max(current-value, value-hard-min), value-hard-max);
@@ -47,7 +47,7 @@ export component LabelledSoftSlider inherits HorizontalLayout {
         alignment: end;
         width <=> label-width;
 
-        label_widget := Text {
+        label-widget := Text {
             text <=> label;
             vertical-alignment: center;
             color: root.enabled ? Palette.foreground : Palette.foreground.darker(80%);

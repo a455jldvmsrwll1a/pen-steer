@@ -21,20 +21,20 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
     padding: 0;
 
     property <SteeringWheelConfig> config <=> GlobalUiState.control-config.steering-wheel;
-    property <length> slider_label_width: 0px;
+    property <length> slider-label-width: 0px;
 
     public function refresh() {
-        angular_range.refresh();
-        base_radius.refresh();
-        horn_radius.refresh();
-        pressure_min.refresh();
-        pressure_max.refresh();
+        angular-range.refresh();
+        base-radius.refresh();
+        horn-radius.refresh();
+        pressure-min.refresh();
+        pressure-max.refresh();
         inertia.refresh();
-        damping_coeff.refresh();
-        spring_stiffness.refresh();
-        direct_grip_threshold.refresh();
-        full_grip_force.refresh();
-        full_ffb.refresh();
+        damping-coeff.refresh();
+        spring-stiffness.refresh();
+        direct-grip-threshold.refresh();
+        full-grip-force.refresh();
+        full-ffb.refresh();
     }
 
     changed config => {
@@ -42,21 +42,21 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
     }
 
     init => {
-        slider_label_width = slider_label_width.max(angular_range.preferred-label-width);
-        slider_label_width = slider_label_width.max(base_radius.preferred-label-width);
-        slider_label_width = slider_label_width.max(horn_radius.preferred-label-width);
-        slider_label_width = slider_label_width.max(pressure_min.preferred-label-width);
-        slider_label_width = slider_label_width.max(pressure_max.preferred-label-width);
-        slider_label_width = slider_label_width.max(inertia.preferred-label-width);
-        slider_label_width = slider_label_width.max(spring_stiffness.preferred-label-width);
-        slider_label_width = slider_label_width.max(damping_coeff.preferred-label-width);
-        slider_label_width = slider_label_width.max(kinetic_friction_torque.preferred-label-width);
-        slider_label_width = slider_label_width.max(static_friction_torque.preferred-label-width);
-        slider_label_width = slider_label_width.max(direct_grip_threshold.preferred-label-width);
-        slider_label_width = slider_label_width.max(full_grip_force.preferred-label-width);
-        slider_label_width = slider_label_width.max(full_ffb.preferred-label-width);
+        slider-label-width = slider-label-width.max(angular-range.preferred-label-width);
+        slider-label-width = slider-label-width.max(base-radius.preferred-label-width);
+        slider-label-width = slider-label-width.max(horn-radius.preferred-label-width);
+        slider-label-width = slider-label-width.max(pressure-min.preferred-label-width);
+        slider-label-width = slider-label-width.max(pressure-max.preferred-label-width);
+        slider-label-width = slider-label-width.max(inertia.preferred-label-width);
+        slider-label-width = slider-label-width.max(spring-stiffness.preferred-label-width);
+        slider-label-width = slider-label-width.max(damping-coeff.preferred-label-width);
+        slider-label-width = slider-label-width.max(kinetic-friction-torque.preferred-label-width);
+        slider-label-width = slider-label-width.max(static-friction-torque.preferred-label-width);
+        slider-label-width = slider-label-width.max(direct-grip-threshold.preferred-label-width);
+        slider-label-width = slider-label-width.max(full-grip-force.preferred-label-width);
+        slider-label-width = slider-label-width.max(full-ffb.preferred-label-width);
 
-        slider_label_width += 1.5rem;
+        slider-label-width += 1.5rem;
     }
 
     Text {
@@ -85,25 +85,25 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
             height: parent.height;
             image-fit: contain;
 
-            horn_img := Image {
+            horn-img := Image {
                 source: @image-url("../../../assets/inner.svg");
                 width: parent.width;
-                height: parent.height * (horn_radius.current-value / 100.0);
+                height: parent.height * (horn-radius.current-value / 100.0);
                 image-fit: contain;
             }
 
             Rectangle {
-                height: parent.height * (base_radius.current-value / 100.0);
+                height: parent.height * (base-radius.current-value / 100.0);
                 width: self.height;
                 border-radius: self.height / 2;
-                background: base_radius_control_ta.has-hover ? #b8edffcb : #00000000;
+                background: base-radius-control-ta.has-hover ? #b8edffcb : #00000000;
             }
 
             Rectangle {
-                height: horn_img.height * 105%;
+                height: horn-img.height * 105%;
                 width: self.height;
                 border-radius: self.height / 2;
-                background: horn_radius_control_ta.has-hover ? #00ff00a0 : #00000000;
+                background: horn-radius-control-ta.has-hover ? #00ff00a0 : #00000000;
             }
         }
     }
@@ -120,10 +120,10 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         }
     }
 
-    angular_range := LabelledSoftSlider {
+    angular-range := LabelledSoftSlider {
         label: @tr("Lock-to-lock range");
         hint: @tr("Range in degrees from extreme left to extreme right of the steering wheel.");
-        label-width <=> slider_label_width;
+        label-width <=> slider-label-width;
         value-display-suffix: "°";
         value-soft-min: 180.0;
         value-soft-max: 1800.0;
@@ -133,11 +133,11 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         current-value <=> config.angle-range;
     }
 
-    base_radius_control_ta := TouchArea {
-        base_radius := LabelledSoftSlider {
+    base-radius-control-ta := TouchArea {
+        base-radius := LabelledSoftSlider {
             label: @tr("Base radius %");
             hint: @tr("Minimum percentage of the wheel radius for angular displacement calculations.\nCircling the pen closer than this will not cause the wheel to spin faster.\n\nThis can prevent issues when drawing off-centred circles, but if the pen is consistently too close,\nit will cause the wheel to turn slower than intended.");
-            label-width <=> slider_label_width;
+            label-width <=> slider-label-width;
             value-display-suffix: "%";
             value-soft-min: 0.0;
             value-soft-max: 100.0;
@@ -148,11 +148,11 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         }
     }
 
-    horn_radius_control_ta := TouchArea {
-        horn_radius := LabelledSoftSlider {
+    horn-radius-control-ta := TouchArea {
+        horn-radius := LabelledSoftSlider {
             label: @tr("Horn radius %");
             hint: @tr("Percentage of the radius of the steering wheel to use as the activation area for the horn.");
-            label-width <=> slider_label_width;
+            label-width <=> slider-label-width;
             value-display-suffix: "%";
             value-soft-min: 0.0;
             value-soft-max: 100.0;
@@ -163,28 +163,28 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         }
     }
 
-    pressure_min := LabelledSoftSlider {
+    pressure-min := LabelledSoftSlider {
         label: @tr("Min. pressure %");
         hint: @tr("Lower bound of the grip strength range.\n\nThis is also the minimum pressure the pen must be held down with for it to be considered as such.");
-        label-width <=> slider_label_width;
+        label-width <=> slider-label-width;
         value-display-suffix: "%";
         value-soft-min: 0.0;
         value-soft-max: 100.0;
         value-step: 5.0;
         value-hard-min: 0.0;
-        value-hard-max: pressure_max.current-value;
+        value-hard-max: pressure-max.current-value;
         current-value <=> config.pressure-min;
     }
 
-    pressure_max := LabelledSoftSlider {
+    pressure-max := LabelledSoftSlider {
         label: @tr("Max. pressure %");
         hint: @tr("Upper bound of the grip strength range.\n(a.k.a. gripping the wheel as hard as possible)\n\nThis setting is irrelevant unless physics and slippage are both enabled.");
-        label-width <=> slider_label_width;
+        label-width <=> slider-label-width;
         value-display-suffix: "%";
         value-soft-min: 0.0;
         value-soft-max: 100.0;
         value-step: 5.0;
-        value-hard-min: pressure_min.current-value;
+        value-hard-min: pressure-min.current-value;
         value-hard-max: 100.0;
         current-value <=> config.pressure-max;
     }
@@ -193,7 +193,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         height: 1rem;
     }
 
-    ignore_exterior_input := CheckBox {
+    ignore-exterior-input := CheckBox {
         text: @tr("Ignore pen when outside the circle");
         checked <=> config.ignore-exterior-input;
 
@@ -202,7 +202,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         }
     }
 
-    sticky_horn := CheckBox {
+    sticky-horn := CheckBox {
         text: @tr("Use horn as toggle");
         checked <=> config.sticky-horn;
 
@@ -211,7 +211,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         }
     }
 
-    fast_mode_switch := CheckBox {
+    fast-mode-switch := CheckBox {
         text: @tr("Fast switching between honking and steering");
         checked <=> config.fast-mode-switch;
 
@@ -238,7 +238,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         height: 1rem;
     }
 
-    physics_enable := CheckBox {
+    physics-enable := CheckBox {
         text: @tr("Enable physics");
         checked <=> config.physics-enable;
 
@@ -250,7 +250,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
     inertia := LabelledSoftSlider {
         label: @tr("Moment of inertia");
         hint: @tr("A low inertia means the wheel is more responsive to forces, especially from force feedback.\n\nThe acceleration of the wheel is inversly proportional to its inertia: α = τ/J.\n\nIf mass M in kilograms and radius R in metres is known, then it can be approximated as\nJ = MR² (in kgm²).");
-        label-width <=> slider_label_width;
+        label-width <=> slider-label-width;
         value-display-suffix: " kgm²";
         value-soft-min: 0.1;
         value-soft-max: 100.0;
@@ -258,13 +258,13 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: 0.001;
         value-hard-max: 1000000.0;
         current-value <=> config.inertia;
-        enabled: physics_enable.checked;
+        enabled: physics-enable.checked;
     }
 
-    spring_stiffness := LabelledSoftSlider {
+    spring-stiffness := LabelledSoftSlider {
         label: @tr("Spring stiffness");
         hint: @tr("Determines the strength of the spring that twists the wheel back to its neutral position.\nKeep it at zero if this auto-centring behaviour is undesired.\n\nIf non-zero, you should also set a reasonable friction coefficient,\nwhich will help stop the wheel from overshooting and oscillating.\n\nThe torque the spring stiffness (k) contributes depends on the wheel's angle (θ):\n\nτ = - kθ");
-        label-width <=> slider_label_width;
+        label-width <=> slider-label-width;
         value-display-suffix: " Nm/rad";
         value-soft-min: 0.0;
         value-soft-max: 100.0;
@@ -272,26 +272,26 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.spring-stiffness;
-        enabled: physics_enable.checked;
+        enabled: physics-enable.checked;
     }
 
-    damping_coeff := LabelledSoftSlider {
+    damping-coeff := LabelledSoftSlider {
         label: @tr("Damping coefficient");
-        hint: @tr("A higher damping coefficient slows down the wheel more and damps its movement.\nA coefficient of zero makes the wheel glide forever,\nunless influenced by spring force and/or force feedback.\n\nThe damping coefficient (μ_v) is a dimensionless quantity.\nThe torque it contributes depends on the wheel's velocity (ω):\n\nτ_v = - (μ_v)ω");
-        label-width <=> slider_label_width;
+        hint: @tr("A higher damping coefficient slows down the wheel more and damps its movement.\nA coefficient of zero makes the wheel glide forever,\nunless influenced by spring force and/or force feedback.\n\nThe damping coefficient (μ-v) is a dimensionless quantity.\nThe torque it contributes depends on the wheel's velocity (ω):\n\nτ-v = - (μ-v)ω");
+        label-width <=> slider-label-width;
         value-soft-min: 0.0;
         value-soft-max: 100.0;
         value-step: 0.1;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.damping-coeff;
-        enabled: physics_enable.checked;
+        enabled: physics-enable.checked;
     }
 
-    kinetic_friction_torque := LabelledSoftSlider {
+    kinetic-friction-torque := LabelledSoftSlider {
         label: @tr("Kinetic friction torque");
-        hint: @tr("A constant torque applied when the wheel is in motion.\nIt is applied opposing the direction of rotation.\n\nThis is irrelevant when the wheel is stationary.\n\nThe torque contributed depends only on the sign of the wheel's velocity (ω):\n\nτ_k = - (T_k)sgn(ω)");
-        label-width <=> slider_label_width;
+        hint: @tr("A constant torque applied when the wheel is in motion.\nIt is applied opposing the direction of rotation.\n\nThis is irrelevant when the wheel is stationary.\n\nThe torque contributed depends only on the sign of the wheel's velocity (ω):\n\nτ-k = - (T-k)sgn(ω)");
+        label-width <=> slider-label-width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
         value-soft-max: 1000.0;
@@ -299,13 +299,13 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.kinematic-friction-torque;
-        enabled: physics_enable.checked;
+        enabled: physics-enable.checked;
     }
 
-    static_friction_torque := LabelledSoftSlider {
+    static-friction-torque := LabelledSoftSlider {
         label: @tr("Max static friction torque");
-        hint: @tr("The maximum torque that resists movement from the wheel when stationary.\nWhen this torque is insufficient, the wheel will break free and start rotating.\nThis is irrelevant when the wheel is rotating.\nThe torque (τ_s) contributed is equal and opposite to whatever is trying to move the wheel, up to the maximum:\n\nτ_s <= T_s");
-        label-width <=> slider_label_width;
+        hint: @tr("The maximum torque that resists movement from the wheel when stationary.\nWhen this torque is insufficient, the wheel will break free and start rotating.\nThis is irrelevant when the wheel is rotating.\nThe torque (τ-s) contributed is equal and opposite to whatever is trying to move the wheel, up to the maximum:\n\nτ-s <= T-s");
+        label-width <=> slider-label-width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
         value-soft-max: 10000.0;
@@ -313,47 +313,47 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.static-friction-torque;
-        enabled: physics_enable.checked;
+        enabled: physics-enable.checked;
     }
 
     Rectangle {
         height: 1rem;
     }
 
-    allow_slippage := CheckBox {
+    allow-slippage := CheckBox {
         text: @tr("Allow slippage");
         checked <=> config.allow-slippage;
-        enabled: physics_enable.checked;
+        enabled: physics-enable.checked;
 
         Tooltip {
             text: @markdown("\{"When enabled, the pen turns the wheel by supplying it a torque,\nleaving it to physics to actually turn it.\nThis allows the steering wheel to slip.\n\nOtherwise, the steering wheel is directly turned by the pen."}");
         }
     }
 
-    auto_grip_force := CheckBox {
+    auto-grip-force := CheckBox {
         text: @tr("Automatically determine maximum grip torque");
         checked <=> config.auto-grip-force;
-        enabled: physics_enable.checked && allow_slippage.checked;
+        enabled: physics-enable.checked && allow-slippage.checked;
 
         Tooltip {
             text: @markdown("Calculate the torque required. //TODO: what? WIP. this section is not supper accurate and  its 1 a.m.");
         }
     }
 
-    vary_grip_arm_length := CheckBox {
+    vary-grip-arm-length := CheckBox {
         text: @tr("Allow grip torque to vary by distance from centre");
         checked <=> config.vary-grip-arm-length;
-        enabled: physics_enable.checked && allow_slippage.checked;
+        enabled: physics-enable.checked && allow-slippage.checked;
 
         Tooltip {
             text: @markdown("Scale the torque proportional to the distance of the grip point.\n\nIf disabled, the grip point is assumed to be at r = 1.");
         }
     }
 
-    direct_grip_threshold := LabelledSoftSlider {
+    direct-grip-threshold := LabelledSoftSlider {
         label: @tr("Direct grip %");
         hint: @tr("Percentage threshold of the grip strength required for the grip to be considered direct.\n\nThe grip strength is a percentage of the configured pressure range with\n0% strength up to the minimum pressure % and 100% strength at the maximum pressure %.");
-        label-width <=> slider_label_width;
+        label-width <=> slider-label-width;
         value-display-suffix: "%";
         value-soft-min: 0.0;
         value-soft-max: 100.0;
@@ -361,13 +361,13 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: 0.0;
         value-hard-max: 100.0;
         current-value <=> config.direct-grip-threshold;
-        enabled: physics_enable.checked && allow_slippage.checked;
+        enabled: physics-enable.checked && allow-slippage.checked;
     }
 
-    full_grip_force := LabelledSoftSlider {
+    full-grip-force := LabelledSoftSlider {
         label: @tr("Full grip torque");
         hint: @tr("Maximum torque applied to the steering wheel when gripping at full strength.\n\nThis figure assumes the grip point is at r = 1.\n\nThis setting is disabled when automatically calculating max grip torque.");
-        label-width <=> slider_label_width;
+        label-width <=> slider-label-width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
         value-soft-max: 2000.0;
@@ -375,37 +375,37 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.full-grip-force;
-        enabled: physics_enable.checked && allow_slippage.checked && !auto_grip_force.checked;
+        enabled: physics-enable.checked && allow-slippage.checked && !auto-grip-force.checked;
     }
 
     Rectangle {
         height: 1rem;
     }
 
-    enable_ffb := CheckBox {
+    enable-ffb := CheckBox {
         text: @tr("Enable force-feedback");
         checked <=> config.enable-ffb;
-        enabled: physics_enable.checked;
+        enabled: physics-enable.checked;
 
         Tooltip {
             text: @markdown("Respond to FFB values when simulating the steering wheel physics.");
         }
     }
 
-    full_ffb_negate := CheckBox {
+    full-ffb-negate := CheckBox {
         text: @tr("Apply opposite torque");
         checked <=> config.full-ffb-negate;
-        enabled: physics_enable.checked && enable_ffb.checked;
+        enabled: physics-enable.checked && enable-ffb.checked;
 
         Tooltip {
             text: @markdown("\{"Apply force-feedback in the opposite direction.\n\nNormally, a positive FFB value produces a counter-clockwise torque.\nWith this option enabled, the same value produces a clockwise torque.\n\nUseful if the incoming value is flipped by the game."}");
         }
     }
 
-    full_ffb := LabelledSoftSlider {
+    full-ffb := LabelledSoftSlider {
         label: @tr("Full FFB torque");
         hint: @tr("The torque (in Newton-metres) produced when receiving the max FFB value.\n\ne.g. at 100% ffb value, this much torque is applied.");
-        label-width <=> slider_label_width;
+        label-width <=> slider-label-width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
         value-soft-max: 2000.0;
@@ -413,6 +413,6 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.full-ffb-force;
-        enabled: physics_enable.checked && enable_ffb.checked;
+        enabled: physics-enable.checked && enable-ffb.checked;
     }
 }

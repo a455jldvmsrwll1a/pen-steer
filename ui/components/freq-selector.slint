@@ -14,17 +14,17 @@ export enum UpdateFrequencyMode {
 
 export component TickFrequencySelectWidget inherits VerticalBox {
     in-out property <UpdateFrequencyMode> mode;
-    in-out property <float> fixed_rate;
+    in-out property <float> fixed-rate;
 
-    property <float> MAX_RATE: 10000.0;
+    property <float> MAX-RATE: 10000.0;
 
     padding: 0;
 
     init => {
-        let clamped = min(max(fixed_rate, 0.0), MAX_RATE);
+        let clamped = min(max(fixed-rate, 0.0), MAX-RATE);
 
-        fixed_rate = clamped;
-        freq_edit.display-pretty();
+        fixed-rate = clamped;
+        freq-edit.display-pretty();
     }
 
     HorizontalLayout {
@@ -36,7 +36,7 @@ export component TickFrequencySelectWidget inherits VerticalBox {
             vertical-alignment: center;
         }
 
-        freq_combobox := ComboBox {
+        freq-combobox := ComboBox {
             model: [
                 @tr("Automatic"),
                 @tr("In lock-step with input"),
@@ -55,13 +55,13 @@ export component TickFrequencySelectWidget inherits VerticalBox {
                 else { mode = fixed; }
 
                 if i == 2 { /* do nothing */ }
-                else if i == 3 { fixed_rate = 60; }
-                else if i == 4 { fixed_rate = 133; }
-                else if i == 5 { fixed_rate = 300; }
-                else if i == 6 { fixed_rate = 1000; }
-                else { fixed_rate = 60; }
+                else if i == 3 { fixed-rate = 60; }
+                else if i == 4 { fixed-rate = 133; }
+                else if i == 5 { fixed-rate = 300; }
+                else if i == 6 { fixed-rate = 1000; }
+                else { fixed-rate = 60; }
 
-                freq_edit.display-pretty();
+                freq-edit.display-pretty();
             }
         }
     }
@@ -71,13 +71,13 @@ export component TickFrequencySelectWidget inherits VerticalBox {
         spacing: 4px;
         alignment: start;
 
-        freq_desc_1 := Text {
+        freq-desc-1 := Text {
             vertical-alignment: center;
             overflow: elide;
             wrap: word-wrap;
         }
 
-        freq_edit := LineEdit {
+        freq-edit := LineEdit {
             width: 100px;
             read-only: true;
             placeholder-text: @tr("... Hz");
@@ -88,11 +88,11 @@ export component TickFrequencySelectWidget inherits VerticalBox {
             }
 
             function display-pretty() {
-                self.text = @tr("{} Hz", root.fixed_rate);
+                self.text = @tr("{} Hz", root.fixed-rate);
             }
 
             function display() {
-                self.text = root.fixed_rate;
+                self.text = root.fixed-rate;
             }
 
             accepted(text) => {
@@ -100,9 +100,9 @@ export component TickFrequencySelectWidget inherits VerticalBox {
                     self.clear-focus();
 
                     let value = text.to-float();
-                    let clamped = min(max(value, 0.0), MAX_RATE);
+                    let clamped = min(max(value, 0.0), MAX-RATE);
 
-                    root.fixed_rate = clamped;
+                    root.fixed-rate = clamped;
                 } else {
                     self.select-all();
                 }
@@ -119,34 +119,34 @@ export component TickFrequencySelectWidget inherits VerticalBox {
             }
         }
 
-        freq_desc_2 := Text {
+        freq-desc-2 := Text {
             vertical-alignment: center;
             overflow: elide;
             wrap: word-wrap;
         }
 
         states [
-            automatic when freq_combobox.current-index == 0: {
-                freq_desc_1.text: @tr("Tick rate is determined dynamically, depending on the input source.");
-                freq_edit.visible: false;
-                freq_edit.width: 0px;
-                freq_edit.read-only: true;
-                freq_desc_2.visible: false;
+            automatic when freq-combobox.current-index == 0: {
+                freq-desc-1.text: @tr("Tick rate is determined dynamically, depending on the input source.");
+                freq-edit.visible: false;
+                freq-edit.width: 0px;
+                freq-edit.read-only: true;
+                freq-desc-2.visible: false;
             }
-            lockstep when freq_combobox.current-index == 1: {
-                freq_desc_1.text: @tr("Ticks occur after every sample collected from the input. Not recommended when using physics.");
-                freq_edit.visible: false;
-                freq_edit.width: 0px;
-                freq_edit.read-only: true;
-                freq_desc_2.visible: false;
+            lockstep when freq-combobox.current-index == 1: {
+                freq-desc-1.text: @tr("Ticks occur after every sample collected from the input. Not recommended when using physics.");
+                freq-edit.visible: false;
+                freq-edit.width: 0px;
+                freq-edit.read-only: true;
+                freq-desc-2.visible: false;
             }
-            constant when freq_combobox.current-index >= 2: {
-                freq_desc_1.text: @tr("Ticks occur at a fixed rate of ");
-                freq_edit.visible: true;
-                freq_edit.width: 100px;
-                freq_edit.read-only: freq_combobox.current-value != "Custom";
-                freq_desc_2.text: @tr(", independent of the input.");
-                freq_desc_2.visible: true;
+            constant when freq-combobox.current-index >= 2: {
+                freq-desc-1.text: @tr("Ticks occur at a fixed rate of ");
+                freq-edit.visible: true;
+                freq-edit.width: 100px;
+                freq-edit.read-only: freq-combobox.current-value != "Custom";
+                freq-desc-2.text: @tr(", independent of the input.");
+                freq-desc-2.visible: true;
             }
         ]
     }

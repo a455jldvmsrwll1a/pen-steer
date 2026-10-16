@@ -14,11 +14,11 @@ export component WheelTabContents inherits Rectangle {
     in-out property <ControlType> selected-type <=> GlobalUiState.control-config.active;
 
     init => {
-        type_cb.set-type(selected-type);
+        type-cb.set-type(selected-type);
     }
 
     changed selected-type => {
-        type_cb.set-type(selected-type);
+        type-cb.set-type(selected-type);
     }
 
     ScrollView {
@@ -31,9 +31,9 @@ export component WheelTabContents inherits Rectangle {
                 height: 1rem;
             }
 
-            update_freq_select := TickFrequencySelectWidget {
+            update-freq-select := TickFrequencySelectWidget {
                 mode <=> GlobalUiState.control-config.freq-mode;
-                fixed_rate <=> GlobalUiState.control-config.fixed-freq;
+                fixed-rate <=> GlobalUiState.control-config.fixed-freq;
             }
 
             Rectangle {
@@ -48,7 +48,7 @@ export component WheelTabContents inherits Rectangle {
                     vertical-alignment: center;
                 }
 
-                type_cb := ComboBox {
+                type-cb := ComboBox {
                     model: [
                         "None",
                         "Steering wheel with horn",
@@ -62,9 +62,9 @@ export component WheelTabContents inherits Rectangle {
                     }
 
                     function set-type(type: ControlType) {
-                        if type == dummy { type_cb.current-index = 0; }
-                        else if type == steering-wheel { type_cb.current-index = 1; }
-                        else if type == one-tablet-drive { type_cb.current-index = 2; }
+                        if type == dummy { type-cb.current-index = 0; }
+                        else if type == steering-wheel { type-cb.current-index = 1; }
+                        else if type == one-tablet-drive { type-cb.current-index = 2; }
                     }
                 }
             }
