@@ -98,7 +98,7 @@ impl Control for SteeringWheel {
                     0.0
                 };
 
-                let friction_torque = config.friction_coeff * -self.velocity;
+                let friction_torque = config.damping_coeff * -self.velocity;
                 let spring_torque = config.spring_stiffness * -self.angle;
                 let net_force = ffb_torque + friction_torque + spring_torque;
                 let angular_acceleration = net_force / config.inertia;

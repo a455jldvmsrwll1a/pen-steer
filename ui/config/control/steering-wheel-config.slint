@@ -30,7 +30,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         pressure_min.refresh();
         pressure_max.refresh();
         inertia.refresh();
-        friction_coeff.refresh();
+        damping_coeff.refresh();
         spring_stiffness.refresh();
         direct_grip_threshold.refresh();
         full_grip_force.refresh();
@@ -48,8 +48,10 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         slider_label_width = slider_label_width.max(pressure_min.preferred-label-width);
         slider_label_width = slider_label_width.max(pressure_max.preferred-label-width);
         slider_label_width = slider_label_width.max(inertia.preferred-label-width);
-        slider_label_width = slider_label_width.max(friction_coeff.preferred-label-width);
         slider_label_width = slider_label_width.max(spring_stiffness.preferred-label-width);
+        slider_label_width = slider_label_width.max(damping_coeff.preferred-label-width);
+        slider_label_width = slider_label_width.max(kinetic_friction_torque.preferred-label-width);
+        slider_label_width = slider_label_width.max(static_friction_torque.preferred-label-width);
         slider_label_width = slider_label_width.max(direct_grip_threshold.preferred-label-width);
         slider_label_width = slider_label_width.max(full_grip_force.preferred-label-width);
         slider_label_width = slider_label_width.max(full_ffb.preferred-label-width);
@@ -246,7 +248,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
     }
 
     inertia := LabelledSoftSlider {
-        label: @tr("Inertia");
+        label: @tr("Moment of inertia");
         hint: @tr("A low inertia means the wheel is more responsive to forces, especially from force feedback.\n\nThe acceleration of the wheel is inversly proportional to its inertia: α = τ/J.\n\nIf mass M in kilograms and radius R in metres is known, then it can be approximated as\nJ = MR² (in kgm²).");
         label-width <=> slider_label_width;
         value-display-suffix: " kgm²";
@@ -256,19 +258,6 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: 0.001;
         value-hard-max: 1000000.0;
         current-value <=> config.inertia;
-        enabled: physics_enable.checked;
-    }
-
-    friction_coeff := LabelledSoftSlider {
-        label: @tr("Friction coefficient");
-        hint: @tr("A higher friction coefficient slows down the wheel more and damps its movement.\nA coefficient of zero makes the wheel glide forever,\nunless influenced by spring force and/or force feedback.\n\nThe coefficient of friction (μ) is a dimensionless quantity.\nThe torque it contributes depends on the wheel's velocity (ω):\n\nτ = - μω");
-        label-width <=> slider_label_width;
-        value-soft-min: 0.0;
-        value-soft-max: 100.0;
-        value-step: 0.1;
-        value-hard-min: -100000.0;
-        value-hard-max: 1000000.0;
-        current-value <=> config.friction-coeff;
         enabled: physics_enable.checked;
     }
 
@@ -283,6 +272,47 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.spring-stiffness;
+        enabled: physics_enable.checked;
+    }
+
+    damping_coeff := LabelledSoftSlider {
+        label: @tr("Damping coefficient");
+        hint: @tr("A higher damping coefficient slows down the wheel more and damps its movement.\nA coefficient of zero makes the wheel glide forever,\nunless influenced by spring force and/or force feedback.\n\nThe damping coefficient (μ_v) is a dimensionless quantity.\nThe torque it contributes depends on the wheel's velocity (ω):\n\nτ_v = - (μ_v)ω");
+        label-width <=> slider_label_width;
+        value-soft-min: 0.0;
+        value-soft-max: 100.0;
+        value-step: 0.1;
+        value-hard-min: -100000.0;
+        value-hard-max: 1000000.0;
+        current-value <=> config.damping-coeff;
+        enabled: physics_enable.checked;
+    }
+
+    kinetic_friction_torque := LabelledSoftSlider {
+        label: @tr("Kinetic friction torque");
+        hint: @tr("A constant torque applied when the wheel is in motion.\nIt is applied opposing the direction of rotation.\n\nThis is irrelevant when the wheel is stationary.\n\nThe torque contributed depends only on the sign of the wheel's velocity (ω):\n\nτ_k = - (T_k)sgn(ω)");
+        label-width <=> slider_label_width;
+        value-display-suffix: " Nm";
+        value-soft-min: 0.0;
+        value-soft-max: 1000.0;
+        value-step: 0.5;
+        value-hard-min: -100000.0;
+        value-hard-max: 1000000.0;
+        current-value <=> config.kinematic-friction-torque;
+        enabled: physics_enable.checked;
+    }
+
+    static_friction_torque := LabelledSoftSlider {
+        label: @tr("Max static friction torque");
+        hint: @tr("The maximum torque that resists movement from the wheel when stationary.\nWhen this torque is insufficient, the wheel will break free and start rotating.\nThis is irrelevant when the wheel is rotating.\nThe torque (τ_s) contributed is equal and opposite to whatever is trying to move the wheel, up to the maximum:\n\nτ_s <= T_s");
+        label-width <=> slider_label_width;
+        value-display-suffix: " Nm";
+        value-soft-min: 0.0;
+        value-soft-max: 10000.0;
+        value-step: 1.0;
+        value-hard-min: -100000.0;
+        value-hard-max: 1000000.0;
+        current-value <=> config.static-friction-torque;
         enabled: physics_enable.checked;
     }
 
