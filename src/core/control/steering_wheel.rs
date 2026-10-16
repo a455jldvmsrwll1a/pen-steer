@@ -98,9 +98,21 @@ impl Control for SteeringWheel {
                     0.0
                 };
 
-                let friction_torque = config.damping_coeff * -self.velocity;
+                // Calculate torques not accounting for friction yet.
                 let spring_torque = config.spring_stiffness * -self.angle;
-                let net_force = ffb_torque + friction_torque + spring_torque;
+                let damping_torque = config.damping_coeff * -self.velocity;
+                let torque_no_friction = ffb_torque + spring_torque + damping_torque;
+
+                // Apply static or kinetic friction depending on current situation.
+                let friction_torque = if self.velocity.abs() >= 1e-5
+                    || torque_no_friction.abs() > config.static_friction_torque
+                {
+                    config.kinematic_friction_torque * -self.velocity.signum()
+                } else {
+                    math::clamp_symmetric(config.static_friction_torque, -torque_no_friction)
+                };
+
+                let net_force = torque_no_friction + friction_torque;
                 let angular_acceleration = net_force / config.inertia;
 
                 self.velocity += angular_acceleration * dt;
