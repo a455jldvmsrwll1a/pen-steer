@@ -269,7 +269,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         label-width <=> slider-label-width;
         value-display-suffix: " Nm/rad";
         value-soft-min: 0.0;
-        value-soft-max: 100.0;
+        value-soft-max: 50.0;
         value-step: 0.1;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
@@ -282,7 +282,7 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         hint: @tr("A higher damping coefficient slows down the wheel more and damps its movement.\nA coefficient of zero makes the wheel glide forever,\nunless influenced by spring force and/or force feedback.\n\nThe damping coefficient (μ-v) is a dimensionless quantity.\nThe torque it contributes depends on the wheel's velocity (ω):\n\nτ-v = - (μ-v)ω");
         label-width <=> slider-label-width;
         value-soft-min: 0.0;
-        value-soft-max: 100.0;
+        value-soft-max: 50.0;
         value-step: 0.1;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
@@ -296,8 +296,8 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         label-width <=> slider-label-width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
-        value-soft-max: 1000.0;
-        value-step: 0.5;
+        value-soft-max: 30.0;
+        value-step: 0.1;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.kinetic-friction-torque;
@@ -310,8 +310,8 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         label-width <=> slider-label-width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
-        value-soft-max: 10000.0;
-        value-step: 1.0;
+        value-soft-max: 50.0;
+        value-step: 0.5;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.static-friction-torque;
@@ -372,8 +372,8 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         label-width <=> slider-label-width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
-        value-soft-max: 2000.0;
-        value-step: 100.0;
+        value-soft-max: 200.0;
+        value-step: 1.0;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.full-grip-force;
@@ -410,8 +410,8 @@ export component SteeringWheelConfigPanel inherits VerticalBox {
         label-width <=> slider-label-width;
         value-display-suffix: " Nm";
         value-soft-min: 0.0;
-        value-soft-max: 2000.0;
-        value-step: 100.0;
+        value-soft-max: 200.0;
+        value-step: 5.0;
         value-hard-min: -100000.0;
         value-hard-max: 1000000.0;
         current-value <=> config.full-ffb-force;
