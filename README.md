@@ -1,6 +1,8 @@
 pen-steer
 =========
 
+<img src="assets/icon.svg"  alt="pen-steer app icon" height="196px">
+
 Use a drawing tablet or similar as a virtual steering wheel.
 
 It can be used for video games like
