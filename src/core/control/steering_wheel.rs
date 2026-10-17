@@ -85,7 +85,10 @@ impl SteeringWheel {
 
     fn fix_up(&mut self, config: &SteeringWheelControl) {
         let half_range = config.angle_range.to_radians().abs() * 0.5;
-        self.angle = self.angle.clamp(-half_range, half_range);
+        if self.angle.abs() > half_range {
+            self.angle = half_range * self.angle.signum();
+            self.velocity = 0.0;
+        }
 
         if !self.angle.is_finite() {
             self.angle = 0.0;
