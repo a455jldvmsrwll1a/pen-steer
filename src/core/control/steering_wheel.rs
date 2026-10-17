@@ -132,8 +132,8 @@ impl SteeringWheel {
 
         let mut dt_left = dt;
 
-        let max_substeps = 3;
-        for _ in 0..max_substeps {
+        let max_substeps = 15;
+        for step in 0..max_substeps {
             if dt_left <= 0.0 {
                 return;
             }
@@ -144,7 +144,7 @@ impl SteeringWheel {
             let torque_no_friction = ffb_torque + spring_torque + damping_torque;
 
             // Check if static friction applies. If so, we can skip this tick.
-            if self.velocity.abs() < Self::SPEED_THRESHOLD
+            if self.velocity.abs() <= f32::EPSILON
                 && torque_no_friction.abs() <= config.static_friction_torque
             {
                 self.velocity = 0.0;
@@ -159,6 +159,7 @@ impl SteeringWheel {
                 net_torque / config.inertia
             } else {
                 // Velocity is not affected this tick.
+
                 return;
             };
 
@@ -166,7 +167,7 @@ impl SteeringWheel {
 
             // Once again check if static friction applies. If so, the wheel
             // stops here.
-            if next_velocity.abs() < Self::SPEED_THRESHOLD
+            if next_velocity.abs() < f32::EPSILON
                 && torque_no_friction.abs() <= config.static_friction_torque
             {
                 // The wheel moves no further, but the wheel needs to be advanced
@@ -179,7 +180,8 @@ impl SteeringWheel {
 
             // Check if velocity ever crossed zero, as we have to account for that.
 
-            if (self.velocity == 0.0 && next_velocity == 0.0)
+            if self.velocity == 0.0
+                || next_velocity == 0.0
                 || self.velocity.signum() == next_velocity.signum()
             {
                 // Velocity did not cross, so we can stop here.
@@ -200,7 +202,7 @@ impl SteeringWheel {
             dt_left -= dt_at_zero_vel;
 
             trace!(
-                "vel xing at dt_x = {} ms ({:5.2}% of dt): {} -> {}, acc: {accel} rad/s^2",
+                "sub #{step}: vel 0-xing @ dt_x: {} ms ({:5.2}% of remaining dt): {} -> {}, acc: {accel} rad/s^2",
                 dt_at_zero_vel * 1000.0,
                 (dt_at_zero_vel / dt_left) * 100.0,
                 self.velocity,
