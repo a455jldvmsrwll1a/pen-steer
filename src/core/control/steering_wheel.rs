@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+use log::{trace, warn};
+
 use crate::core::{
     config::{Profile, SteeringWheelControl},
     control::Control,
@@ -57,11 +59,14 @@ impl Control for SteeringWheel {
     }
 
     fn can_sleep(&self) -> bool {
-        self.velocity.abs() < 1e-5
+        self.velocity.abs() < Self::SPEED_THRESHOLD
     }
 }
 
 impl SteeringWheel {
+    /// rad/s
+    const SPEED_THRESHOLD: f32 = 1e-5;
+
     fn apply_output(&self, output: &mut OutputSample, config: &SteeringWheelControl) {
         let half_range = config.angle_range.to_radians().abs() * 0.5;
 
@@ -86,7 +91,7 @@ impl SteeringWheel {
             self.angle = 0.0;
         }
 
-        if !self.velocity.is_finite() || self.velocity.abs() < 1e-5 {
+        if !self.velocity.is_finite() || self.velocity.abs() < Self::SPEED_THRESHOLD {
             self.velocity = 0.0;
         }
     }
@@ -122,27 +127,93 @@ impl SteeringWheel {
             0.0
         };
 
-        // Calculate torques not accounting for friction yet.
-        let spring_torque = config.spring_stiffness * -self.angle;
-        let damping_torque = config.damping_coeff * -self.velocity;
-        let torque_no_friction = ffb_torque + spring_torque + damping_torque;
+        let mut dt_left = dt;
 
-        // Apply static or kinetic friction depending on current situation.
-        // TODO: fix issues that can happen when velocity crosses zero or goes near it in a tick.
-        let friction_torque = if self.velocity.abs() >= 1e-5
-            || torque_no_friction.abs() > config.static_friction_torque
-        {
-            // FIXME: KINETIC HINDI KINEMATIC 8080
-            config.kinetic_friction_torque * -self.velocity.signum()
-        } else {
-            math::clamp_symmetric(config.static_friction_torque, -torque_no_friction)
-        };
+        let max_substeps = 3;
+        for _ in 0..max_substeps {
+            if dt_left <= 0.0 {
+                return;
+            }
 
-        let net_force = torque_no_friction + friction_torque;
-        let angular_acceleration = net_force / config.inertia;
+            // Calculate torques not accounting for friction yet.
+            let spring_torque = config.spring_stiffness * -self.angle;
+            let damping_torque = config.damping_coeff * -self.velocity;
+            let torque_no_friction = ffb_torque + spring_torque + damping_torque;
 
-        self.velocity += angular_acceleration * dt;
-        self.angle += self.velocity * dt;
+            // Check if static friction applies. If so, we can skip this tick.
+            if self.velocity.abs() < Self::SPEED_THRESHOLD
+                && torque_no_friction.abs() <= config.static_friction_torque
+            {
+                self.velocity = 0.0;
+
+                return;
+            }
+
+            let f_k_torque = config.kinetic_friction_torque * -self.velocity.signum();
+            let net_torque = torque_no_friction + f_k_torque;
+
+            let accel = if net_torque != 0.0 && config.inertia != 0.0 {
+                net_torque / config.inertia
+            } else {
+                // Velocity is not affected this tick.
+                return;
+            };
+
+            let next_velocity = self.velocity + accel * dt_left;
+
+            // Once again check if static friction applies. If so, the wheel
+            // stops here.
+            if next_velocity.abs() < Self::SPEED_THRESHOLD
+                && torque_no_friction.abs() <= config.static_friction_torque
+            {
+                // The wheel moves no further, but the wheel needs to be advanced
+                // up to the point at whicht eh velocity reached zero.
+                self.angle += self.velocity * dt_left + accel * dt_left * dt_left * 0.5;
+                self.velocity = 0.0;
+
+                return;
+            }
+
+            // Check if velocity ever crossed zero, as we have to account for that.
+
+            if (self.velocity == 0.0 && next_velocity == 0.0)
+                || self.velocity.signum() == next_velocity.signum()
+            {
+                // Velocity did not cross, so we can stop here.
+
+                self.velocity = next_velocity;
+                self.angle += self.velocity * dt;
+
+                return;
+            }
+
+            let dt_at_zero_vel = -self.velocity / accel;
+
+            // Integrate up to the point velocity becomes zero.
+            // We let the next substep handle the rest.
+            self.angle += next_velocity * dt_at_zero_vel;
+            self.velocity = 0.0;
+
+            dt_left -= dt_at_zero_vel;
+
+            trace!(
+                "vel xing at dt_x = {} ms ({:5.2}% of dt): {} -> {}, acc: {accel} rad/s^2",
+                dt_at_zero_vel * 1000.0,
+                (dt_at_zero_vel / dt_left) * 100.0,
+                self.velocity,
+                next_velocity
+            );
+
+            // Do another substep now that we're past the zero point.
+        }
+
+        if dt_left > f32::EPSILON {
+            warn!(
+                "Physics step took more than {max_substeps} substeps! Remaining delta-time was {} ms from the initial {} ms.",
+                dt_left * 1000.0,
+                dt * 1000.0,
+            );
+        }
     }
 
     fn handle_state_transitions(&mut self, pen: &Pen, config: &SteeringWheelControl) {
