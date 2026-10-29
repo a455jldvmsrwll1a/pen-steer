@@ -136,11 +136,23 @@ impl State {
         // Steering wheel absolute axis.
         handle.set_evbit(EventKind::Absolute)?;
         handle.set_absbit(AbsoluteAxis::X)?;
+        handle.set_absbit(AbsoluteAxis::Y)?;
         handle.set_absbit(AbsoluteAxis::Gas)?;
         handle.set_absbit(AbsoluteAxis::Brake)?;
         let abs = [
             AbsoluteInfoSetup {
                 axis: AbsoluteAxis::X,
+                info: AbsoluteInfo {
+                    value: 0,
+                    minimum: -(config.resolution as i32),
+                    maximum: config.resolution as i32,
+                    fuzz: 0,
+                    flat: 0,
+                    resolution: config.resolution as i32,
+                },
+            },
+            AbsoluteInfoSetup {
+                axis: AbsoluteAxis::Y,
                 info: AbsoluteInfo {
                     value: 0,
                     minimum: -(config.resolution as i32),
