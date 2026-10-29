@@ -336,9 +336,12 @@ impl State {
         {
             self.wheel_axis_prev = self.wheel_axis;
 
-            events_buf[events_emitted] =
-                InputEvent::from(AbsoluteEvent::new(ZERO, AbsoluteAxis::X, self.wheel_axis))
-                    .into_raw();
+            events_buf[events_emitted] = InputEvent::from(AbsoluteEvent::new(
+                IGNORED_EVENT_TIME,
+                AbsoluteAxis::X,
+                self.wheel_axis,
+            ))
+            .into_raw();
 
             events_emitted += 1;
         }
@@ -351,7 +354,7 @@ impl State {
             self.accelerator_axis_prev = self.accelerator_axis;
 
             events_buf[events_emitted] = InputEvent::from(AbsoluteEvent::new(
-                ZERO,
+                IGNORED_EVENT_TIME,
                 AbsoluteAxis::Gas,
                 self.accelerator_axis,
             ))
@@ -368,7 +371,7 @@ impl State {
             self.brake_axis_prev = self.brake_axis;
 
             events_buf[events_emitted] = InputEvent::from(AbsoluteEvent::new(
-                ZERO,
+                IGNORED_EVENT_TIME,
                 AbsoluteAxis::Brake,
                 self.brake_axis,
             ))
@@ -381,7 +384,7 @@ impl State {
             self.horn_key_prev = self.horn_key;
 
             events_buf[events_emitted] = InputEvent::from(KeyEvent::new(
-                ZERO,
+                IGNORED_EVENT_TIME,
                 Key::ButtonThumbr,
                 KeyState::pressed(self.horn_key),
             ))
@@ -395,8 +398,12 @@ impl State {
         }
 
         // Insert sync report event.
-        events_buf[events_emitted] =
-            InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).into_raw();
+        events_buf[events_emitted] = InputEvent::from(SynchronizeEvent::new(
+            IGNORED_EVENT_TIME,
+            SynchronizeKind::Report,
+            0,
+        ))
+        .into_raw();
 
         self.handle
             .write(&events_buf[..=events_emitted])
@@ -457,7 +464,7 @@ impl Debug for State {
     }
 }
 
-const ZERO: EventTime = EventTime::new(0, 0);
+const IGNORED_EVENT_TIME: EventTime = EventTime::new(0, 0);
 const NULL_EVENT: input_event = input_event {
     time: timeval {
         tv_sec: 0,
