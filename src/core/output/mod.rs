@@ -21,6 +21,7 @@ use mio::{Events, Poll, Token, Waker};
 use crate::core::config::Profile;
 
 mod uinput;
+mod vigem;
 
 #[derive(Debug)]
 pub enum OutputEvent {
@@ -119,14 +120,29 @@ impl OutputBackendHandle {
 
             let result = match conf.active_output {
                 super::config::OutputBackend::Null => null_thread_loop(obs),
+                #[cfg(target_os = "linux")]
                 super::config::OutputBackend::LinuxUinput => {
                     uinput::uinput_thread_loop(&conf.linux_uinput_output, obs)
                 }
+                #[cfg(not(target_os = "linux"))]
+                super::config::OutputBackend::LinuxUinput => {
+                    Err(anyhow!("LinuxUinput supports Linux only."))
+                }
+                #[cfg(target_os = "linux")]
                 super::config::OutputBackend::LinuxUsbPeripheral => {
                     Err(anyhow!("LinuxUsbPeripheral not yet implemented."))
                 }
+                #[cfg(not(target_os = "linux"))]
+                super::config::OutputBackend::LinuxUsbPeripheral => {
+                    Err(anyhow!("LinuxUsbPeripheral supports Linux only."))
+                }
+                #[cfg(target_os = "windows")]
                 super::config::OutputBackend::WindowsVigemBus => {
-                    Err(anyhow!("WindowsVigemBus not yet implemented."))
+                    vigem::thread_loop(&conf.windows_vigembus_output, obs)
+                }
+                #[cfg(not(target_os = "windows"))]
+                super::config::OutputBackend::WindowsVigemBus => {
+                    Err(anyhow!("WindowsVigemBus supports Windows only."))
                 }
                 super::config::OutputBackend::UsbOverIpServer => {
                     Err(anyhow!("UsbOverIpServer not yet implemented."))
